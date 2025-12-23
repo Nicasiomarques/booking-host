@@ -24,7 +24,15 @@ export const createServiceSchema = z.object({
     description: 'Maximum capacity per slot',
     example: 1,
   }),
-}).openapi('CreateServiceInput')
+}).openapi('CreateServiceInput', {
+  example: {
+    name: 'Deep Tissue Massage',
+    description: 'A therapeutic massage targeting deep muscle layers.',
+    basePrice: 150.00,
+    durationMinutes: 60,
+    capacity: 1,
+  },
+})
 
 export const updateServiceSchema = z.object({
   name: z.string().trim().min(1).max(255).optional().openapi({
@@ -49,7 +57,16 @@ export const updateServiceSchema = z.object({
     description: 'Whether the service is active',
     example: true,
   }),
-}).openapi('UpdateServiceInput')
+}).openapi('UpdateServiceInput', {
+  example: {
+    name: 'Deep Tissue Massage - Premium',
+    description: 'An enhanced therapeutic massage with aromatherapy.',
+    basePrice: 180.00,
+    durationMinutes: 90,
+    capacity: 1,
+    active: true,
+  },
+})
 
 export const serviceResponseSchema = z.object({
   id: z.string().uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
@@ -62,7 +79,20 @@ export const serviceResponseSchema = z.object({
   active: z.boolean().openapi({ example: true }),
   createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
   updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
-}).openapi('ServiceResponse')
+}).openapi('ServiceResponse', {
+  example: {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    establishmentId: '550e8400-e29b-41d4-a716-446655440001',
+    name: 'Deep Tissue Massage',
+    description: 'A therapeutic massage targeting deep muscle layers.',
+    basePrice: 150.00,
+    durationMinutes: 60,
+    capacity: 1,
+    active: true,
+    createdAt: '2025-01-15T10:30:00.000Z',
+    updatedAt: '2025-01-15T10:30:00.000Z',
+  },
+})
 
 export const serviceIdParamSchema = z.object({
   serviceId: z.string().uuid().openapi({

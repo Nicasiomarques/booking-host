@@ -23,14 +23,26 @@ export const registerSchema = z.object({
     description: 'User full name',
     example: 'John Doe',
   }),
-}).openapi('RegisterInput')
+}).openapi('RegisterInput', {
+  example: {
+    email: 'user@example.com',
+    password: 'SecurePass123',
+    name: 'John Doe',
+  },
+})
 
 export const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, 'Password is required').openapi({
     description: 'User password',
+    example: 'SecurePass123',
   }),
-}).openapi('LoginInput')
+}).openapi('LoginInput', {
+  example: {
+    email: 'user@example.com',
+    password: 'SecurePass123',
+  },
+})
 
 export const authResponseSchema = z.object({
   accessToken: z.string().openapi({
@@ -46,14 +58,28 @@ export const authResponseSchema = z.object({
     email: z.string().email().openapi({ example: 'user@example.com' }),
     name: z.string().openapi({ example: 'John Doe' }),
   }),
-}).openapi('AuthResponse')
+}).openapi('AuthResponse', {
+  example: {
+    accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJpYXQiOjE3MDUzMTI2MDB9.abc123',
+    refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJpYXQiOjE3MDUzMTI2MDB9.xyz789',
+    user: {
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      email: 'user@example.com',
+      name: 'John Doe',
+    },
+  },
+})
 
 export const refreshResponseSchema = z.object({
   accessToken: z.string().openapi({
     description: 'New JWT access token',
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   }),
-}).openapi('RefreshResponse')
+}).openapi('RefreshResponse', {
+  example: {
+    accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJpYXQiOjE3MDUzMTI2MDB9.newtoken',
+  },
+})
 
 export type RegisterInput = z.infer<typeof registerSchema>
 export type LoginInput = z.infer<typeof loginSchema>

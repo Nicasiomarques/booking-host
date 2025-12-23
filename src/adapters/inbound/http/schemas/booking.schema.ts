@@ -10,7 +10,12 @@ export const bookingExtraSchema = z.object({
     description: 'Quantity of this extra',
     example: 1,
   }),
-}).openapi('BookingExtra')
+}).openapi('BookingExtra', {
+  example: {
+    extraItemId: '550e8400-e29b-41d4-a716-446655440005',
+    quantity: 1,
+  },
+})
 
 export const createBookingSchema = z.object({
   serviceId: uuidSchema,
@@ -22,7 +27,19 @@ export const createBookingSchema = z.object({
   extras: z.array(bookingExtraSchema).optional().openapi({
     description: 'Optional extra items to add',
   }),
-}).openapi('CreateBookingInput')
+}).openapi('CreateBookingInput', {
+  example: {
+    serviceId: '550e8400-e29b-41d4-a716-446655440003',
+    availabilityId: '550e8400-e29b-41d4-a716-446655440004',
+    quantity: 1,
+    extras: [
+      {
+        extraItemId: '550e8400-e29b-41d4-a716-446655440005',
+        quantity: 1,
+      },
+    ],
+  },
+})
 
 export const listBookingsQuerySchema = paginationSchema.extend({
   status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED']).optional().openapi({
@@ -39,7 +56,17 @@ export const bookingExtraResponseSchema = z.object({
   extraItem: z.object({
     name: z.string().openapi({ example: 'Hot Stones' }),
   }),
-}).openapi('BookingExtraResponse')
+}).openapi('BookingExtraResponse', {
+  example: {
+    id: '550e8400-e29b-41d4-a716-446655440006',
+    extraItemId: '550e8400-e29b-41d4-a716-446655440005',
+    quantity: 1,
+    priceAtBooking: 25.00,
+    extraItem: {
+      name: 'Hot Stones',
+    },
+  },
+})
 
 export const bookingResponseSchema = z.object({
   id: z.string().uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
@@ -65,7 +92,43 @@ export const bookingResponseSchema = z.object({
     name: z.string().openapi({ example: 'Wellness Spa Center' }),
   }),
   extras: z.array(bookingExtraResponseSchema),
-}).openapi('BookingResponse')
+}).openapi('BookingResponse', {
+  example: {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    userId: '550e8400-e29b-41d4-a716-446655440001',
+    establishmentId: '550e8400-e29b-41d4-a716-446655440002',
+    serviceId: '550e8400-e29b-41d4-a716-446655440003',
+    availabilityId: '550e8400-e29b-41d4-a716-446655440004',
+    quantity: 1,
+    totalPrice: 175.00,
+    status: 'CONFIRMED',
+    createdAt: '2025-01-15T10:30:00.000Z',
+    updatedAt: '2025-01-15T10:30:00.000Z',
+    service: {
+      name: 'Deep Tissue Massage',
+      durationMinutes: 60,
+    },
+    availability: {
+      date: '2025-01-20',
+      startTime: '09:00',
+      endTime: '10:00',
+    },
+    establishment: {
+      name: 'Wellness Spa Center',
+    },
+    extras: [
+      {
+        id: '550e8400-e29b-41d4-a716-446655440006',
+        extraItemId: '550e8400-e29b-41d4-a716-446655440005',
+        quantity: 1,
+        priceAtBooking: 25.00,
+        extraItem: {
+          name: 'Hot Stones',
+        },
+      },
+    ],
+  },
+})
 
 export const bookingIdParamSchema = z.object({
   bookingId: z.string().uuid().openapi({
@@ -82,7 +145,43 @@ export const paginatedBookingsResponseSchema = z.object({
     limit: z.number().int().openapi({ example: 20 }),
     totalPages: z.number().int().openapi({ example: 2 }),
   }),
-}).openapi('PaginatedBookingsResponse')
+}).openapi('PaginatedBookingsResponse', {
+  example: {
+    data: [
+      {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        userId: '550e8400-e29b-41d4-a716-446655440001',
+        establishmentId: '550e8400-e29b-41d4-a716-446655440002',
+        serviceId: '550e8400-e29b-41d4-a716-446655440003',
+        availabilityId: '550e8400-e29b-41d4-a716-446655440004',
+        quantity: 1,
+        totalPrice: 175.00,
+        status: 'CONFIRMED',
+        createdAt: '2025-01-15T10:30:00.000Z',
+        updatedAt: '2025-01-15T10:30:00.000Z',
+        service: {
+          name: 'Deep Tissue Massage',
+          durationMinutes: 60,
+        },
+        availability: {
+          date: '2025-01-20',
+          startTime: '09:00',
+          endTime: '10:00',
+        },
+        establishment: {
+          name: 'Wellness Spa Center',
+        },
+        extras: [],
+      },
+    ],
+    meta: {
+      total: 25,
+      page: 1,
+      limit: 20,
+      totalPages: 2,
+    },
+  },
+})
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>
 export type ListBookingsQueryInput = z.infer<typeof listBookingsQuerySchema>

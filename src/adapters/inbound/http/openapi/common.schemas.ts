@@ -9,11 +9,22 @@ export const ErrorResponseSchema = z.object({
     message: z.string().openapi({ example: 'Resource not found' }),
     details: z.record(z.string(), z.unknown()).optional(),
   }),
-}).openapi('ErrorResponse')
+}).openapi('ErrorResponse', {
+  example: {
+    error: {
+      code: 'NOT_FOUND',
+      message: 'Resource not found',
+    },
+  },
+})
 
 export const SuccessResponseSchema = z.object({
   success: z.boolean().openapi({ example: true }),
-}).openapi('SuccessResponse')
+}).openapi('SuccessResponse', {
+  example: {
+    success: true,
+  },
+})
 
 export const PaginationMetaSchema = z.object({
   total: z.number().int().openapi({ example: 25 }),

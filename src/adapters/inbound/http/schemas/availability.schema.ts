@@ -26,7 +26,14 @@ export const createAvailabilitySchema = z.object({
 }).refine(
   (data) => data.startTime < data.endTime,
   { message: 'Start time must be before end time', path: ['endTime'] }
-).openapi('CreateAvailabilityInput')
+).openapi('CreateAvailabilityInput', {
+  example: {
+    date: '2025-01-20',
+    startTime: '09:00',
+    endTime: '10:00',
+    capacity: 5,
+  },
+})
 
 export const updateAvailabilitySchema = z.object({
   date: z.string().regex(dateRegex, 'Date must be in YYYY-MM-DD format').optional().openapi({
@@ -45,7 +52,14 @@ export const updateAvailabilitySchema = z.object({
     description: 'Available capacity for this slot',
     example: 10,
   }),
-}).openapi('UpdateAvailabilityInput')
+}).openapi('UpdateAvailabilityInput', {
+  example: {
+    date: '2025-01-21',
+    startTime: '10:00',
+    endTime: '11:00',
+    capacity: 10,
+  },
+})
 
 export const queryAvailabilitySchema = z.object({
   startDate: z.string().regex(dateRegex, 'Date must be in YYYY-MM-DD format').optional().openapi({
@@ -67,7 +81,18 @@ export const availabilityResponseSchema = z.object({
   capacity: z.number().int().openapi({ example: 5 }),
   createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
   updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
-}).openapi('AvailabilityResponse')
+}).openapi('AvailabilityResponse', {
+  example: {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    serviceId: '550e8400-e29b-41d4-a716-446655440001',
+    date: '2025-01-20',
+    startTime: '09:00',
+    endTime: '10:00',
+    capacity: 5,
+    createdAt: '2025-01-15T10:30:00.000Z',
+    updatedAt: '2025-01-15T10:30:00.000Z',
+  },
+})
 
 export const availabilityIdParamSchema = z.object({
   availabilityId: z.string().uuid().openapi({

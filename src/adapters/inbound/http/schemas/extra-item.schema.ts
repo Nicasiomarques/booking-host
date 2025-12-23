@@ -16,7 +16,13 @@ export const createExtraItemSchema = z.object({
     description: 'Maximum quantity per booking',
     example: 2,
   }),
-}).openapi('CreateExtraItemInput')
+}).openapi('CreateExtraItemInput', {
+  example: {
+    name: 'Hot Stones',
+    price: 25.00,
+    maxQuantity: 2,
+  },
+})
 
 export const updateExtraItemSchema = z.object({
   name: z.string().trim().min(1).max(255).optional().openapi({
@@ -34,7 +40,14 @@ export const updateExtraItemSchema = z.object({
     description: 'Whether the extra item is active',
     example: true,
   }),
-}).openapi('UpdateExtraItemInput')
+}).openapi('UpdateExtraItemInput', {
+  example: {
+    name: 'Premium Hot Stones',
+    price: 30.00,
+    maxQuantity: 3,
+    active: true,
+  },
+})
 
 export const extraItemResponseSchema = z.object({
   id: z.string().uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
@@ -45,7 +58,18 @@ export const extraItemResponseSchema = z.object({
   active: z.boolean().openapi({ example: true }),
   createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
   updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
-}).openapi('ExtraItemResponse')
+}).openapi('ExtraItemResponse', {
+  example: {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    serviceId: '550e8400-e29b-41d4-a716-446655440001',
+    name: 'Hot Stones',
+    price: 25.00,
+    maxQuantity: 2,
+    active: true,
+    createdAt: '2025-01-15T10:30:00.000Z',
+    updatedAt: '2025-01-15T10:30:00.000Z',
+  },
+})
 
 export const extraIdParamSchema = z.object({
   extraId: z.string().uuid().openapi({
