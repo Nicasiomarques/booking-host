@@ -34,6 +34,12 @@ export async function buildApp(): Promise<FastifyInstance> {
         },
       }),
     },
+    ajv: {
+      customOptions: {
+        strict: 'log',
+        keywords: ['example'],
+      },
+    },
   })
 
   // Security plugins
