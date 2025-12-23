@@ -42,6 +42,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(import('./plugins/prisma.plugin.js'))
   await app.register(import('./plugins/error-handler.plugin.js'))
 
+  // Routes
+  await app.register(import('./routes/auth.routes.js'), { prefix: '/v1/auth' })
+
   // Health check
   app.get('/health', async () => ({ status: 'ok' }))
 
