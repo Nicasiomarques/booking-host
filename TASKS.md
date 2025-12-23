@@ -526,55 +526,55 @@ curl -X DELETE http://localhost:3000/v1/services/{id} \
 
 ### 5.1 ExtraItem Repository
 
-- [ ] **5.1.1** Create extra item repository
+- [x] **5.1.1** Create extra item repository
   - src/adapters/outbound/prisma/extra-item.repository.ts
   - create(), findById(), findByService(), update(), softDelete()
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed extra item repository | Claude |
 
 ---
 
 ### 5.2 ExtraItem Service
 
-- [ ] **5.2.1** Create extra item service
+- [x] **5.2.1** Create extra item service
   - src/application/extra-item.service.ts
   - create(), findByService(), update(), delete()
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed extra item service | Claude |
 
 ---
 
 ### 5.3 ExtraItem Schemas
 
-- [ ] **5.3.1** Create extra item schemas
+- [x] **5.3.1** Create extra item schemas
   - src/adapters/inbound/http/schemas/extra-item.schema.ts
   - createExtraItemSchema, updateExtraItemSchema
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed extra item schemas | Claude |
 
 ---
 
 ### 5.4 ExtraItem Routes
 
-- [ ] **5.4.1** POST /v1/services/:serviceId/extras
+- [x] **5.4.1** POST /v1/services/:serviceId/extras
   - Create extra item (OWNER only)
 
-- [ ] **5.4.2** GET /v1/services/:serviceId/extras
+- [x] **5.4.2** GET /v1/services/:serviceId/extras
   - List extras for service (public)
 
-- [ ] **5.4.3** PUT /v1/extras/:id
+- [x] **5.4.3** PUT /v1/extras/:id
   - Update extra item (OWNER only)
 
-- [ ] **5.4.4** DELETE /v1/extras/:id
+- [x] **5.4.4** DELETE /v1/extras/:id
   - Soft delete extra item (OWNER only)
 
 **Tests:**
@@ -585,10 +585,12 @@ curl -X POST http://localhost:3000/v1/services/{serviceId}/extras \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"name":"Aromatherapy","price":10.00,"maxQuantity":1}'
 # Expected: {"id":"...","name":"Aromatherapy",...}
+# Result: ✓
 
 # List extras
 curl -X GET http://localhost:3000/v1/services/{serviceId}/extras
 # Expected: [{"id":"...","name":"Aromatherapy",...}]
+# Result: ✓
 
 # Update extra
 curl -X PUT http://localhost:3000/v1/extras/{id} \
@@ -596,17 +598,19 @@ curl -X PUT http://localhost:3000/v1/extras/{id} \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"price":12.00}'
 # Expected: {"id":"...","price":"12.00",...}
+# Result: ✓
 
 # Delete extra
 curl -X DELETE http://localhost:3000/v1/extras/{id} \
   -H "Authorization: Bearer $TOKEN"
 # Expected: {"success":true}
+# Result: ✓
 ```
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed extra item routes with tests | Claude |
 
 ---
 
@@ -914,7 +918,7 @@ npm run test:e2e -- auth.e2e.test.ts
 | 2. Authentication | 14 subtasks | Completed |
 | 3. Establishments | 9 subtasks | Completed |
 | 4. Services | 9 subtasks | Completed |
-| 5. Extra Items | 8 subtasks | Not started |
+| 5. Extra Items | 8 subtasks | Completed |
 | 6. Availability | 8 subtasks | Not started |
 | 7. Bookings | 9 subtasks | Not started |
 | 8. Testing | 4 subtasks | Not started |
@@ -933,3 +937,4 @@ npm run test:e2e -- auth.e2e.test.ts
 | 2025-12-23 | 2 | Phase 2 completed - Authentication System | Claude |
 | 2025-12-23 | 3 | Phase 3 completed - Establishments | Claude |
 | 2025-12-23 | 4 | Phase 4 completed - Services | Claude |
+| 2025-12-23 | 5 | Phase 5 completed - Extra Items | Claude |
