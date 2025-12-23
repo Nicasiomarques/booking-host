@@ -4,9 +4,9 @@ import type {
   UpdateEstablishmentData,
   EstablishmentWithRole,
   Role,
-} from '../domain/entities/index.js'
-import { EstablishmentRepository } from '../adapters/outbound/prisma/establishment.repository.js'
-import { NotFoundError, ForbiddenError } from '../domain/errors.js'
+} from '#domain/index.js'
+import { NotFoundError, ForbiddenError } from '#domain/index.js'
+import { EstablishmentRepository } from '#adapters/outbound/prisma/index.js'
 
 export class EstablishmentService {
   constructor(private readonly repository: EstablishmentRepository) {}

@@ -27,6 +27,12 @@
   ],
   "author": "",
   "license": "ISC",
+  "imports": {
+    "#adapters/*": "./src/adapters/*",
+    "#application/*": "./src/application/*",
+    "#config/*": "./src/config/*",
+    "#domain/*": "./src/domain/*"
+  },
   "engines": {
     "node": ">=22.0.0"
   },

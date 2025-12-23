@@ -1,6 +1,6 @@
 import { FastifyRequest } from 'fastify'
-import { jwtAdapter, TokenPayload } from '../../../outbound/token/jwt.adapter.js'
-import { UnauthorizedError } from '../../../../domain/errors.js'
+import { jwtAdapter, TokenPayload } from '#adapters/outbound/token/index.js'
+import { UnauthorizedError } from '#domain/index.js'
 
 declare module 'fastify' {
   interface FastifyRequest {

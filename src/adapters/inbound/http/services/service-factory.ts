@@ -1,16 +1,20 @@
 import { PrismaClient } from '@prisma/client'
-import { AuthService } from '../../../../application/auth.service.js'
-import { EstablishmentService } from '../../../../application/establishment.service.js'
-import { ServiceService } from '../../../../application/service.service.js'
-import { ExtraItemService } from '../../../../application/extra-item.service.js'
-import { AvailabilityService } from '../../../../application/availability.service.js'
-import { BookingService } from '../../../../application/booking.service.js'
-import { UserRepository } from '../../../outbound/prisma/user.repository.js'
-import { EstablishmentRepository } from '../../../outbound/prisma/establishment.repository.js'
-import { ServiceRepository } from '../../../outbound/prisma/service.repository.js'
-import { ExtraItemRepository } from '../../../outbound/prisma/extra-item.repository.js'
-import { AvailabilityRepository } from '../../../outbound/prisma/availability.repository.js'
-import { BookingRepository } from '../../../outbound/prisma/booking.repository.js'
+import {
+  AuthService,
+  EstablishmentService,
+  ServiceService,
+  ExtraItemService,
+  AvailabilityService,
+  BookingService,
+} from '#application/index.js'
+import {
+  UserRepository,
+  EstablishmentRepository,
+  ServiceRepository,
+  ExtraItemRepository,
+  AvailabilityRepository,
+  BookingRepository,
+} from '#adapters/outbound/prisma/index.js'
 
 export interface Services {
   auth: AuthService

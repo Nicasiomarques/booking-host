@@ -1,5 +1,5 @@
 import { PrismaClient, ExtraItem as PrismaExtraItem, Prisma } from '@prisma/client'
-import type { ExtraItem, CreateExtraItemData, UpdateExtraItemData } from '../../../domain/entities/index.js'
+import type { ExtraItem, CreateExtraItemData, UpdateExtraItemData } from '#domain/entities/index.js'
 
 export type { ExtraItem, CreateExtraItemData, UpdateExtraItemData }
 

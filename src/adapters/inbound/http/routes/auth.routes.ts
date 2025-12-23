@@ -6,11 +6,10 @@ import {
   refreshResponseSchema,
   RegisterInput,
   LoginInput,
-} from '../schemas/auth.schema.js'
-import { ErrorResponseSchema, SuccessResponseSchema } from '../openapi/common.schemas.js'
-import { buildRouteSchema } from '../openapi/fastify-schema.js'
-import { validate } from '../middleware/validate.js'
-import { isProduction } from '../../../../config/app.config.js'
+} from '../schemas/index.js'
+import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '../openapi/index.js'
+import { validate } from '../middleware/index.js'
+import { isProduction } from '#config/index.js'
 
 export default async function authRoutes(fastify: FastifyInstance) {
   const { auth: authService } = fastify.services

@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import type { CreateUserData, UserWithRoles } from '../../../domain/entities/index.js'
+import type { CreateUserData, UserWithRoles } from '#domain/entities/index.js'
 
 export type { CreateUserData, UserWithRoles }
 

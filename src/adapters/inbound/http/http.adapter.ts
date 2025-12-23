@@ -5,7 +5,7 @@ import cookie from '@fastify/cookie'
 import rateLimit from '@fastify/rate-limit'
 import swagger from '@fastify/swagger'
 import swaggerUi from '@fastify/swagger-ui'
-import { isProduction } from '../../../config/app.config.js'
+import { isProduction } from '#config/app.config.js'
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({

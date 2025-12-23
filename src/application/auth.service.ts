@@ -1,8 +1,9 @@
 import { Prisma } from '@prisma/client'
-import { UserRepository, UserWithRoles } from '../adapters/outbound/prisma/user.repository.js'
-import { jwtAdapter, TokenPayload } from '../adapters/outbound/token/jwt.adapter.js'
+import type { UserWithRoles } from '#domain/index.js'
+import { ConflictError, UnauthorizedError } from '#domain/index.js'
+import { UserRepository } from '#adapters/outbound/prisma/index.js'
+import { jwtAdapter, TokenPayload } from '#adapters/outbound/token/index.js'
 import { passwordService } from './password.service.js'
-import { ConflictError, UnauthorizedError } from '../domain/errors.js'
 
 export interface RegisterInput {
   email: string

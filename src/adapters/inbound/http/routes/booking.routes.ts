@@ -7,12 +7,10 @@ import {
   paginatedBookingsResponseSchema,
   CreateBookingInput,
   ListBookingsQueryInput,
-} from '../schemas/booking.schema.js'
-import { ErrorResponseSchema } from '../openapi/common.schemas.js'
-import { buildRouteSchema } from '../openapi/fastify-schema.js'
-import { validate, validateQuery } from '../middleware/validate.js'
-import { authenticate } from '../middleware/auth.middleware.js'
-import type { BookingStatus } from '../../../../domain/entities/index.js'
+} from '../schemas/index.js'
+import { ErrorResponseSchema, buildRouteSchema } from '../openapi/index.js'
+import { validate, validateQuery, authenticate } from '../middleware/index.js'
+import type { BookingStatus } from '#domain/index.js'
 
 const idParamSchema = z.object({
   id: z.string().uuid(),

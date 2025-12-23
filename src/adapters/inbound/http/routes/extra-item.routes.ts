@@ -4,14 +4,12 @@ import {
   createExtraItemSchema,
   updateExtraItemSchema,
   extraItemResponseSchema,
+  serviceIdParamSchema,
   CreateExtraItemInput,
   UpdateExtraItemInput,
-} from '../schemas/extra-item.schema.js'
-import { serviceIdParamSchema } from '../schemas/service.schema.js'
-import { ErrorResponseSchema, SuccessResponseSchema } from '../openapi/common.schemas.js'
-import { buildRouteSchema } from '../openapi/fastify-schema.js'
-import { validate } from '../middleware/validate.js'
-import { authenticate } from '../middleware/auth.middleware.js'
+} from '../schemas/index.js'
+import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '../openapi/index.js'
+import { validate, authenticate } from '../middleware/index.js'
 
 const idParamSchema = z.object({
   id: z.string().uuid(),

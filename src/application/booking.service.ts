@@ -5,13 +5,15 @@ import type {
   BookingExtraItemData,
   ListBookingsOptions,
   PaginatedResult,
-} from '../domain/entities/index.js'
-import { BookingRepository } from '../adapters/outbound/prisma/booking.repository.js'
-import { ServiceRepository } from '../adapters/outbound/prisma/service.repository.js'
-import { AvailabilityRepository } from '../adapters/outbound/prisma/availability.repository.js'
-import { ExtraItemRepository } from '../adapters/outbound/prisma/extra-item.repository.js'
-import { EstablishmentRepository } from '../adapters/outbound/prisma/establishment.repository.js'
-import { NotFoundError, ForbiddenError, ConflictError } from '../domain/errors.js'
+} from '#domain/index.js'
+import { NotFoundError, ForbiddenError, ConflictError } from '#domain/index.js'
+import {
+  BookingRepository,
+  ServiceRepository,
+  AvailabilityRepository,
+  ExtraItemRepository,
+  EstablishmentRepository,
+} from '#adapters/outbound/prisma/index.js'
 
 export interface CreateBookingInput {
   serviceId: string

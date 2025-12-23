@@ -7,7 +7,7 @@ import type {
   ListBookingsOptions,
   PaginatedResult,
   BookingStatus,
-} from '../../../domain/entities/index.js'
+} from '#domain/entities/index.js'
 
 export type {
   Booking,

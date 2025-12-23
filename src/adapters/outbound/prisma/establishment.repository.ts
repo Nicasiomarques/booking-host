@@ -5,7 +5,7 @@ import type {
   UpdateEstablishmentData,
   EstablishmentWithRole,
   Role,
-} from '../../../domain/entities/index.js'
+} from '#domain/entities/index.js'
 
 export type { Establishment, CreateEstablishmentData, UpdateEstablishmentData, EstablishmentWithRole }
 

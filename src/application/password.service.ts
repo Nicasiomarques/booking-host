@@ -1,5 +1,5 @@
 import argon2 from 'argon2'
-import { argon2Options } from '../config/argon2.config.js'
+import { argon2Options } from '#config/index.js'
 
 export class PasswordService {
   async hash(password: string): Promise<string> {

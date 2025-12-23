@@ -8,12 +8,9 @@ import {
   establishmentIdParamSchema,
   CreateEstablishmentInput,
   UpdateEstablishmentInput,
-} from '../schemas/establishment.schema.js'
-import { ErrorResponseSchema } from '../openapi/common.schemas.js'
-import { buildRouteSchema } from '../openapi/fastify-schema.js'
-import { validate } from '../middleware/validate.js'
-import { authenticate } from '../middleware/auth.middleware.js'
-import { requireRole } from '../middleware/acl.middleware.js'
+} from '../schemas/index.js'
+import { ErrorResponseSchema, buildRouteSchema } from '../openapi/index.js'
+import { validate, authenticate, requireRole } from '../middleware/index.js'
 
 const idParamSchema = z.object({
   id: z.string().uuid(),

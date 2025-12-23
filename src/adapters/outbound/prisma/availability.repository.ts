@@ -1,5 +1,5 @@
 import { PrismaClient, Availability as PrismaAvailability } from '@prisma/client'
-import type { Availability, CreateAvailabilityData, UpdateAvailabilityData } from '../../../domain/entities/index.js'
+import type { Availability, CreateAvailabilityData, UpdateAvailabilityData } from '#domain/entities/index.js'
 
 export type { Availability, CreateAvailabilityData, UpdateAvailabilityData }
 

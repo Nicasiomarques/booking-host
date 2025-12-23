@@ -1,6 +1,6 @@
 import fp from 'fastify-plugin'
 import { FastifyInstance, FastifyError } from 'fastify'
-import { DomainError } from '../../../../domain/errors.js'
+import { DomainError } from '#domain/index.js'
 
 export default fp(async (fastify: FastifyInstance) => {
   fastify.setErrorHandler((error: FastifyError | DomainError, request, reply) => {

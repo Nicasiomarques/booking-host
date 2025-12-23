@@ -1,5 +1,5 @@
 import { PrismaClient, Service as PrismaService, Prisma } from '@prisma/client'
-import type { Service, CreateServiceData, UpdateServiceData, ExtraItem } from '../../../domain/entities/index.js'
+import type { Service, CreateServiceData, UpdateServiceData, ExtraItem } from '#domain/entities/index.js'
 
 export type { Service, CreateServiceData, UpdateServiceData }
 

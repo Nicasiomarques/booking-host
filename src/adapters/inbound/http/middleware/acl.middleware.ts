@@ -1,6 +1,6 @@
 import { FastifyRequest } from 'fastify'
-import { ForbiddenError } from '../../../../domain/errors.js'
-import type { Role } from '../../../../domain/entities/index.js'
+import { ForbiddenError } from '#domain/index.js'
+import type { Role } from '#domain/index.js'
 
 export function requireRole(...roles: Role[]) {
   return async (request: FastifyRequest) => {

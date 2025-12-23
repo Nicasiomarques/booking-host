@@ -1,6 +1,6 @@
 import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken'
-import { jwtConfig } from '../../../config/jwt.config.js'
-import { UnauthorizedError } from '../../../domain/errors.js'
+import { jwtConfig } from '#config/index.js'
+import { UnauthorizedError } from '#domain/index.js'
 
 export interface TokenPayload {
   userId: string

@@ -1,6 +1,6 @@
 import 'dotenv/config'
-import { buildApp } from './adapters/inbound/http/http.adapter.js'
-import { appConfig } from './config/app.config.js'
+import { buildApp } from '#adapters/inbound/http/http.adapter.js'
+import { appConfig } from '#config/app.config.js'
 
 async function main() {
   const app = await buildApp()
