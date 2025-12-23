@@ -425,20 +425,20 @@ curl -X GET http://localhost:3000/v1/establishments/my \
 
 ### 4.1 Service Repository
 
-- [ ] **4.1.1** Create service repository
+- [x] **4.1.1** Create service repository
   - src/adapters/outbound/prisma/service.repository.ts
   - create(), findById(), findByEstablishment(), update(), softDelete()
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed service repository | Claude |
 
 ---
 
 ### 4.2 Service Service
 
-- [ ] **4.2.1** Create service service
+- [x] **4.2.1** Create service service
   - src/application/service.service.ts
   - create(), findById(), findByEstablishment(), update(), delete()
   - Prevent delete if active bookings exist
@@ -446,38 +446,38 @@ curl -X GET http://localhost:3000/v1/establishments/my \
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed service service | Claude |
 
 ---
 
 ### 4.3 Service Schemas
 
-- [ ] **4.3.1** Create service schemas
+- [x] **4.3.1** Create service schemas
   - src/adapters/inbound/http/schemas/service.schema.ts
   - createServiceSchema, updateServiceSchema
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed service schemas | Claude |
 
 ---
 
 ### 4.4 Service Routes
 
-- [ ] **4.4.1** POST /v1/establishments/:establishmentId/services
+- [x] **4.4.1** POST /v1/establishments/:establishmentId/services
   - Create service (OWNER only)
 
-- [ ] **4.4.2** GET /v1/establishments/:establishmentId/services
+- [x] **4.4.2** GET /v1/establishments/:establishmentId/services
   - List services for establishment (public)
 
-- [ ] **4.4.3** GET /v1/services/:id
+- [x] **4.4.3** GET /v1/services/:id
   - Get service by ID (public)
 
-- [ ] **4.4.4** PUT /v1/services/:id
+- [x] **4.4.4** PUT /v1/services/:id
   - Update service (OWNER only)
 
-- [ ] **4.4.5** DELETE /v1/services/:id
+- [x] **4.4.5** DELETE /v1/services/:id
   - Soft delete service (OWNER only)
 
 **Tests:**
@@ -488,14 +488,17 @@ curl -X POST http://localhost:3000/v1/establishments/{establishmentId}/services 
   -H "Authorization: Bearer $TOKEN" \
   -d '{"name":"Massage","description":"60min massage","basePrice":50.00,"durationMinutes":60,"capacity":1}'
 # Expected: {"id":"...","name":"Massage",...}
+# Result: ✓
 
 # List services
 curl -X GET http://localhost:3000/v1/establishments/{establishmentId}/services
 # Expected: [{"id":"...","name":"Massage",...}]
+# Result: ✓
 
 # Get service
 curl -X GET http://localhost:3000/v1/services/{id}
 # Expected: {"id":"...","name":"Massage",...}
+# Result: ✓
 
 # Update service
 curl -X PUT http://localhost:3000/v1/services/{id} \
@@ -503,17 +506,19 @@ curl -X PUT http://localhost:3000/v1/services/{id} \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"basePrice":55.00}'
 # Expected: {"id":"...","basePrice":"55.00",...}
+# Result: ✓
 
 # Delete service
 curl -X DELETE http://localhost:3000/v1/services/{id} \
   -H "Authorization: Bearer $TOKEN"
 # Expected: {"success":true}
+# Result: ✓
 ```
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed service routes with tests | Claude |
 
 ---
 
@@ -908,7 +913,7 @@ npm run test:e2e -- auth.e2e.test.ts
 | 1. Project Setup | 15 subtasks | Completed |
 | 2. Authentication | 14 subtasks | Completed |
 | 3. Establishments | 9 subtasks | Completed |
-| 4. Services | 9 subtasks | Not started |
+| 4. Services | 9 subtasks | Completed |
 | 5. Extra Items | 8 subtasks | Not started |
 | 6. Availability | 8 subtasks | Not started |
 | 7. Bookings | 9 subtasks | Not started |
@@ -927,3 +932,4 @@ npm run test:e2e -- auth.e2e.test.ts
 | 2025-12-23 | 1 | Phase 1 completed - Project Setup & Infrastructure | Claude |
 | 2025-12-23 | 2 | Phase 2 completed - Authentication System | Claude |
 | 2025-12-23 | 3 | Phase 3 completed - Establishments | Claude |
+| 2025-12-23 | 4 | Phase 4 completed - Services | Claude |
