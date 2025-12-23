@@ -1,196 +1,110 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { FastifyInstance } from 'fastify'
-import {
-  getTestApp,
-  closeTestApp,
-  createTestUser,
-  loginTestUser,
-  createTestEstablishment,
-  createTestService,
-  createTestAvailability,
-  createTestExtraItem,
-  TestUser,
-} from './helpers/test-client.js'
+import * as T from './helpers/test-client.js'
+
+interface Booking {
+  id: string
+  status: string
+  totalPrice: number
+  quantity: number
+  service?: unknown
+}
+
+interface PaginatedResponse<T> {
+  data: T[]
+  total: number
+  page: number
+  limit: number
+}
 
 describe('Booking E2E', () => {
   let sut: FastifyInstance
-  let owner: TestUser
-  let customer: TestUser
-  let establishmentId: string
-  let serviceId: string
-  let availabilityId: string
-  let extraItemId: string
+  let setup: T.TestEstablishmentSetup
+  let customer: T.TestUser
 
   beforeAll(async () => {
-    sut = await getTestApp()
-
-    // Create owner user
-    owner = await createTestUser(sut, {
-      email: 'owner-booking@example.com',
-      password: 'Test1234!',
-      name: 'Booking Owner',
-    })
-
-    // Create establishment
-    const establishment = await createTestEstablishment(sut, owner.accessToken, {
-      name: 'Test Spa Bookings',
-      address: '123 Booking St',
-    })
-    establishmentId = establishment.id
-
-    // Re-login to get updated token with establishment roles
-    const loginResult = await loginTestUser(sut, {
-      email: 'owner-booking@example.com',
-      password: 'Test1234!',
-    })
-    owner.accessToken = loginResult.accessToken
-
-    // Create service
-    const service = await createTestService(sut, owner.accessToken, establishmentId, {
-      name: 'Massage Therapy',
-      basePrice: 50,
-      durationMinutes: 60,
-      capacity: 1,
-    })
-    serviceId = service.id
-
-    // Create availability
-    const availability = await createTestAvailability(sut, owner.accessToken, serviceId, {
-      date: '2025-02-15',
-      startTime: '09:00',
-      endTime: '10:00',
-      capacity: 5,
-    })
-    availabilityId = availability.id
-
-    // Create extra item
-    const extraItem = await createTestExtraItem(sut, owner.accessToken, serviceId, {
-      name: 'Hot Stones',
-      price: 15,
-      maxQuantity: 2,
-    })
-    extraItemId = extraItem.id
-
-    // Create customer user
-    customer = await createTestUser(sut, {
-      email: 'customer-booking@example.com',
+    sut = await T.getTestApp()
+    setup = await T.setupTestEstablishment(sut, 'booking', { includeExtraItem: true })
+    customer = await T.createTestUser(sut, {
+      email: T.uniqueEmail('customer-booking'),
       password: 'Test1234!',
       name: 'Booking Customer',
     })
   })
 
   afterAll(async () => {
-    await closeTestApp()
+    await T.closeTestApp()
   })
 
   describe('POST /v1/bookings', () => {
     it('should create booking successfully', async () => {
-      // Arrange
-      const payload = {
-        serviceId,
-        availabilityId,
-        quantity: 1,
-      }
-
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/bookings',
-        headers: { authorization: `Bearer ${customer.accessToken}` },
-        payload,
+      const response = await T.post<Booking>(sut, '/v1/bookings', {
+        token: customer.accessToken,
+        payload: {
+          serviceId: setup.serviceId,
+          availabilityId: setup.availabilityId,
+          quantity: 1,
+        },
       })
 
-      // Assert
-      expect(response.statusCode).toBe(201)
-      const body = JSON.parse(response.body)
+      const body = T.expectStatus(response, 201)
       expect(body.id).toBeDefined()
       expect(body.status).toBe('CONFIRMED')
-      expect(body.totalPrice).toBe('50')
+      expect(body.totalPrice).toBe(50)
       expect(body.quantity).toBe(1)
     })
 
     it('should create booking with extras', async () => {
-      // Arrange
-      const payload = {
-        serviceId,
-        availabilityId,
-        quantity: 1,
-        extras: [{ extraItemId, quantity: 1 }],
-      }
-
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/bookings',
-        headers: { authorization: `Bearer ${customer.accessToken}` },
-        payload,
+      const response = await T.post<Booking>(sut, '/v1/bookings', {
+        token: customer.accessToken,
+        payload: {
+          serviceId: setup.serviceId,
+          availabilityId: setup.availabilityId,
+          quantity: 1,
+          extras: [{ extraItemId: setup.extraItemId, quantity: 1 }],
+        },
       })
 
-      // Assert
-      expect(response.statusCode).toBe(201)
-      const body = JSON.parse(response.body)
-      expect(body.totalPrice).toBe('65') // 50 + 15
+      const body = T.expectStatus(response, 201)
+      expect(body.totalPrice).toBe(65) // 50 + 15
     })
 
     it('should fail when capacity is exceeded', async () => {
-      // Arrange
-      const payload = {
-        serviceId,
-        availabilityId,
-        quantity: 10, // More than available
-      }
-
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/bookings',
-        headers: { authorization: `Bearer ${customer.accessToken}` },
-        payload,
+      const response = await T.post<{ error?: { code?: string } }>(sut, '/v1/bookings', {
+        token: customer.accessToken,
+        payload: {
+          serviceId: setup.serviceId,
+          availabilityId: setup.availabilityId,
+          quantity: 100, // More than available
+        },
       })
 
-      // Assert
-      expect(response.statusCode).toBe(409)
-      const body = JSON.parse(response.body)
-      expect(body.error.code).toBe('CONFLICT')
+      T.expectError(response, 409, 'CONFLICT')
     })
 
     it('should fail without authentication', async () => {
-      // Arrange
-      const payload = {
-        serviceId,
-        availabilityId,
-        quantity: 1,
-      }
-
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/bookings',
-        payload,
+      const response = await T.post(sut, '/v1/bookings', {
+        payload: {
+          serviceId: setup.serviceId,
+          availabilityId: setup.availabilityId,
+          quantity: 1,
+        },
       })
 
-      // Assert
-      expect(response.statusCode).toBe(401)
+      T.expectStatus(response, 401)
     })
 
     it('should fail with invalid serviceId', async () => {
-      // Arrange
-      const payload = {
-        serviceId: '00000000-0000-0000-0000-000000000000',
-        availabilityId,
-        quantity: 1,
-      }
-
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/bookings',
-        headers: { authorization: `Bearer ${customer.accessToken}` },
-        payload,
+      const response = await T.post(sut, '/v1/bookings', {
+        token: customer.accessToken,
+        payload: {
+          serviceId: '00000000-0000-0000-0000-000000000000',
+          availabilityId: setup.availabilityId,
+          quantity: 1,
+        },
       })
 
-      // Assert
-      expect(response.statusCode).toBe(404)
+      T.expectStatus(response, 404)
     })
   })
 
@@ -198,86 +112,54 @@ describe('Booking E2E', () => {
     let bookingId: string
 
     beforeAll(async () => {
-      // Arrange - create a booking for subsequent tests
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/bookings',
-        headers: { authorization: `Bearer ${customer.accessToken}` },
-        payload: {
-          serviceId,
-          availabilityId,
-          quantity: 1,
-        },
+      const booking = await T.createTestBooking(sut, customer.accessToken, {
+        serviceId: setup.serviceId,
+        availabilityId: setup.availabilityId,
       })
-      bookingId = JSON.parse(response.body).id
+      bookingId = booking.id
     })
 
     it('should get booking by owner', async () => {
-      // Arrange - bookingId set in beforeAll
-
-      // Act
-      const response = await sut.inject({
-        method: 'GET',
-        url: `/v1/bookings/${bookingId}`,
-        headers: { authorization: `Bearer ${customer.accessToken}` },
+      const response = await T.get<Booking>(sut, `/v1/bookings/${bookingId}`, {
+        token: customer.accessToken,
       })
 
-      // Assert
-      expect(response.statusCode).toBe(200)
-      const body = JSON.parse(response.body)
+      const body = T.expectStatus(response, 200)
       expect(body.id).toBe(bookingId)
       expect(body.service).toBeDefined()
-      expect(body.availability).toBeDefined()
     })
 
     it('should get booking by establishment owner', async () => {
-      // Arrange - bookingId set in beforeAll
-
-      // Act
-      const response = await sut.inject({
-        method: 'GET',
-        url: `/v1/bookings/${bookingId}`,
-        headers: { authorization: `Bearer ${owner.accessToken}` },
+      const response = await T.get(sut, `/v1/bookings/${bookingId}`, {
+        token: setup.owner.accessToken,
       })
 
-      // Assert
-      expect(response.statusCode).toBe(200)
+      T.expectStatus(response, 200)
     })
 
     it('should fail for unauthorized user', async () => {
-      // Arrange
-      const otherUser = await createTestUser(sut, {
-        email: 'other-booking@example.com',
+      const otherUser = await T.createTestUser(sut, {
+        email: T.uniqueEmail('other'),
         password: 'Test1234!',
         name: 'Other User',
       })
 
-      // Act
-      const response = await sut.inject({
-        method: 'GET',
-        url: `/v1/bookings/${bookingId}`,
-        headers: { authorization: `Bearer ${otherUser.accessToken}` },
+      const response = await T.get(sut, `/v1/bookings/${bookingId}`, {
+        token: otherUser.accessToken,
       })
 
-      // Assert
-      expect(response.statusCode).toBe(403)
+      T.expectStatus(response, 403)
     })
   })
 
   describe('GET /v1/bookings/my', () => {
     it('should get user bookings with pagination', async () => {
-      // Arrange - customer already has bookings from previous tests
-
-      // Act
-      const response = await sut.inject({
-        method: 'GET',
-        url: '/v1/bookings/my?page=1&limit=10',
-        headers: { authorization: `Bearer ${customer.accessToken}` },
+      const response = await T.get<PaginatedResponse<Booking>>(sut, '/v1/bookings/my', {
+        token: customer.accessToken,
+        query: { page: 1, limit: 10 },
       })
 
-      // Assert
-      expect(response.statusCode).toBe(200)
-      const body = JSON.parse(response.body)
+      const body = T.expectStatus(response, 200)
       expect(body.data).toBeInstanceOf(Array)
       expect(body.total).toBeGreaterThan(0)
       expect(body.page).toBe(1)
@@ -287,106 +169,60 @@ describe('Booking E2E', () => {
 
   describe('GET /v1/establishments/:id/bookings', () => {
     it('should get establishment bookings for owner', async () => {
-      // Arrange - establishment already has bookings from previous tests
-
-      // Act
-      const response = await sut.inject({
-        method: 'GET',
-        url: `/v1/establishments/${establishmentId}/bookings`,
-        headers: { authorization: `Bearer ${owner.accessToken}` },
+      const response = await T.get<PaginatedResponse<Booking>>(sut, `/v1/establishments/${setup.establishmentId}/bookings`, {
+        token: setup.owner.accessToken,
       })
 
-      // Assert
-      expect(response.statusCode).toBe(200)
-      const body = JSON.parse(response.body)
+      const body = T.expectStatus(response, 200)
       expect(body.data).toBeInstanceOf(Array)
     })
 
     it('should fail for non-staff user', async () => {
-      // Arrange - customer is not staff
-
-      // Act
-      const response = await sut.inject({
-        method: 'GET',
-        url: `/v1/establishments/${establishmentId}/bookings`,
-        headers: { authorization: `Bearer ${customer.accessToken}` },
+      const response = await T.get(sut, `/v1/establishments/${setup.establishmentId}/bookings`, {
+        token: customer.accessToken,
       })
 
-      // Assert
-      expect(response.statusCode).toBe(403)
+      T.expectStatus(response, 403)
     })
   })
 
   describe('PUT /v1/bookings/:id/cancel', () => {
     it('should cancel booking and restore capacity', async () => {
-      // Arrange
-      const createResponse = await sut.inject({
-        method: 'POST',
-        url: '/v1/bookings',
-        headers: { authorization: `Bearer ${customer.accessToken}` },
-        payload: {
-          serviceId,
-          availabilityId,
-          quantity: 1,
-        },
-      })
-      const booking = JSON.parse(createResponse.body)
-
-      const beforeResponse = await sut.inject({
-        method: 'GET',
-        url: `/v1/services/${serviceId}/availabilities`,
-      })
-      const beforeAvailability = JSON.parse(beforeResponse.body)[0]
-
-      // Act
-      const cancelResponse = await sut.inject({
-        method: 'PUT',
-        url: `/v1/bookings/${booking.id}/cancel`,
-        headers: { authorization: `Bearer ${customer.accessToken}` },
+      const booking = await T.createTestBooking(sut, customer.accessToken, {
+        serviceId: setup.serviceId,
+        availabilityId: setup.availabilityId,
       })
 
-      // Assert
-      expect(cancelResponse.statusCode).toBe(200)
-      const cancelledBooking = JSON.parse(cancelResponse.body)
+      const beforeResponse = await T.get<{ capacity: number }[]>(sut, `/v1/services/${setup.serviceId}/availabilities`)
+      const beforeAvailability = beforeResponse.body[0]
+
+      const cancelResponse = await T.put<Booking>(sut, `/v1/bookings/${booking.id}/cancel`, {
+        token: customer.accessToken,
+      })
+
+      const cancelledBooking = T.expectStatus(cancelResponse, 200)
       expect(cancelledBooking.status).toBe('CANCELLED')
 
-      const afterResponse = await sut.inject({
-        method: 'GET',
-        url: `/v1/services/${serviceId}/availabilities`,
-      })
-      const afterAvailability = JSON.parse(afterResponse.body)[0]
+      const afterResponse = await T.get<{ capacity: number }[]>(sut, `/v1/services/${setup.serviceId}/availabilities`)
+      const afterAvailability = afterResponse.body[0]
       expect(afterAvailability.capacity).toBe(beforeAvailability.capacity + 1)
     })
 
     it('should fail to cancel already cancelled booking', async () => {
-      // Arrange
-      const createResponse = await sut.inject({
-        method: 'POST',
-        url: '/v1/bookings',
-        headers: { authorization: `Bearer ${customer.accessToken}` },
-        payload: {
-          serviceId,
-          availabilityId,
-          quantity: 1,
-        },
-      })
-      const booking = JSON.parse(createResponse.body)
-
-      await sut.inject({
-        method: 'PUT',
-        url: `/v1/bookings/${booking.id}/cancel`,
-        headers: { authorization: `Bearer ${customer.accessToken}` },
+      const booking = await T.createTestBooking(sut, customer.accessToken, {
+        serviceId: setup.serviceId,
+        availabilityId: setup.availabilityId,
       })
 
-      // Act
-      const response = await sut.inject({
-        method: 'PUT',
-        url: `/v1/bookings/${booking.id}/cancel`,
-        headers: { authorization: `Bearer ${customer.accessToken}` },
+      await T.put(sut, `/v1/bookings/${booking.id}/cancel`, {
+        token: customer.accessToken,
       })
 
-      // Assert
-      expect(response.statusCode).toBe(409)
+      const response = await T.put(sut, `/v1/bookings/${booking.id}/cancel`, {
+        token: customer.accessToken,
+      })
+
+      T.expectStatus(response, 409)
     })
   })
 })

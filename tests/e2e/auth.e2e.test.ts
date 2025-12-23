@@ -1,37 +1,38 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { FastifyInstance } from 'fastify'
-import { getTestApp, closeTestApp } from './helpers/test-client.js'
+import * as T from './helpers/test-client.js'
+
+interface AuthResponse {
+  accessToken: string
+  user: {
+    id: string
+    email: string
+    name: string
+  }
+}
 
 describe('Auth E2E', () => {
   let sut: FastifyInstance
 
   beforeAll(async () => {
-    sut = await getTestApp()
+    sut = await T.getTestApp()
   })
 
   afterAll(async () => {
-    await closeTestApp()
+    await T.closeTestApp()
   })
 
   describe('POST /v1/auth/register', () => {
     it('should register a new user successfully', async () => {
-      // Arrange
-      const payload = {
-        email: 'newuser@example.com',
-        password: 'Test1234!',
-        name: 'New User',
-      }
-
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/auth/register',
-        payload,
+      const response = await T.post<AuthResponse>(sut, '/v1/auth/register', {
+        payload: {
+          email: 'newuser@example.com',
+          password: 'Test1234!',
+          name: 'New User',
+        },
       })
 
-      // Assert
-      expect(response.statusCode).toBe(200)
-      const body = JSON.parse(response.body)
+      const body = T.expectStatus(response, 200)
       expect(body.accessToken).toBeDefined()
       expect(body.user.email).toBe('newuser@example.com')
       expect(body.user.name).toBe('New User')
@@ -39,222 +40,127 @@ describe('Auth E2E', () => {
     })
 
     it('should fail with invalid email format', async () => {
-      // Arrange
-      const payload = {
-        email: 'invalid-email',
-        password: 'Test1234!',
-        name: 'Test User',
-      }
-
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/auth/register',
-        payload,
+      const response = await T.post(sut, '/v1/auth/register', {
+        payload: {
+          email: 'invalid-email',
+          password: 'Test1234!',
+          name: 'Test User',
+        },
       })
 
-      // Assert
-      expect(response.statusCode).toBe(422)
+      T.expectStatus(response, 422)
     })
 
     it('should fail with weak password', async () => {
-      // Arrange
-      const payload = {
-        email: 'test2@example.com',
-        password: '123',
-        name: 'Test User',
-      }
-
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/auth/register',
-        payload,
+      const response = await T.post(sut, '/v1/auth/register', {
+        payload: {
+          email: T.uniqueEmail('weak'),
+          password: '123',
+          name: 'Test User',
+        },
       })
 
-      // Assert
-      expect(response.statusCode).toBe(422)
+      T.expectStatus(response, 422)
     })
 
     it('should fail with duplicate email', async () => {
-      // Arrange
-      const payload = {
-        email: 'duplicate@example.com',
-        password: 'Test1234!',
-        name: 'First User',
-      }
+      const email = 'duplicate@example.com'
 
-      await sut.inject({
-        method: 'POST',
-        url: '/v1/auth/register',
-        payload,
+      // Register first user
+      await T.post(sut, '/v1/auth/register', {
+        payload: T.defaultUserData({ email, name: 'First User' }),
       })
 
-      const duplicatePayload = {
-        email: 'duplicate@example.com',
-        password: 'Test1234!',
-        name: 'Second User',
-      }
-
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/auth/register',
-        payload: duplicatePayload,
+      // Try to register with same email
+      const response = await T.post(sut, '/v1/auth/register', {
+        payload: T.defaultUserData({ email, name: 'Second User' }),
       })
 
-      // Assert
-      expect(response.statusCode).toBe(409)
+      T.expectStatus(response, 409)
     })
   })
 
   describe('POST /v1/auth/login', () => {
+    const loginEmail = 'login@example.com'
+
     beforeAll(async () => {
-      // Arrange - create user for login tests
-      await sut.inject({
-        method: 'POST',
-        url: '/v1/auth/register',
-        payload: {
-          email: 'login@example.com',
-          password: 'Test1234!',
-          name: 'Login User',
-        },
+      await T.post(sut, '/v1/auth/register', {
+        payload: T.defaultUserData({ email: loginEmail, name: 'Login User' }),
       })
     })
 
     it('should login successfully with valid credentials', async () => {
-      // Arrange
-      const payload = {
-        email: 'login@example.com',
-        password: 'Test1234!',
-      }
-
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/auth/login',
-        payload,
+      const response = await T.post<AuthResponse>(sut, '/v1/auth/login', {
+        payload: { email: loginEmail, password: 'Test1234!' },
       })
 
-      // Assert
-      expect(response.statusCode).toBe(200)
-      const body = JSON.parse(response.body)
+      const body = T.expectStatus(response, 200)
       expect(body.accessToken).toBeDefined()
-      expect(body.user.email).toBe('login@example.com')
+      expect(body.user.email).toBe(loginEmail)
 
-      const cookies = response.cookies
-      const refreshCookie = cookies.find((c) => c.name === 'refreshToken')
+      const refreshCookie = response.raw.cookies.find((c) => c.name === 'refreshToken')
       expect(refreshCookie).toBeDefined()
       expect(refreshCookie?.httpOnly).toBe(true)
     })
 
     it('should fail with wrong password', async () => {
-      // Arrange
-      const payload = {
-        email: 'login@example.com',
-        password: 'WrongPassword!',
-      }
-
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/auth/login',
-        payload,
+      const response = await T.post(sut, '/v1/auth/login', {
+        payload: { email: loginEmail, password: 'WrongPassword!' },
       })
 
-      // Assert
-      expect(response.statusCode).toBe(401)
+      T.expectStatus(response, 401)
     })
 
     it('should fail with non-existent email', async () => {
-      // Arrange
-      const payload = {
-        email: 'nonexistent@example.com',
-        password: 'Test1234!',
-      }
-
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/auth/login',
-        payload,
+      const response = await T.post(sut, '/v1/auth/login', {
+        payload: { email: 'nonexistent@example.com', password: 'Test1234!' },
       })
 
-      // Assert
-      expect(response.statusCode).toBe(401)
+      T.expectStatus(response, 401)
     })
   })
 
   describe('POST /v1/auth/refresh', () => {
     it('should refresh token successfully', async () => {
-      // Arrange
-      const loginResponse = await sut.inject({
-        method: 'POST',
-        url: '/v1/auth/login',
-        payload: {
-          email: 'login@example.com',
-          password: 'Test1234!',
-        },
+      // Login to get refresh token
+      const loginResponse = await T.post<AuthResponse>(sut, '/v1/auth/login', {
+        payload: { email: 'login@example.com', password: 'Test1234!' },
       })
 
-      const cookies = loginResponse.cookies
-      const refreshCookie = cookies.find((c) => c.name === 'refreshToken')
+      const refreshCookie = loginResponse.raw.cookies.find((c) => c.name === 'refreshToken')
 
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/auth/refresh',
+      const response = await T.post<{ accessToken: string }>(sut, '/v1/auth/refresh', {
         cookies: { refreshToken: refreshCookie!.value },
       })
 
-      // Assert
-      expect(response.statusCode).toBe(200)
-      const body = JSON.parse(response.body)
+      const body = T.expectStatus(response, 200)
       expect(body.accessToken).toBeDefined()
     })
 
     it('should fail without refresh token', async () => {
-      // Arrange - no refresh token
+      const response = await T.post(sut, '/v1/auth/refresh')
 
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/auth/refresh',
-      })
-
-      // Assert
-      expect(response.statusCode).toBe(401)
+      T.expectStatus(response, 401)
     })
   })
 
   describe('POST /v1/auth/logout', () => {
     it('should logout successfully', async () => {
-      // Arrange
-      const loginResponse = await sut.inject({
-        method: 'POST',
-        url: '/v1/auth/login',
-        payload: {
-          email: 'login@example.com',
-          password: 'Test1234!',
-        },
+      // Login first
+      const loginResponse = await T.post<AuthResponse>(sut, '/v1/auth/login', {
+        payload: { email: 'login@example.com', password: 'Test1234!' },
       })
 
-      const cookies = loginResponse.cookies
-      const refreshCookie = cookies.find((c) => c.name === 'refreshToken')
+      const refreshCookie = loginResponse.raw.cookies.find((c) => c.name === 'refreshToken')
 
-      // Act
-      const response = await sut.inject({
-        method: 'POST',
-        url: '/v1/auth/logout',
+      const response = await T.post<{ success: boolean }>(sut, '/v1/auth/logout', {
         cookies: { refreshToken: refreshCookie!.value },
       })
 
-      // Assert
-      expect(response.statusCode).toBe(200)
-      const body = JSON.parse(response.body)
+      const body = T.expectStatus(response, 200)
       expect(body.success).toBe(true)
 
-      const clearedCookie = response.cookies.find((c) => c.name === 'refreshToken')
+      const clearedCookie = response.raw.cookies.find((c) => c.name === 'refreshToken')
       expect(clearedCookie?.value).toBe('')
     })
   })

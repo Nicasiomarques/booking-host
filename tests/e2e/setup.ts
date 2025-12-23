@@ -14,7 +14,6 @@ beforeAll(async () => {
   const { prisma: prismaClient } = await import('../../src/adapters/outbound/prisma/prisma.client.js')
   prisma = prismaClient
 
-  // Clean all tables before tests
   await prisma.$transaction([
     prisma.bookingExtraItem.deleteMany(),
     prisma.booking.deleteMany(),
@@ -28,12 +27,5 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  // Disconnect after all tests
-  if (prisma) {
-    await prisma.$disconnect()
-  }
-})
-
-beforeEach(async () => {
-  // Optional: reset between tests if needed
+  if (prisma) await prisma.$disconnect()
 })
