@@ -2,8 +2,8 @@ import { beforeAll, afterAll, beforeEach } from 'vitest'
 import dotenv from 'dotenv'
 import { resolve } from 'path'
 
-// Load environment BEFORE anything else
-dotenv.config({ path: resolve(process.cwd(), '.env') })
+// Load test environment BEFORE anything else
+dotenv.config({ path: resolve(process.cwd(), '.env.test') })
 
 import type { PrismaClient } from '@prisma/client'
 
