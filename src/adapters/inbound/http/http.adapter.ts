@@ -3,6 +3,8 @@ import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import cookie from '@fastify/cookie'
 import rateLimit from '@fastify/rate-limit'
+import swagger from '@fastify/swagger'
+import swaggerUi from '@fastify/swagger-ui'
 import { isProduction } from '../../../config/app.config.js'
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -50,6 +52,46 @@ export async function buildApp(): Promise<FastifyInstance> {
         message: `Rate limit exceeded. Please try again in ${Math.ceil(context.ttl / 1000)} seconds.`,
       },
     }),
+  })
+
+  // OpenAPI documentation
+  await app.register(swagger, {
+    openapi: {
+      openapi: '3.0.3',
+      info: {
+        title: 'Booking Service API',
+        description: 'API for managing bookings, establishments, services, and availabilities',
+        version: '1.0.0',
+      },
+      servers: [
+        { url: 'http://localhost:3000', description: 'Development server' },
+      ],
+      tags: [
+        { name: 'Auth', description: 'Authentication endpoints' },
+        { name: 'Establishments', description: 'Establishment management' },
+        { name: 'Services', description: 'Service management' },
+        { name: 'Extras', description: 'Extra items management' },
+        { name: 'Availabilities', description: 'Availability slots management' },
+        { name: 'Bookings', description: 'Booking management' },
+      ],
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+          },
+        },
+      },
+    },
+  })
+
+  await app.register(swaggerUi, {
+    routePrefix: '/docs',
+    uiConfig: {
+      docExpansion: 'list',
+      deepLinking: true,
+    },
   })
 
   // Custom plugins
