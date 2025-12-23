@@ -18,7 +18,7 @@ export default async function establishmentRoutes(fastify: FastifyInstance) {
   // POST /v1/establishments - Create establishment
   fastify.post<{ Body: CreateEstablishmentInput }>(
     '/',
-    { preHandler: [authenticate, validate(createEstablishmentSchema)] },
+    { schema: { tags: ['Establishments'] }, preHandler: [authenticate, validate(createEstablishmentSchema)] },
     async (request: FastifyRequest<{ Body: CreateEstablishmentInput }>, reply: FastifyReply) => {
       const establishment = await service.create(request.body, request.user.userId)
       return reply.status(201).send(establishment)
@@ -28,7 +28,7 @@ export default async function establishmentRoutes(fastify: FastifyInstance) {
   // GET /v1/establishments/my - Get user's establishments
   fastify.get(
     '/my',
-    { preHandler: [authenticate] },
+    { schema: { tags: ['Establishments'] }, preHandler: [authenticate] },
     async (request: FastifyRequest, _reply: FastifyReply) => {
       return service.findByUserId(request.user.userId)
     }
@@ -37,6 +37,7 @@ export default async function establishmentRoutes(fastify: FastifyInstance) {
   // GET /v1/establishments/:id - Get establishment by ID (public)
   fastify.get<{ Params: { id: string } }>(
     '/:id',
+    { schema: { tags: ['Establishments'] } },
     async (request: FastifyRequest<{ Params: { id: string } }>, _reply: FastifyReply) => {
       return service.findById(request.params.id)
     }
@@ -45,7 +46,7 @@ export default async function establishmentRoutes(fastify: FastifyInstance) {
   // PUT /v1/establishments/:establishmentId - Update establishment (OWNER only)
   fastify.put<{ Params: { establishmentId: string }; Body: UpdateEstablishmentInput }>(
     '/:establishmentId',
-    { preHandler: [authenticate, validate(updateEstablishmentSchema), requireRole('OWNER')] },
+    { schema: { tags: ['Establishments'] }, preHandler: [authenticate, validate(updateEstablishmentSchema), requireRole('OWNER')] },
     async (
       request: FastifyRequest<{ Params: { establishmentId: string }; Body: UpdateEstablishmentInput }>,
       _reply: FastifyReply

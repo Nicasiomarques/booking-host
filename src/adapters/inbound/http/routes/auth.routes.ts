@@ -31,7 +31,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
   fastify.post<{ Body: RegisterInput }>(
     '/register',
-    { preHandler: [validate(registerSchema)], ...authRateLimit },
+    { schema: { tags: ['Auth'] }, preHandler: [validate(registerSchema)], ...authRateLimit },
     async (request: FastifyRequest<{ Body: RegisterInput }>, reply: FastifyReply) => {
       const result = await authService.register(request.body)
 
@@ -46,7 +46,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
   fastify.post<{ Body: LoginInput }>(
     '/login',
-    { preHandler: [validate(loginSchema)], ...authRateLimit },
+    { schema: { tags: ['Auth'] }, preHandler: [validate(loginSchema)], ...authRateLimit },
     async (request: FastifyRequest<{ Body: LoginInput }>, reply: FastifyReply) => {
       const result = await authService.login(request.body)
 
@@ -61,7 +61,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
   fastify.post(
     '/refresh',
-    { ...authRateLimit },
+    { schema: { tags: ['Auth'] }, ...authRateLimit },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const refreshToken = request.cookies[REFRESH_TOKEN_COOKIE]
 
@@ -84,6 +84,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
   fastify.post(
     '/logout',
+    { schema: { tags: ['Auth'] } },
     async (_request: FastifyRequest, reply: FastifyReply) => {
       reply.clearCookie(REFRESH_TOKEN_COOKIE, {
         path: '/v1/auth/refresh',

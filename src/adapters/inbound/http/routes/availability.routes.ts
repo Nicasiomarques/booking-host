@@ -27,7 +27,7 @@ export default async function availabilityRoutes(fastify: FastifyInstance) {
   // POST /v1/services/:serviceId/availabilities - Create availability (OWNER only)
   fastify.post<{ Params: { serviceId: string }; Body: CreateAvailabilityInput }>(
     '/services/:serviceId/availabilities',
-    { preHandler: [authenticate, validate(createAvailabilitySchema)] },
+    { schema: { tags: ['Availabilities'] }, preHandler: [authenticate, validate(createAvailabilitySchema)] },
     async (
       request: FastifyRequest<{ Params: { serviceId: string }; Body: CreateAvailabilityInput }>,
       reply: FastifyReply
@@ -49,7 +49,7 @@ export default async function availabilityRoutes(fastify: FastifyInstance) {
   // GET /v1/services/:serviceId/availabilities - List availabilities (public)
   fastify.get<{ Params: { serviceId: string }; Querystring: QueryAvailabilityInput }>(
     '/services/:serviceId/availabilities',
-    { preHandler: [validateQuery(queryAvailabilitySchema)] },
+    { schema: { tags: ['Availabilities'] }, preHandler: [validateQuery(queryAvailabilitySchema)] },
     async (
       request: FastifyRequest<{ Params: { serviceId: string }; Querystring: QueryAvailabilityInput }>,
       _reply: FastifyReply
@@ -68,7 +68,7 @@ export default async function availabilityRoutes(fastify: FastifyInstance) {
   // PUT /v1/availabilities/:id - Update availability (OWNER only)
   fastify.put<{ Params: { id: string }; Body: UpdateAvailabilityInput }>(
     '/availabilities/:id',
-    { preHandler: [authenticate, validate(updateAvailabilitySchema)] },
+    { schema: { tags: ['Availabilities'] }, preHandler: [authenticate, validate(updateAvailabilitySchema)] },
     async (
       request: FastifyRequest<{ Params: { id: string }; Body: UpdateAvailabilityInput }>,
       _reply: FastifyReply
@@ -93,7 +93,7 @@ export default async function availabilityRoutes(fastify: FastifyInstance) {
   // DELETE /v1/availabilities/:id - Delete availability (OWNER only)
   fastify.delete<{ Params: { id: string } }>(
     '/availabilities/:id',
-    { preHandler: [authenticate] },
+    { schema: { tags: ['Availabilities'] }, preHandler: [authenticate] },
     async (request: FastifyRequest<{ Params: { id: string } }>, _reply: FastifyReply) => {
       await service.delete(request.params.id, request.user.userId)
       return { success: true }

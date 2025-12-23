@@ -34,7 +34,7 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
   // POST /v1/bookings - Create booking (authenticated)
   fastify.post<{ Body: CreateBookingInput }>(
     '/bookings',
-    { preHandler: [authenticate, validate(createBookingSchema)] },
+    { schema: { tags: ['Bookings'] }, preHandler: [authenticate, validate(createBookingSchema)] },
     async (request: FastifyRequest<{ Body: CreateBookingInput }>, reply: FastifyReply) => {
       const result = await service.create(request.body, request.user.userId)
       return reply.status(201).send(result)
@@ -44,7 +44,7 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
   // GET /v1/bookings/:id - Get booking by ID
   fastify.get<{ Params: { id: string } }>(
     '/bookings/:id',
-    { preHandler: [authenticate] },
+    { schema: { tags: ['Bookings'] }, preHandler: [authenticate] },
     async (request: FastifyRequest<{ Params: { id: string } }>, _reply: FastifyReply) => {
       return service.findById(request.params.id, request.user.userId)
     }
@@ -53,7 +53,7 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
   // GET /v1/bookings/my - Get current user's bookings
   fastify.get<{ Querystring: ListBookingsQueryInput }>(
     '/bookings/my',
-    { preHandler: [authenticate, validateQuery(listBookingsQuerySchema)] },
+    { schema: { tags: ['Bookings'] }, preHandler: [authenticate, validateQuery(listBookingsQuerySchema)] },
     async (
       request: FastifyRequest<{ Querystring: ListBookingsQueryInput }>,
       _reply: FastifyReply
@@ -70,7 +70,7 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
   // GET /v1/establishments/:id/bookings - Get establishment bookings
   fastify.get<{ Params: { id: string }; Querystring: ListBookingsQueryInput }>(
     '/establishments/:id/bookings',
-    { preHandler: [authenticate, validateQuery(listBookingsQuerySchema)] },
+    { schema: { tags: ['Bookings'] }, preHandler: [authenticate, validateQuery(listBookingsQuerySchema)] },
     async (
       request: FastifyRequest<{ Params: { id: string }; Querystring: ListBookingsQueryInput }>,
       _reply: FastifyReply
@@ -87,7 +87,7 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
   // PUT /v1/bookings/:id/cancel - Cancel booking
   fastify.put<{ Params: { id: string } }>(
     '/bookings/:id/cancel',
-    { preHandler: [authenticate] },
+    { schema: { tags: ['Bookings'] }, preHandler: [authenticate] },
     async (request: FastifyRequest<{ Params: { id: string } }>, _reply: FastifyReply) => {
       return service.cancel(request.params.id, request.user.userId)
     }

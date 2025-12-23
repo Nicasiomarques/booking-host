@@ -20,7 +20,7 @@ export default async function serviceRoutes(fastify: FastifyInstance) {
   // POST /v1/establishments/:establishmentId/services - Create service (OWNER only)
   fastify.post<{ Params: { establishmentId: string }; Body: CreateServiceInput }>(
     '/establishments/:establishmentId/services',
-    { preHandler: [authenticate, validate(createServiceSchema), requireRole('OWNER')] },
+    { schema: { tags: ['Services'] }, preHandler: [authenticate, validate(createServiceSchema), requireRole('OWNER')] },
     async (
       request: FastifyRequest<{ Params: { establishmentId: string }; Body: CreateServiceInput }>,
       reply: FastifyReply
@@ -37,6 +37,7 @@ export default async function serviceRoutes(fastify: FastifyInstance) {
   // GET /v1/establishments/:establishmentId/services - List services (public)
   fastify.get<{ Params: { establishmentId: string }; Querystring: { active?: string } }>(
     '/establishments/:establishmentId/services',
+    { schema: { tags: ['Services'] } },
     async (
       request: FastifyRequest<{ Params: { establishmentId: string }; Querystring: { active?: string } }>,
       _reply: FastifyReply
@@ -49,6 +50,7 @@ export default async function serviceRoutes(fastify: FastifyInstance) {
   // GET /v1/services/:id - Get service by ID (public)
   fastify.get<{ Params: { id: string } }>(
     '/services/:id',
+    { schema: { tags: ['Services'] } },
     async (request: FastifyRequest<{ Params: { id: string } }>, _reply: FastifyReply) => {
       return service.findById(request.params.id)
     }
@@ -57,7 +59,7 @@ export default async function serviceRoutes(fastify: FastifyInstance) {
   // PUT /v1/services/:id - Update service (OWNER only)
   fastify.put<{ Params: { id: string }; Body: UpdateServiceInput }>(
     '/services/:id',
-    { preHandler: [authenticate, validate(updateServiceSchema)] },
+    { schema: { tags: ['Services'] }, preHandler: [authenticate, validate(updateServiceSchema)] },
     async (
       request: FastifyRequest<{ Params: { id: string }; Body: UpdateServiceInput }>,
       _reply: FastifyReply
@@ -69,7 +71,7 @@ export default async function serviceRoutes(fastify: FastifyInstance) {
   // DELETE /v1/services/:id - Soft delete service (OWNER only)
   fastify.delete<{ Params: { id: string } }>(
     '/services/:id',
-    { preHandler: [authenticate] },
+    { schema: { tags: ['Services'] }, preHandler: [authenticate] },
     async (request: FastifyRequest<{ Params: { id: string } }>, _reply: FastifyReply) => {
       await service.delete(request.params.id, request.user.userId)
       return { success: true }

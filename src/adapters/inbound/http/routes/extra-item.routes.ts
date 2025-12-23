@@ -25,7 +25,7 @@ export default async function extraItemRoutes(fastify: FastifyInstance) {
   // POST /v1/services/:serviceId/extras - Create extra item (OWNER only)
   fastify.post<{ Params: { serviceId: string }; Body: CreateExtraItemInput }>(
     '/services/:serviceId/extras',
-    { preHandler: [authenticate, validate(createExtraItemSchema)] },
+    { schema: { tags: ['Extras'] }, preHandler: [authenticate, validate(createExtraItemSchema)] },
     async (
       request: FastifyRequest<{ Params: { serviceId: string }; Body: CreateExtraItemInput }>,
       reply: FastifyReply
@@ -42,6 +42,7 @@ export default async function extraItemRoutes(fastify: FastifyInstance) {
   // GET /v1/services/:serviceId/extras - List extras for service (public)
   fastify.get<{ Params: { serviceId: string }; Querystring: { active?: string } }>(
     '/services/:serviceId/extras',
+    { schema: { tags: ['Extras'] } },
     async (
       request: FastifyRequest<{ Params: { serviceId: string }; Querystring: { active?: string } }>,
       _reply: FastifyReply
@@ -54,7 +55,7 @@ export default async function extraItemRoutes(fastify: FastifyInstance) {
   // PUT /v1/extras/:id - Update extra item (OWNER only)
   fastify.put<{ Params: { id: string }; Body: UpdateExtraItemInput }>(
     '/extras/:id',
-    { preHandler: [authenticate, validate(updateExtraItemSchema)] },
+    { schema: { tags: ['Extras'] }, preHandler: [authenticate, validate(updateExtraItemSchema)] },
     async (
       request: FastifyRequest<{ Params: { id: string }; Body: UpdateExtraItemInput }>,
       _reply: FastifyReply
@@ -66,7 +67,7 @@ export default async function extraItemRoutes(fastify: FastifyInstance) {
   // DELETE /v1/extras/:id - Soft delete extra item (OWNER only)
   fastify.delete<{ Params: { id: string } }>(
     '/extras/:id',
-    { preHandler: [authenticate] },
+    { schema: { tags: ['Extras'] }, preHandler: [authenticate] },
     async (request: FastifyRequest<{ Params: { id: string } }>, _reply: FastifyReply) => {
       await service.delete(request.params.id, request.user.userId)
       return { success: true }
