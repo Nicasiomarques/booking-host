@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { buildApp } from '../../../src/adapters/inbound/http/http.adapter.js'
+import { uniqueEmail } from './factories.js'
 
 let app: FastifyInstance | null = null
 
@@ -154,8 +155,9 @@ export async function setupTestEstablishment(
   prefix: string,
   options: { includeExtraItem?: boolean } = {}
 ): Promise<TestEstablishmentSetup> {
+  const email = uniqueEmail(prefix)
   const owner = await createTestUser(app, {
-    email: `owner-${prefix}@example.com`,
+    email,
     password: 'Test1234!',
     name: `${prefix} Owner`,
   })
@@ -166,7 +168,7 @@ export async function setupTestEstablishment(
   })
 
   const loginResult = await loginTestUser(app, {
-    email: `owner-${prefix}@example.com`,
+    email,
     password: 'Test1234!',
   })
   owner.accessToken = loginResult.accessToken
