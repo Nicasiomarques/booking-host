@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
 export const createServiceSchema = z.object({
-  name: z.string().min(1).max(255),
-  description: z.string().max(1000).optional(),
+  name: z.string().trim().min(1).max(255),
+  description: z.string().trim().max(1000).optional(),
   basePrice: z.number().positive().multipleOf(0.01),
   durationMinutes: z.number().int().positive().max(1440),
   capacity: z.number().int().positive().max(1000).default(1),
@@ -11,8 +11,8 @@ export const createServiceSchema = z.object({
 export type CreateServiceInput = z.infer<typeof createServiceSchema>
 
 export const updateServiceSchema = z.object({
-  name: z.string().min(1).max(255).optional(),
-  description: z.string().max(1000).optional(),
+  name: z.string().trim().min(1).max(255).optional(),
+  description: z.string().trim().max(1000).optional(),
   basePrice: z.number().positive().multipleOf(0.01).optional(),
   durationMinutes: z.number().int().positive().max(1440).optional(),
   capacity: z.number().int().positive().max(1000).optional(),

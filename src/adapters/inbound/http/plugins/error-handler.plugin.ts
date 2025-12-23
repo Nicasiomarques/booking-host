@@ -1,9 +1,9 @@
 import fp from 'fastify-plugin'
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyError } from 'fastify'
 import { DomainError } from '../../../../domain/errors.js'
 
 export default fp(async (fastify: FastifyInstance) => {
-  fastify.setErrorHandler((error, request, reply) => {
+  fastify.setErrorHandler((error: FastifyError | DomainError, request, reply) => {
     request.log.error(error)
 
     if (error instanceof DomainError) {
@@ -24,6 +24,12 @@ export default fp(async (fastify: FastifyInstance) => {
           details: error.validation,
         },
       })
+    }
+
+    // Rate limit errors (from @fastify/rate-limit - the error is actually the response object from errorResponseBuilder)
+    const errorObj = error as { error?: { code?: string; message?: string } }
+    if (errorObj.error?.code === 'TOO_MANY_REQUESTS') {
+      return reply.status(429).send(error)
     }
 
     // Generic error

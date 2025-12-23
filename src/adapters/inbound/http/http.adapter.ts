@@ -2,6 +2,7 @@ import Fastify, { FastifyInstance } from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import cookie from '@fastify/cookie'
+import rateLimit from '@fastify/rate-limit'
 import { isProduction } from '../../../config/app.config.js'
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -37,6 +38,19 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(cors, { origin: true, credentials: true })
   await app.register(helmet)
   await app.register(cookie)
+
+  // Rate limiting for auth routes (prevent brute force attacks)
+  await app.register(rateLimit, {
+    global: false,
+    max: 100,
+    timeWindow: '1 minute',
+    errorResponseBuilder: (_request, context) => ({
+      error: {
+        code: 'TOO_MANY_REQUESTS',
+        message: `Rate limit exceeded. Please try again in ${Math.ceil(context.ttl / 1000)} seconds.`,
+      },
+    }),
+  })
 
   // Custom plugins
   await app.register(import('./plugins/prisma.plugin.js'))

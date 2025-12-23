@@ -18,9 +18,20 @@ export default async function authRoutes(fastify: FastifyInstance) {
     maxAge: 7 * 24 * 60 * 60,
   }
 
+  // Rate limit config for auth routes (stricter than global)
+  // Higher limit in non-production for testing
+  const authRateLimit = {
+    config: {
+      rateLimit: {
+        max: isProduction ? 5 : 100,
+        timeWindow: '1 minute',
+      },
+    },
+  }
+
   fastify.post<{ Body: RegisterInput }>(
     '/register',
-    { preHandler: [validate(registerSchema)] },
+    { preHandler: [validate(registerSchema)], ...authRateLimit },
     async (request: FastifyRequest<{ Body: RegisterInput }>, reply: FastifyReply) => {
       const result = await authService.register(request.body)
 
@@ -35,7 +46,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
   fastify.post<{ Body: LoginInput }>(
     '/login',
-    { preHandler: [validate(loginSchema)] },
+    { preHandler: [validate(loginSchema)], ...authRateLimit },
     async (request: FastifyRequest<{ Body: LoginInput }>, reply: FastifyReply) => {
       const result = await authService.login(request.body)
 
@@ -50,6 +61,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
   fastify.post(
     '/refresh',
+    { ...authRateLimit },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const refreshToken = request.cookies[REFRESH_TOKEN_COOKIE]
 
