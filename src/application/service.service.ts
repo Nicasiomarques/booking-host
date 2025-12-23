@@ -1,11 +1,11 @@
 import type { Service, CreateServiceData, UpdateServiceData } from '#domain/index.js'
 import { NotFoundError, ForbiddenError, ConflictError } from '#domain/index.js'
-import { ServiceRepository, EstablishmentRepository } from '#adapters/outbound/prisma/index.js'
+import type { ServiceRepositoryPort, EstablishmentRepositoryPort } from './ports/index.js'
 
 export class ServiceService {
   constructor(
-    private readonly repository: ServiceRepository,
-    private readonly establishmentRepository: EstablishmentRepository
+    private readonly repository: ServiceRepositoryPort,
+    private readonly establishmentRepository: EstablishmentRepositoryPort
   ) {}
 
   async create(

@@ -1,9 +1,13 @@
-import { Prisma } from '@prisma/client'
 import type { UserWithRoles } from '#domain/index.js'
 import { ConflictError, UnauthorizedError } from '#domain/index.js'
-import { UserRepository } from '#adapters/outbound/prisma/index.js'
-import { jwtAdapter, TokenPayload } from '#adapters/outbound/token/index.js'
-import { passwordService } from './password.service.js'
+import type {
+  PasswordHasherPort,
+  TokenProviderPort,
+  TokenPayload,
+  RepositoryErrorHandlerPort,
+  UserRepositoryPort,
+} from './ports/index.js'
+import { DatabaseErrorType } from './ports/index.js'
 
 export interface RegisterInput {
   email: string
@@ -27,10 +31,15 @@ export interface AuthResult {
 }
 
 export class AuthService {
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+    private readonly userRepository: UserRepositoryPort,
+    private readonly passwordHasher: PasswordHasherPort,
+    private readonly tokenProvider: TokenProviderPort,
+    private readonly errorHandler: RepositoryErrorHandlerPort
+  ) {}
 
   async register(input: RegisterInput): Promise<AuthResult> {
-    const passwordHash = await passwordService.hash(input.password)
+    const passwordHash = await this.passwordHasher.hash(input.password)
 
     try {
       const user = await this.userRepository.create({
@@ -41,8 +50,9 @@ export class AuthService {
 
       return this.generateAuthResult(user)
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        if (error.code === 'P2002') throw new ConflictError('Email already exists')
+      const dbError = this.errorHandler.analyze(error)
+      if (dbError?.type === DatabaseErrorType.UNIQUE_CONSTRAINT_VIOLATION) {
+        throw new ConflictError('Email already exists')
       }
       throw error
     }
@@ -53,12 +63,12 @@ export class AuthService {
 
     if (!user) throw new UnauthorizedError('Invalid credentials')
 
-    const isValid = await passwordService.verify(user.passwordHash, input.password)
+    const isValid = await this.passwordHasher.verify(user.passwordHash, input.password)
 
     if (!isValid) throw new UnauthorizedError('Invalid credentials')
-    
-    if (await passwordService.needsRehash(user.passwordHash)) {
-      const newHash = await passwordService.hash(input.password)
+
+    if (await this.passwordHasher.needsRehash(user.passwordHash)) {
+      const newHash = await this.passwordHasher.hash(input.password)
       await this.userRepository.update(user.id, { passwordHash: newHash })
     }
 
@@ -66,7 +76,7 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string): Promise<{ accessToken: string }> {
-    const { userId } = jwtAdapter.verifyRefreshToken(refreshToken)
+    const { userId } = this.tokenProvider.verifyRefreshToken(refreshToken)
 
     const user = await this.userRepository.findById(userId)
 
@@ -79,7 +89,7 @@ export class AuthService {
     }
 
     return {
-      accessToken: jwtAdapter.generateAccessToken(payload),
+      accessToken: this.tokenProvider.generateAccessToken(payload),
     }
   }
 
@@ -91,8 +101,8 @@ export class AuthService {
     }
 
     return {
-      accessToken: jwtAdapter.generateAccessToken(payload),
-      refreshToken: jwtAdapter.generateRefreshToken(user.id),
+      accessToken: this.tokenProvider.generateAccessToken(payload),
+      refreshToken: this.tokenProvider.generateRefreshToken(user.id),
       user: {
         id: user.id,
         email: user.email,

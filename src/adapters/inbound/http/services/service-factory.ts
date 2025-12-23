@@ -7,6 +7,12 @@ import {
   AvailabilityService,
   BookingService,
 } from '#application/index.js'
+import type {
+  PasswordHasherPort,
+  TokenProviderPort,
+  RepositoryErrorHandlerPort,
+  UnitOfWorkPort,
+} from '#application/ports/index.js'
 import {
   UserRepository,
   EstablishmentRepository,
@@ -14,7 +20,11 @@ import {
   ExtraItemRepository,
   AvailabilityRepository,
   BookingRepository,
+  PrismaUnitOfWorkAdapter,
+  PrismaRepositoryErrorHandlerAdapter,
 } from '#adapters/outbound/prisma/index.js'
+import { Argon2PasswordHasherAdapter } from '#adapters/outbound/crypto/index.js'
+import { JwtTokenProviderAdapter } from '#adapters/outbound/token/index.js'
 
 export interface Services {
   auth: AuthService
@@ -34,9 +44,26 @@ export interface Repositories {
   booking: BookingRepository
 }
 
+export interface Adapters {
+  passwordHasher: PasswordHasherPort
+  tokenProvider: TokenProviderPort
+  repositoryErrorHandler: RepositoryErrorHandlerPort
+  unitOfWork: UnitOfWorkPort
+}
+
 export interface CompositionRoot {
   services: Services
   repositories: Repositories
+  adapters: Adapters
+}
+
+function createAdapters(prisma: PrismaClient): Adapters {
+  return {
+    passwordHasher: new Argon2PasswordHasherAdapter(),
+    tokenProvider: new JwtTokenProviderAdapter(),
+    repositoryErrorHandler: new PrismaRepositoryErrorHandlerAdapter(),
+    unitOfWork: new PrismaUnitOfWorkAdapter(prisma),
+  }
 }
 
 function createRepositories(prisma: PrismaClient): Repositories {
@@ -50,14 +77,16 @@ function createRepositories(prisma: PrismaClient): Repositories {
   }
 }
 
-function createServices(prisma: PrismaClient, repositories: Repositories): Services {
+function createServices(repositories: Repositories, adapters: Adapters): Services {
   return {
-    auth: new AuthService(repositories.user),
-    establishment: new EstablishmentService(repositories.establishment),
-    service: new ServiceService(
-      repositories.service,
-      repositories.establishment
+    auth: new AuthService(
+      repositories.user,
+      adapters.passwordHasher,
+      adapters.tokenProvider,
+      adapters.repositoryErrorHandler
     ),
+    establishment: new EstablishmentService(repositories.establishment),
+    service: new ServiceService(repositories.service, repositories.establishment),
     extraItem: new ExtraItemService(
       repositories.extraItem,
       repositories.service,
@@ -69,7 +98,7 @@ function createServices(prisma: PrismaClient, repositories: Repositories): Servi
       repositories.establishment
     ),
     booking: new BookingService(
-      prisma,
+      adapters.unitOfWork,
       repositories.booking,
       repositories.service,
       repositories.availability,
@@ -80,8 +109,9 @@ function createServices(prisma: PrismaClient, repositories: Repositories): Servi
 }
 
 export function createCompositionRoot(prisma: PrismaClient): CompositionRoot {
+  const adapters = createAdapters(prisma)
   const repositories = createRepositories(prisma)
-  const services = createServices(prisma, repositories)
+  const services = createServices(repositories, adapters)
 
-  return { services, repositories }
+  return { services, repositories, adapters }
 }

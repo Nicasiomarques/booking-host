@@ -1,16 +1,16 @@
 import type { Availability, CreateAvailabilityData, UpdateAvailabilityData } from '#domain/index.js'
 import { NotFoundError, ForbiddenError, ConflictError } from '#domain/index.js'
-import {
-  AvailabilityRepository,
-  ServiceRepository,
-  EstablishmentRepository,
-} from '#adapters/outbound/prisma/index.js'
+import type {
+  AvailabilityRepositoryPort,
+  ServiceRepositoryPort,
+  EstablishmentRepositoryPort,
+} from './ports/index.js'
 
 export class AvailabilityService {
   constructor(
-    private readonly repository: AvailabilityRepository,
-    private readonly serviceRepository: ServiceRepository,
-    private readonly establishmentRepository: EstablishmentRepository
+    private readonly repository: AvailabilityRepositoryPort,
+    private readonly serviceRepository: ServiceRepositoryPort,
+    private readonly establishmentRepository: EstablishmentRepositoryPort
   ) {}
 
   async create(

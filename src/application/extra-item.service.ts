@@ -1,16 +1,16 @@
 import type { ExtraItem, CreateExtraItemData, UpdateExtraItemData } from '#domain/index.js'
 import { NotFoundError, ForbiddenError } from '#domain/index.js'
-import {
-  ExtraItemRepository,
-  ServiceRepository,
-  EstablishmentRepository,
-} from '#adapters/outbound/prisma/index.js'
+import type {
+  ExtraItemRepositoryPort,
+  ServiceRepositoryPort,
+  EstablishmentRepositoryPort,
+} from './ports/index.js'
 
 export class ExtraItemService {
   constructor(
-    private readonly repository: ExtraItemRepository,
-    private readonly serviceRepository: ServiceRepository,
-    private readonly establishmentRepository: EstablishmentRepository
+    private readonly repository: ExtraItemRepositoryPort,
+    private readonly serviceRepository: ServiceRepositoryPort,
+    private readonly establishmentRepository: EstablishmentRepositoryPort
   ) {}
 
   async create(

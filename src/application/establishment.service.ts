@@ -6,10 +6,10 @@ import type {
   Role,
 } from '#domain/index.js'
 import { NotFoundError, ForbiddenError } from '#domain/index.js'
-import { EstablishmentRepository } from '#adapters/outbound/prisma/index.js'
+import type { EstablishmentRepositoryPort } from './ports/index.js'
 
 export class EstablishmentService {
-  constructor(private readonly repository: EstablishmentRepository) {}
+  constructor(private readonly repository: EstablishmentRepositoryPort) {}
 
   async create(
     data: CreateEstablishmentData,

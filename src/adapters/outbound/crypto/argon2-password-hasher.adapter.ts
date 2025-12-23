@@ -1,7 +1,12 @@
 import argon2 from 'argon2'
+import type { PasswordHasherPort } from '#application/ports/index.js'
 import { argon2Options } from '#config/index.js'
 
-export class PasswordService {
+/**
+ * Argon2 implementation of the PasswordHasherPort.
+ * Uses the argon2 library with configuration from config/argon2.config.ts
+ */
+export class Argon2PasswordHasherAdapter implements PasswordHasherPort {
   async hash(password: string): Promise<string> {
     return argon2.hash(password, argon2Options)
   }
@@ -18,5 +23,3 @@ export class PasswordService {
     return argon2.needsRehash(hash, argon2Options)
   }
 }
-
-export const passwordService = new PasswordService()

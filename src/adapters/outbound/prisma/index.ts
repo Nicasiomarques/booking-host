@@ -9,6 +9,10 @@ export { ServiceRepository } from './service.repository.js'
 export { AvailabilityRepository } from './availability.repository.js'
 export { ExtraItemRepository } from './extra-item.repository.js'
 
+// Port Adapters
+export { PrismaUnitOfWorkAdapter } from './prisma-unit-of-work.adapter.js'
+export { PrismaRepositoryErrorHandlerAdapter } from './prisma-repository-error-handler.adapter.js'
+
 // Types
 export type { ServiceWithExtras } from './service.repository.js'
 export type { AvailabilityWithEstablishment } from './availability.repository.js'
