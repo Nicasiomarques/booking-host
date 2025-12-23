@@ -100,8 +100,9 @@ export async function buildApp(): Promise<FastifyInstance> {
     },
   })
 
-  // Custom plugins
+  // Custom plugins - ORDER MATTERS: prisma must be registered before services
   await app.register(import('./plugins/prisma.plugin.js'))
+  await app.register(import('./plugins/services.plugin.js'))
   await app.register(import('./plugins/error-handler.plugin.js'))
 
   // Routes

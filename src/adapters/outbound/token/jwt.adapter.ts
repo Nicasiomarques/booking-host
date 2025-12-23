@@ -1,4 +1,4 @@
-import jwt, { JwtPayload } from 'jsonwebtoken'
+import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken'
 import { jwtConfig } from '../../../config/jwt.config.js'
 import { UnauthorizedError } from '../../../domain/errors.js'
 
@@ -13,23 +13,21 @@ export interface TokenPayload {
 
 export class JwtAdapter {
   generateAccessToken(payload: TokenPayload): string {
-    return jwt.sign(payload, jwtConfig.accessSecret, {
-      expiresIn: jwtConfig.accessExpiresIn,
+    const options: SignOptions = {
+      expiresIn: jwtConfig.accessExpiresIn as jwt.SignOptions['expiresIn'],
       issuer: jwtConfig.issuer,
       audience: jwtConfig.audience,
-    })
+    }
+    return jwt.sign(payload, jwtConfig.accessSecret, options)
   }
 
   generateRefreshToken(userId: string): string {
-    return jwt.sign(
-      { userId, type: 'refresh' },
-      jwtConfig.refreshSecret,
-      {
-        expiresIn: jwtConfig.refreshExpiresIn,
-        issuer: jwtConfig.issuer,
-        audience: jwtConfig.audience,
-      }
-    )
+    const options: SignOptions = {
+      expiresIn: jwtConfig.refreshExpiresIn as jwt.SignOptions['expiresIn'],
+      issuer: jwtConfig.issuer,
+      audience: jwtConfig.audience,
+    }
+    return jwt.sign({ userId, type: 'refresh' }, jwtConfig.refreshSecret, options)
   }
 
   verifyAccessToken(token: string): TokenPayload {

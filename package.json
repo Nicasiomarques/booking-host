@@ -31,6 +31,7 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^8.2.0",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.2.0",
     "@fastify/helmet": "^13.0.2",
@@ -45,7 +46,8 @@
     "fastify-plugin": "^5.1.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.16.3",
-    "zod": "^4.2.1"
+    "zod": "^4.2.1",
+    "zod-to-json-schema": "^3.25.0"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",

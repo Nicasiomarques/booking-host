@@ -1,94 +1,19 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { AuthService } from '../../../../application/auth.service.js'
-import { UserRepository } from '../../../outbound/prisma/user.repository.js'
-import { registerSchema, loginSchema, RegisterInput, LoginInput } from '../schemas/auth.schema.js'
+import {
+  registerSchema,
+  loginSchema,
+  authResponseSchema,
+  refreshResponseSchema,
+  RegisterInput,
+  LoginInput,
+} from '../schemas/auth.schema.js'
+import { ErrorResponseSchema, SuccessResponseSchema } from '../openapi/common.schemas.js'
+import { buildRouteSchema } from '../openapi/fastify-schema.js'
 import { validate } from '../middleware/validate.js'
 import { isProduction } from '../../../../config/app.config.js'
 
-// Swagger schemas for Auth routes
-const userResponseSchema = {
-  type: 'object',
-  properties: {
-    id: { type: 'string', format: 'uuid', example: '550e8400-e29b-41d4-a716-446655440000' },
-    email: { type: 'string', format: 'email', example: 'user@example.com' },
-    name: { type: 'string', example: 'John Doe' },
-    createdAt: { type: 'string', format: 'date-time', example: '2025-01-15T10:30:00.000Z' },
-  },
-}
-
-const authResponseSchema = {
-  type: 'object',
-  properties: {
-    accessToken: {
-      type: 'string',
-      description: 'JWT access token (expires in 15 minutes)',
-      example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-    },
-    user: userResponseSchema,
-  },
-}
-
-const errorResponseSchema = {
-  type: 'object',
-  properties: {
-    error: {
-      type: 'object',
-      properties: {
-        code: { type: 'string', example: 'VALIDATION_ERROR' },
-        message: { type: 'string', example: 'Invalid request body' },
-        details: { type: 'object' },
-      },
-    },
-  },
-}
-
-const registerBodySchema = {
-  type: 'object',
-  required: ['email', 'password', 'name'],
-  properties: {
-    email: {
-      type: 'string',
-      format: 'email',
-      description: 'User email address (will be normalized to lowercase)',
-      example: 'user@example.com',
-    },
-    password: {
-      type: 'string',
-      minLength: 8,
-      description: 'Password (min 8 chars, must contain uppercase and number)',
-      example: 'SecurePass123',
-    },
-    name: {
-      type: 'string',
-      minLength: 2,
-      maxLength: 100,
-      description: 'User display name',
-      example: 'John Doe',
-    },
-  },
-}
-
-const loginBodySchema = {
-  type: 'object',
-  required: ['email', 'password'],
-  properties: {
-    email: {
-      type: 'string',
-      format: 'email',
-      description: 'User email address',
-      example: 'user@example.com',
-    },
-    password: {
-      type: 'string',
-      description: 'User password',
-      example: 'SecurePass123',
-    },
-  },
-}
-
 export default async function authRoutes(fastify: FastifyInstance) {
-  const userRepository = new UserRepository(fastify.prisma)
-  const authService = new AuthService(userRepository)
+  const { auth: authService } = fastify.services
 
   const REFRESH_TOKEN_COOKIE = 'refreshToken'
   const COOKIE_OPTIONS = {
@@ -99,8 +24,6 @@ export default async function authRoutes(fastify: FastifyInstance) {
     maxAge: 7 * 24 * 60 * 60,
   }
 
-  // Rate limit config for auth routes (stricter than global)
-  // Higher limit in non-production for testing
   const authRateLimit = {
     config: {
       rateLimit: {
@@ -113,26 +36,17 @@ export default async function authRoutes(fastify: FastifyInstance) {
   fastify.post<{ Body: RegisterInput }>(
     '/register',
     {
-      schema: {
+      schema: buildRouteSchema({
         tags: ['Auth'],
         summary: 'Register a new user',
         description: 'Creates a new user account and returns authentication tokens. The refresh token is set as an HttpOnly cookie.',
-        body: registerBodySchema,
-        response: {
-          200: {
-            description: 'User registered successfully',
-            ...authResponseSchema,
-          },
-          409: {
-            description: 'Email already exists',
-            ...errorResponseSchema,
-          },
-          422: {
-            description: 'Validation error',
-            ...errorResponseSchema,
-          },
+        body: registerSchema,
+        responses: {
+          200: { description: 'User registered successfully', schema: authResponseSchema },
+          409: { description: 'Email already exists', schema: ErrorResponseSchema },
+          422: { description: 'Validation error', schema: ErrorResponseSchema },
         },
-      },
+      }),
       preHandler: [validate(registerSchema)],
       ...authRateLimit,
     },
@@ -151,26 +65,17 @@ export default async function authRoutes(fastify: FastifyInstance) {
   fastify.post<{ Body: LoginInput }>(
     '/login',
     {
-      schema: {
+      schema: buildRouteSchema({
         tags: ['Auth'],
         summary: 'Authenticate user',
         description: 'Authenticates a user with email and password. Returns access token and sets refresh token as HttpOnly cookie.',
-        body: loginBodySchema,
-        response: {
-          200: {
-            description: 'Login successful',
-            ...authResponseSchema,
-          },
-          401: {
-            description: 'Invalid credentials',
-            ...errorResponseSchema,
-          },
-          422: {
-            description: 'Validation error',
-            ...errorResponseSchema,
-          },
+        body: loginSchema,
+        responses: {
+          200: { description: 'Login successful', schema: authResponseSchema },
+          401: { description: 'Invalid credentials', schema: ErrorResponseSchema },
+          422: { description: 'Validation error', schema: ErrorResponseSchema },
         },
-      },
+      }),
       preHandler: [validate(loginSchema)],
       ...authRateLimit,
     },
@@ -189,28 +94,15 @@ export default async function authRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/refresh',
     {
-      schema: {
+      schema: buildRouteSchema({
         tags: ['Auth'],
         summary: 'Refresh access token',
         description: 'Uses the refresh token from HttpOnly cookie to generate a new access token. No request body required.',
-        response: {
-          200: {
-            description: 'Token refreshed successfully',
-            type: 'object',
-            properties: {
-              accessToken: {
-                type: 'string',
-                description: 'New JWT access token',
-                example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-              },
-            },
-          },
-          401: {
-            description: 'No refresh token or invalid/expired token',
-            ...errorResponseSchema,
-          },
+        responses: {
+          200: { description: 'Token refreshed successfully', schema: refreshResponseSchema },
+          401: { description: 'No refresh token or invalid/expired token', schema: ErrorResponseSchema },
         },
-      },
+      }),
       ...authRateLimit,
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
@@ -236,20 +128,14 @@ export default async function authRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/logout',
     {
-      schema: {
+      schema: buildRouteSchema({
         tags: ['Auth'],
         summary: 'Logout user',
         description: 'Clears the refresh token cookie, effectively logging out the user. No request body required.',
-        response: {
-          200: {
-            description: 'Logout successful',
-            type: 'object',
-            properties: {
-              success: { type: 'boolean', example: true },
-            },
-          },
+        responses: {
+          200: { description: 'Logout successful', schema: SuccessResponseSchema },
         },
-      },
+      }),
     },
     async (_request: FastifyRequest, reply: FastifyReply) => {
       reply.clearCookie(REFRESH_TOKEN_COOKIE, {

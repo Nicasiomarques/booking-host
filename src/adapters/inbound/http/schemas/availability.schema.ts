@@ -1,31 +1,82 @@
 import { z } from 'zod'
+import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi'
+
+extendZodWithOpenApi(z)
 
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/
 
 export const createAvailabilitySchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
-  startTime: z.string().regex(timeRegex, 'Start time must be in HH:MM format'),
-  endTime: z.string().regex(timeRegex, 'End time must be in HH:MM format'),
-  capacity: z.number().int().positive().max(1000),
+  date: z.string().regex(dateRegex, 'Date must be in YYYY-MM-DD format').openapi({
+    description: 'Date in YYYY-MM-DD format',
+    example: '2025-01-20',
+  }),
+  startTime: z.string().regex(timeRegex, 'Start time must be in HH:MM format').openapi({
+    description: 'Start time in HH:MM format',
+    example: '09:00',
+  }),
+  endTime: z.string().regex(timeRegex, 'End time must be in HH:MM format').openapi({
+    description: 'End time in HH:MM format',
+    example: '10:00',
+  }),
+  capacity: z.number().int().positive().max(1000).openapi({
+    description: 'Available capacity for this slot',
+    example: 5,
+  }),
 }).refine(
   (data) => data.startTime < data.endTime,
   { message: 'Start time must be before end time', path: ['endTime'] }
-)
-
-export type CreateAvailabilityInput = z.infer<typeof createAvailabilitySchema>
+).openapi('CreateAvailabilityInput')
 
 export const updateAvailabilitySchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional(),
-  startTime: z.string().regex(timeRegex, 'Start time must be in HH:MM format').optional(),
-  endTime: z.string().regex(timeRegex, 'End time must be in HH:MM format').optional(),
-  capacity: z.number().int().positive().max(1000).optional(),
-})
-
-export type UpdateAvailabilityInput = z.infer<typeof updateAvailabilitySchema>
+  date: z.string().regex(dateRegex, 'Date must be in YYYY-MM-DD format').optional().openapi({
+    description: 'Date in YYYY-MM-DD format',
+    example: '2025-01-21',
+  }),
+  startTime: z.string().regex(timeRegex, 'Start time must be in HH:MM format').optional().openapi({
+    description: 'Start time in HH:MM format',
+    example: '10:00',
+  }),
+  endTime: z.string().regex(timeRegex, 'End time must be in HH:MM format').optional().openapi({
+    description: 'End time in HH:MM format',
+    example: '11:00',
+  }),
+  capacity: z.number().int().positive().max(1000).optional().openapi({
+    description: 'Available capacity for this slot',
+    example: 10,
+  }),
+}).openapi('UpdateAvailabilityInput')
 
 export const queryAvailabilitySchema = z.object({
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional(),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional(),
-})
+  startDate: z.string().regex(dateRegex, 'Date must be in YYYY-MM-DD format').optional().openapi({
+    description: 'Filter by start date',
+    example: '2025-01-01',
+  }),
+  endDate: z.string().regex(dateRegex, 'Date must be in YYYY-MM-DD format').optional().openapi({
+    description: 'Filter by end date',
+    example: '2025-01-31',
+  }),
+}).openapi('QueryAvailabilityInput')
 
+export const availabilityResponseSchema = z.object({
+  id: z.string().uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
+  serviceId: z.string().uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440001' }),
+  date: z.string().openapi({ example: '2025-01-20' }),
+  startTime: z.string().openapi({ example: '09:00' }),
+  endTime: z.string().openapi({ example: '10:00' }),
+  capacity: z.number().int().openapi({ example: 5 }),
+  createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
+  updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
+}).openapi('AvailabilityResponse')
+
+export const availabilityIdParamSchema = z.object({
+  availabilityId: z.string().uuid().openapi({
+    description: 'Availability UUID',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  }),
+}).openapi('AvailabilityIdParam')
+
+export type CreateAvailabilityInput = z.infer<typeof createAvailabilitySchema>
+export type UpdateAvailabilityInput = z.infer<typeof updateAvailabilitySchema>
 export type QueryAvailabilityInput = z.infer<typeof queryAvailabilitySchema>
+export type AvailabilityResponse = z.infer<typeof availabilityResponseSchema>
