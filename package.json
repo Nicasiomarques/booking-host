@@ -14,10 +14,10 @@
     "test:e2e:critical": "vitest run --config vitest.config.ts --reporter=verbose -t @critical",
     "test:e2e:security": "vitest run --config vitest.config.ts --reporter=verbose -t @security",
     "test:e2e:watch": "vitest --config vitest.config.ts --reporter=verbose",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:generate": "prisma generate --schema=src/adapters/outbound/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --config=src/adapters/outbound/prisma/prisma.config.ts",
+    "db:push": "prisma db push --schema=src/adapters/outbound/prisma/schema.prisma",
+    "db:studio": "prisma studio --schema=src/adapters/outbound/prisma/schema.prisma"
   },
   "keywords": [
     "booking",
