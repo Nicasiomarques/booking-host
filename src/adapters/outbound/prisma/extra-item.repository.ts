@@ -1,24 +1,24 @@
-import { PrismaClient, ExtraItem, Prisma } from '@prisma/client'
+import { PrismaClient, ExtraItem as PrismaExtraItem, Prisma } from '@prisma/client'
+import type { ExtraItem, CreateExtraItemData, UpdateExtraItemData } from '../../../domain/entities/index.js'
 
-export interface CreateExtraItemData {
-  serviceId: string
-  name: string
-  price: number
-  maxQuantity?: number
+export type { ExtraItem, CreateExtraItemData, UpdateExtraItemData }
+
+function toExtraItem(prismaExtraItem: PrismaExtraItem): ExtraItem {
+  return {
+    ...prismaExtraItem,
+    price: prismaExtraItem.price.toString(),
+  }
 }
 
-export interface UpdateExtraItemData {
-  name?: string
-  price?: number
-  maxQuantity?: number
-  active?: boolean
+export interface ExtraItemWithEstablishment extends ExtraItem {
+  service: { establishmentId: string }
 }
 
 export class ExtraItemRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async create(data: CreateExtraItemData): Promise<ExtraItem> {
-    return this.prisma.extraItem.create({
+    const result = await this.prisma.extraItem.create({
       data: {
         serviceId: data.serviceId,
         name: data.name,
@@ -26,16 +26,18 @@ export class ExtraItemRepository {
         maxQuantity: data.maxQuantity ?? 1,
       },
     })
+    return toExtraItem(result)
   }
 
   async findById(id: string): Promise<ExtraItem | null> {
-    return this.prisma.extraItem.findUnique({
+    const result = await this.prisma.extraItem.findUnique({
       where: { id },
     })
+    return result ? toExtraItem(result) : null
   }
 
-  async findByIdWithService(id: string): Promise<(ExtraItem & { service: { establishmentId: string } }) | null> {
-    return this.prisma.extraItem.findUnique({
+  async findByIdWithService(id: string): Promise<ExtraItemWithEstablishment | null> {
+    const result = await this.prisma.extraItem.findUnique({
       where: { id },
       include: {
         service: {
@@ -43,36 +45,44 @@ export class ExtraItemRepository {
         },
       },
     })
+    if (!result) return null
+    return {
+      ...toExtraItem(result),
+      service: result.service,
+    }
   }
 
   async findByService(
     serviceId: string,
     options: { activeOnly?: boolean } = {}
   ): Promise<ExtraItem[]> {
-    return this.prisma.extraItem.findMany({
+    const results = await this.prisma.extraItem.findMany({
       where: {
         serviceId,
         ...(options.activeOnly ? { active: true } : {}),
       },
       orderBy: { createdAt: 'desc' },
     })
+    return results.map(toExtraItem)
   }
 
   async update(id: string, data: UpdateExtraItemData): Promise<ExtraItem> {
-    return this.prisma.extraItem.update({
+    const result = await this.prisma.extraItem.update({
       where: { id },
       data: {
         ...data,
         price: data.price !== undefined ? new Prisma.Decimal(data.price) : undefined,
       },
     })
+    return toExtraItem(result)
   }
 
   async softDelete(id: string): Promise<ExtraItem> {
-    return this.prisma.extraItem.update({
+    const result = await this.prisma.extraItem.update({
       where: { id },
       data: { active: false },
     })
+    return toExtraItem(result)
   }
 
   async getServiceId(extraItemId: string): Promise<string | null> {

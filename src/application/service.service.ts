@@ -1,11 +1,7 @@
-import {
-  ServiceRepository,
-  CreateServiceData,
-  UpdateServiceData,
-} from '../adapters/outbound/prisma/service.repository.js'
+import type { Service, CreateServiceData, UpdateServiceData } from '../domain/entities/index.js'
+import { ServiceRepository } from '../adapters/outbound/prisma/service.repository.js'
 import { EstablishmentRepository } from '../adapters/outbound/prisma/establishment.repository.js'
 import { NotFoundError, ForbiddenError, ConflictError } from '../domain/errors.js'
-import { Service } from '@prisma/client'
 
 export class ServiceService {
   constructor(

@@ -1,23 +1,7 @@
 import { PrismaClient } from '@prisma/client'
+import type { CreateUserData, UserWithRoles } from '../../../domain/entities/index.js'
 
-export interface CreateUserData {
-  email: string
-  passwordHash: string
-  name: string
-}
-
-export interface UserWithRoles {
-  id: string
-  email: string
-  passwordHash: string
-  name: string
-  createdAt: Date
-  updatedAt: Date
-  establishmentRoles: Array<{
-    establishmentId: string
-    role: 'OWNER' | 'STAFF'
-  }>
-}
+export type { CreateUserData, UserWithRoles }
 
 export class UserRepository {
   constructor(private readonly prisma: PrismaClient) {}

@@ -1,12 +1,8 @@
-import {
-  AvailabilityRepository,
-  CreateAvailabilityData,
-  UpdateAvailabilityData,
-} from '../adapters/outbound/prisma/availability.repository.js'
+import type { Availability, CreateAvailabilityData, UpdateAvailabilityData } from '../domain/entities/index.js'
+import { AvailabilityRepository } from '../adapters/outbound/prisma/availability.repository.js'
 import { ServiceRepository } from '../adapters/outbound/prisma/service.repository.js'
 import { EstablishmentRepository } from '../adapters/outbound/prisma/establishment.repository.js'
 import { NotFoundError, ForbiddenError, ConflictError } from '../domain/errors.js'
-import { Availability } from '@prisma/client'
 
 export class AvailabilityService {
   constructor(

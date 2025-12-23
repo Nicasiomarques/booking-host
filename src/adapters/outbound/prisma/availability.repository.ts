@@ -1,25 +1,21 @@
-import { PrismaClient, Availability } from '@prisma/client'
+import { PrismaClient, Availability as PrismaAvailability } from '@prisma/client'
+import type { Availability, CreateAvailabilityData, UpdateAvailabilityData } from '../../../domain/entities/index.js'
 
-export interface CreateAvailabilityData {
-  serviceId: string
-  date: Date
-  startTime: string
-  endTime: string
-  capacity: number
+export type { Availability, CreateAvailabilityData, UpdateAvailabilityData }
+
+function toAvailability(prismaAvailability: PrismaAvailability): Availability {
+  return { ...prismaAvailability }
 }
 
-export interface UpdateAvailabilityData {
-  date?: Date
-  startTime?: string
-  endTime?: string
-  capacity?: number
+export interface AvailabilityWithEstablishment extends Availability {
+  service: { establishmentId: string }
 }
 
 export class AvailabilityRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async create(data: CreateAvailabilityData): Promise<Availability> {
-    return this.prisma.availability.create({
+    const result = await this.prisma.availability.create({
       data: {
         serviceId: data.serviceId,
         date: data.date,
@@ -28,16 +24,18 @@ export class AvailabilityRepository {
         capacity: data.capacity,
       },
     })
+    return toAvailability(result)
   }
 
   async findById(id: string): Promise<Availability | null> {
-    return this.prisma.availability.findUnique({
+    const result = await this.prisma.availability.findUnique({
       where: { id },
     })
+    return result ? toAvailability(result) : null
   }
 
-  async findByIdWithService(id: string): Promise<(Availability & { service: { establishmentId: string } }) | null> {
-    return this.prisma.availability.findUnique({
+  async findByIdWithService(id: string): Promise<AvailabilityWithEstablishment | null> {
+    const result = await this.prisma.availability.findUnique({
       where: { id },
       include: {
         service: {
@@ -45,13 +43,18 @@ export class AvailabilityRepository {
         },
       },
     })
+    if (!result) return null
+    return {
+      ...toAvailability(result),
+      service: result.service,
+    }
   }
 
   async findByService(
     serviceId: string,
     options: { startDate?: Date; endDate?: Date } = {}
   ): Promise<Availability[]> {
-    return this.prisma.availability.findMany({
+    const results = await this.prisma.availability.findMany({
       where: {
         serviceId,
         ...(options.startDate || options.endDate
@@ -65,6 +68,7 @@ export class AvailabilityRepository {
       },
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
     })
+    return results.map(toAvailability)
   }
 
   async findByDateRange(
@@ -72,7 +76,7 @@ export class AvailabilityRepository {
     startDate: Date,
     endDate: Date
   ): Promise<Availability[]> {
-    return this.prisma.availability.findMany({
+    const results = await this.prisma.availability.findMany({
       where: {
         serviceId,
         date: {
@@ -82,19 +86,22 @@ export class AvailabilityRepository {
       },
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
     })
+    return results.map(toAvailability)
   }
 
   async update(id: string, data: UpdateAvailabilityData): Promise<Availability> {
-    return this.prisma.availability.update({
+    const result = await this.prisma.availability.update({
       where: { id },
       data,
     })
+    return toAvailability(result)
   }
 
   async delete(id: string): Promise<Availability> {
-    return this.prisma.availability.delete({
+    const result = await this.prisma.availability.delete({
       where: { id },
     })
+    return toAvailability(result)
   }
 
   async checkOverlap(
@@ -110,17 +117,14 @@ export class AvailabilityRepository {
         date,
         id: excludeId ? { not: excludeId } : undefined,
         OR: [
-          // New slot starts during existing slot
           {
             startTime: { lte: startTime },
             endTime: { gt: startTime },
           },
-          // New slot ends during existing slot
           {
             startTime: { lt: endTime },
             endTime: { gte: endTime },
           },
-          // New slot contains existing slot
           {
             startTime: { gte: startTime },
             endTime: { lte: endTime },
@@ -150,20 +154,22 @@ export class AvailabilityRepository {
   }
 
   async decrementCapacity(id: string, quantity: number): Promise<Availability> {
-    return this.prisma.availability.update({
+    const result = await this.prisma.availability.update({
       where: { id },
       data: {
         capacity: { decrement: quantity },
       },
     })
+    return toAvailability(result)
   }
 
   async incrementCapacity(id: string, quantity: number): Promise<Availability> {
-    return this.prisma.availability.update({
+    const result = await this.prisma.availability.update({
       where: { id },
       data: {
         capacity: { increment: quantity },
       },
     })
+    return toAvailability(result)
   }
 }

@@ -13,7 +13,7 @@ import {
 } from '../schemas/booking.schema.js'
 import { validate, validateQuery } from '../middleware/validate.js'
 import { authenticate } from '../middleware/auth.middleware.js'
-import { BookingStatus } from '@prisma/client'
+import type { BookingStatus } from '../../../../domain/entities/index.js'
 
 // Swagger schemas for Booking routes
 const errorResponseSchema = {

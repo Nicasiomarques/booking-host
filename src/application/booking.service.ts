@@ -1,11 +1,12 @@
-import { PrismaClient, Booking, BookingStatus } from '@prisma/client'
-import {
-  BookingRepository,
+import { PrismaClient } from '@prisma/client'
+import type {
+  Booking,
   BookingWithDetails,
   BookingExtraItemData,
   ListBookingsOptions,
   PaginatedResult,
-} from '../adapters/outbound/prisma/booking.repository.js'
+} from '../domain/entities/index.js'
+import { BookingRepository } from '../adapters/outbound/prisma/booking.repository.js'
 import { ServiceRepository } from '../adapters/outbound/prisma/service.repository.js'
 import { AvailabilityRepository } from '../adapters/outbound/prisma/availability.repository.js'
 import { ExtraItemRepository } from '../adapters/outbound/prisma/extra-item.repository.js'

@@ -1,12 +1,8 @@
-import {
-  ExtraItemRepository,
-  CreateExtraItemData,
-  UpdateExtraItemData,
-} from '../adapters/outbound/prisma/extra-item.repository.js'
+import type { ExtraItem, CreateExtraItemData, UpdateExtraItemData } from '../domain/entities/index.js'
+import { ExtraItemRepository } from '../adapters/outbound/prisma/extra-item.repository.js'
 import { ServiceRepository } from '../adapters/outbound/prisma/service.repository.js'
 import { EstablishmentRepository } from '../adapters/outbound/prisma/establishment.repository.js'
 import { NotFoundError, ForbiddenError } from '../domain/errors.js'
-import { ExtraItem } from '@prisma/client'
 
 export class ExtraItemService {
   constructor(

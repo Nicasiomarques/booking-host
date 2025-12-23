@@ -1,11 +1,12 @@
-import {
-  EstablishmentRepository,
+import type {
+  Establishment,
   CreateEstablishmentData,
   UpdateEstablishmentData,
   EstablishmentWithRole,
-} from '../adapters/outbound/prisma/establishment.repository.js'
+  Role,
+} from '../domain/entities/index.js'
+import { EstablishmentRepository } from '../adapters/outbound/prisma/establishment.repository.js'
 import { NotFoundError, ForbiddenError } from '../domain/errors.js'
-import { Establishment, Role } from '@prisma/client'
 
 export class EstablishmentService {
   constructor(private readonly repository: EstablishmentRepository) {}

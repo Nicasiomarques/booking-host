@@ -1,22 +1,20 @@
-import { PrismaClient, Establishment, Role } from '@prisma/client'
+import { PrismaClient, Establishment as PrismaEstablishment } from '@prisma/client'
+import type {
+  Establishment,
+  CreateEstablishmentData,
+  UpdateEstablishmentData,
+  EstablishmentWithRole,
+  Role,
+} from '../../../domain/entities/index.js'
 
-export interface CreateEstablishmentData {
-  name: string
-  description?: string
-  address: string
-  timezone?: string
+export type { Establishment, CreateEstablishmentData, UpdateEstablishmentData, EstablishmentWithRole }
+
+function toEstablishment(prismaEstablishment: PrismaEstablishment): Establishment {
+  return { ...prismaEstablishment }
 }
 
-export interface UpdateEstablishmentData {
-  name?: string
-  description?: string
-  address?: string
-  timezone?: string
-  active?: boolean
-}
-
-export interface EstablishmentWithRole extends Establishment {
-  role: Role
+function toEstablishmentWithRole(prismaEstablishment: PrismaEstablishment, role: Role): EstablishmentWithRole {
+  return { ...prismaEstablishment, role }
 }
 
 export class EstablishmentRepository {
@@ -26,7 +24,7 @@ export class EstablishmentRepository {
     data: CreateEstablishmentData,
     ownerId: string
   ): Promise<Establishment> {
-    return this.prisma.establishment.create({
+    const result = await this.prisma.establishment.create({
       data: {
         name: data.name,
         description: data.description,
@@ -40,12 +38,14 @@ export class EstablishmentRepository {
         },
       },
     })
+    return toEstablishment(result)
   }
 
   async findById(id: string): Promise<Establishment | null> {
-    return this.prisma.establishment.findUnique({
+    const result = await this.prisma.establishment.findUnique({
       where: { id },
     })
+    return result ? toEstablishment(result) : null
   }
 
   async findByUserId(userId: string): Promise<EstablishmentWithRole[]> {
@@ -56,20 +56,20 @@ export class EstablishmentRepository {
       },
     })
 
-    return establishmentUsers.map((eu) => ({
-      ...eu.establishment,
-      role: eu.role,
-    }))
+    return establishmentUsers.map((eu) =>
+      toEstablishmentWithRole(eu.establishment, eu.role as Role)
+    )
   }
 
   async update(
     id: string,
     data: UpdateEstablishmentData
   ): Promise<Establishment> {
-    return this.prisma.establishment.update({
+    const result = await this.prisma.establishment.update({
       where: { id },
       data,
     })
+    return toEstablishment(result)
   }
 
   async getUserRole(
@@ -85,6 +85,6 @@ export class EstablishmentRepository {
       },
     })
 
-    return establishmentUser?.role ?? null
+    return (establishmentUser?.role as Role) ?? null
   }
 }

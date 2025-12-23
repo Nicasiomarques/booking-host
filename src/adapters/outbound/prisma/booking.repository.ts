@@ -1,55 +1,53 @@
-import { PrismaClient, Booking, BookingStatus, Prisma } from '@prisma/client'
+import { PrismaClient, Booking as PrismaBooking, Prisma } from '@prisma/client'
+import type {
+  Booking,
+  CreateBookingData,
+  BookingExtraItemData,
+  BookingWithDetails,
+  ListBookingsOptions,
+  PaginatedResult,
+  BookingStatus,
+} from '../../../domain/entities/index.js'
 
-export interface CreateBookingData {
-  userId: string
-  establishmentId: string
-  serviceId: string
-  availabilityId: string
-  quantity: number
-  totalPrice: number
-  status?: BookingStatus
+export type {
+  Booking,
+  CreateBookingData,
+  BookingExtraItemData,
+  BookingWithDetails,
+  ListBookingsOptions,
+  PaginatedResult,
 }
 
-export interface BookingExtraItemData {
-  extraItemId: string
-  quantity: number
-  priceAtBooking: number
+function toBooking(prismaBooking: PrismaBooking): Booking {
+  return {
+    ...prismaBooking,
+    totalPrice: prismaBooking.totalPrice.toString(),
+    status: prismaBooking.status as BookingStatus,
+  }
 }
 
-export interface BookingWithDetails extends Booking {
-  service: {
-    id: string
-    name: string
-    basePrice: Prisma.Decimal
-    durationMinutes: number
-  }
-  availability: {
-    id: string
-    date: Date
-    startTime: string
-    endTime: string
-  }
+function toBookingWithDetails(prismaBooking: PrismaBooking & {
+  service: { id: string; name: string; basePrice: Prisma.Decimal; durationMinutes: number }
+  availability: { id: string; date: Date; startTime: string; endTime: string }
   extraItems: Array<{
     quantity: number
     priceAtBooking: Prisma.Decimal
-    extraItem: {
-      id: string
-      name: string
-    }
+    extraItem: { id: string; name: string }
   }>
-}
-
-export interface ListBookingsOptions {
-  page?: number
-  limit?: number
-  status?: BookingStatus
-}
-
-export interface PaginatedResult<T> {
-  data: T[]
-  total: number
-  page: number
-  limit: number
+}): BookingWithDetails {
+  return {
+    ...prismaBooking,
+    totalPrice: prismaBooking.totalPrice.toString(),
+    status: prismaBooking.status as BookingStatus,
+    service: {
+      ...prismaBooking.service,
+      basePrice: prismaBooking.service.basePrice.toString(),
+    },
+    extraItems: prismaBooking.extraItems.map((item) => ({
+      ...item,
+      priceAtBooking: item.priceAtBooking.toString(),
+    })),
+  }
 }
 
 export class BookingRepository {
@@ -61,7 +59,7 @@ export class BookingRepository {
     tx?: Prisma.TransactionClient
   ): Promise<Booking> {
     const client = tx ?? this.prisma
-    return client.booking.create({
+    const result = await client.booking.create({
       data: {
         userId: data.userId,
         establishmentId: data.establishmentId,
@@ -79,10 +77,11 @@ export class BookingRepository {
         },
       },
     })
+    return toBooking(result)
   }
 
   async findById(id: string): Promise<BookingWithDetails | null> {
-    return this.prisma.booking.findUnique({
+    const result = await this.prisma.booking.findUnique({
       where: { id },
       include: {
         service: {
@@ -112,7 +111,8 @@ export class BookingRepository {
           },
         },
       },
-    }) as Promise<BookingWithDetails | null>
+    })
+    return result ? toBookingWithDetails(result) : null
   }
 
   async findByUser(
@@ -166,7 +166,7 @@ export class BookingRepository {
     ])
 
     return {
-      data: data as BookingWithDetails[],
+      data: data.map(toBookingWithDetails),
       total,
       page,
       limit,
@@ -224,7 +224,7 @@ export class BookingRepository {
     ])
 
     return {
-      data: data as BookingWithDetails[],
+      data: data.map(toBookingWithDetails),
       total,
       page,
       limit,
@@ -237,10 +237,11 @@ export class BookingRepository {
     tx?: Prisma.TransactionClient
   ): Promise<Booking> {
     const client = tx ?? this.prisma
-    return client.booking.update({
+    const result = await client.booking.update({
       where: { id },
       data: { status },
     })
+    return toBooking(result)
   }
 
   async getBookingOwnership(id: string): Promise<{
