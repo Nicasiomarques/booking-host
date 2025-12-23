@@ -15,9 +15,7 @@ export class ServiceService {
   ): Promise<Service> {
     const role = await this.establishmentRepository.getUserRole(userId, establishmentId)
 
-    if (role !== 'OWNER') {
-      throw new ForbiddenError('Only owners can create services')
-    }
+    if (role !== 'OWNER') throw new ForbiddenError('Only owners can create services')
 
     return this.repository.create({
       ...data,
@@ -28,9 +26,7 @@ export class ServiceService {
   async findById(id: string): Promise<Service> {
     const service = await this.repository.findById(id)
 
-    if (!service) {
-      throw new NotFoundError('Service')
-    }
+    if (!service) throw new NotFoundError('Service')
 
     return service
   }
@@ -49,15 +45,11 @@ export class ServiceService {
   ): Promise<Service> {
     const service = await this.repository.findById(id)
 
-    if (!service) {
-      throw new NotFoundError('Service')
-    }
+    if (!service) throw new NotFoundError('Service')
 
     const role = await this.establishmentRepository.getUserRole(userId, service.establishmentId)
 
-    if (role !== 'OWNER') {
-      throw new ForbiddenError('Only owners can update services')
-    }
+    if (role !== 'OWNER') throw new ForbiddenError('Only owners can update services')
 
     return this.repository.update(id, data)
   }
@@ -65,21 +57,15 @@ export class ServiceService {
   async delete(id: string, userId: string): Promise<Service> {
     const service = await this.repository.findById(id)
 
-    if (!service) {
-      throw new NotFoundError('Service')
-    }
+    if (!service) throw new NotFoundError('Service')
 
     const role = await this.establishmentRepository.getUserRole(userId, service.establishmentId)
 
-    if (role !== 'OWNER') {
-      throw new ForbiddenError('Only owners can delete services')
-    }
+    if (role !== 'OWNER') throw new ForbiddenError('Only owners can delete services')
 
     const hasBookings = await this.repository.hasActiveBookings(id)
 
-    if (hasBookings) {
-      throw new ConflictError('Cannot delete service with active bookings')
-    }
+    if (hasBookings) throw new ConflictError('Cannot delete service with active bookings')
 
     return this.repository.softDelete(id)
   }

@@ -20,15 +20,11 @@ export class AvailabilityService {
   ): Promise<Availability> {
     const service = await this.serviceRepository.findById(serviceId)
 
-    if (!service) {
-      throw new NotFoundError('Service')
-    }
+    if (!service) throw new NotFoundError('Service')
 
     const role = await this.establishmentRepository.getUserRole(userId, service.establishmentId)
 
-    if (role !== 'OWNER') {
-      throw new ForbiddenError('Only owners can create availability slots')
-    }
+    if (role !== 'OWNER') throw new ForbiddenError('Only owners can create availability slots')
 
     // Check for overlapping time slots
     const hasOverlap = await this.repository.checkOverlap(
@@ -38,9 +34,7 @@ export class AvailabilityService {
       data.endTime
     )
 
-    if (hasOverlap) {
-      throw new ConflictError('Time slot overlaps with an existing availability')
-    }
+    if (hasOverlap) throw new ConflictError('Time slot overlaps with an existing availability')
 
     return this.repository.create({
       ...data,
@@ -51,9 +45,7 @@ export class AvailabilityService {
   async findById(id: string): Promise<Availability> {
     const availability = await this.repository.findById(id)
 
-    if (!availability) {
-      throw new NotFoundError('Availability')
-    }
+    if (!availability) throw new NotFoundError('Availability')
 
     return availability
   }
@@ -72,18 +64,14 @@ export class AvailabilityService {
   ): Promise<Availability> {
     const availability = await this.repository.findByIdWithService(id)
 
-    if (!availability) {
-      throw new NotFoundError('Availability')
-    }
+    if (!availability) throw new NotFoundError('Availability')
 
     const role = await this.establishmentRepository.getUserRole(
       userId,
       availability.service.establishmentId
     )
 
-    if (role !== 'OWNER') {
-      throw new ForbiddenError('Only owners can update availability slots')
-    }
+    if (role !== 'OWNER') throw new ForbiddenError('Only owners can update availability slots')
 
     // If date or time is being changed, check for overlaps
     if (data.date || data.startTime || data.endTime) {
@@ -99,9 +87,7 @@ export class AvailabilityService {
         id // Exclude current availability from check
       )
 
-      if (hasOverlap) {
-        throw new ConflictError('Time slot overlaps with an existing availability')
-      }
+      if (hasOverlap) throw new ConflictError('Time slot overlaps with an existing availability')
     }
 
     return this.repository.update(id, data)
@@ -110,24 +96,18 @@ export class AvailabilityService {
   async delete(id: string, userId: string): Promise<Availability> {
     const availability = await this.repository.findByIdWithService(id)
 
-    if (!availability) {
-      throw new NotFoundError('Availability')
-    }
+    if (!availability) throw new NotFoundError('Availability')
 
     const role = await this.establishmentRepository.getUserRole(
       userId,
       availability.service.establishmentId
     )
 
-    if (role !== 'OWNER') {
-      throw new ForbiddenError('Only owners can delete availability slots')
-    }
+    if (role !== 'OWNER') throw new ForbiddenError('Only owners can delete availability slots')
 
     const hasBookings = await this.repository.hasActiveBookings(id)
 
-    if (hasBookings) {
-      throw new ConflictError('Cannot delete availability with active bookings')
-    }
+    if (hasBookings) throw new ConflictError('Cannot delete availability with active bookings')
 
     return this.repository.delete(id)
   }

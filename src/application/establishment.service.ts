@@ -21,9 +21,7 @@ export class EstablishmentService {
   async findById(id: string): Promise<Establishment> {
     const establishment = await this.repository.findById(id)
 
-    if (!establishment) {
-      throw new NotFoundError('Establishment')
-    }
+    if (!establishment) throw new NotFoundError('Establishment')
 
     return establishment
   }
@@ -39,15 +37,11 @@ export class EstablishmentService {
   ): Promise<Establishment> {
     const role = await this.repository.getUserRole(userId, id)
 
-    if (role !== 'OWNER') {
-      throw new ForbiddenError('Only owners can update establishments')
-    }
+    if (role !== 'OWNER') throw new ForbiddenError('Only owners can update establishments')
 
     const establishment = await this.repository.findById(id)
 
-    if (!establishment) {
-      throw new NotFoundError('Establishment')
-    }
+    if (!establishment) throw new NotFoundError('Establishment')
 
     return this.repository.update(id, data)
   }

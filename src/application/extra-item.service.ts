@@ -20,15 +20,11 @@ export class ExtraItemService {
   ): Promise<ExtraItem> {
     const service = await this.serviceRepository.findById(serviceId)
 
-    if (!service) {
-      throw new NotFoundError('Service')
-    }
+    if (!service) throw new NotFoundError('Service')
 
     const role = await this.establishmentRepository.getUserRole(userId, service.establishmentId)
 
-    if (role !== 'OWNER') {
-      throw new ForbiddenError('Only owners can create extra items')
-    }
+    if (role !== 'OWNER') throw new ForbiddenError('Only owners can create extra items')
 
     return this.repository.create({
       ...data,
@@ -39,9 +35,7 @@ export class ExtraItemService {
   async findById(id: string): Promise<ExtraItem> {
     const extraItem = await this.repository.findById(id)
 
-    if (!extraItem) {
-      throw new NotFoundError('ExtraItem')
-    }
+    if (!extraItem) throw new NotFoundError('ExtraItem')
 
     return extraItem
   }
@@ -60,18 +54,14 @@ export class ExtraItemService {
   ): Promise<ExtraItem> {
     const extraItem = await this.repository.findByIdWithService(id)
 
-    if (!extraItem) {
-      throw new NotFoundError('ExtraItem')
-    }
+    if (!extraItem) throw new NotFoundError('ExtraItem')
 
     const role = await this.establishmentRepository.getUserRole(
       userId,
       extraItem.service.establishmentId
     )
 
-    if (role !== 'OWNER') {
-      throw new ForbiddenError('Only owners can update extra items')
-    }
+    if (role !== 'OWNER') throw new ForbiddenError('Only owners can update extra items')
 
     return this.repository.update(id, data)
   }
@@ -79,18 +69,14 @@ export class ExtraItemService {
   async delete(id: string, userId: string): Promise<ExtraItem> {
     const extraItem = await this.repository.findByIdWithService(id)
 
-    if (!extraItem) {
-      throw new NotFoundError('ExtraItem')
-    }
+    if (!extraItem) throw new NotFoundError('ExtraItem')
 
     const role = await this.establishmentRepository.getUserRole(
       userId,
       extraItem.service.establishmentId
     )
 
-    if (role !== 'OWNER') {
-      throw new ForbiddenError('Only owners can delete extra items')
-    }
+    if (role !== 'OWNER') throw new ForbiddenError('Only owners can delete extra items')
 
     return this.repository.softDelete(id)
   }

@@ -41,10 +41,8 @@ export class AuthService {
 
       return this.generateAuthResult(user)
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ConflictError('Email already exists')
-        }
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        if (error.code === 'P2002') throw new ConflictError('Email already exists')
       }
       throw error
     }
@@ -53,16 +51,12 @@ export class AuthService {
   async login(input: LoginInput): Promise<AuthResult> {
     const user = await this.userRepository.findByEmail(input.email)
 
-    if (!user) {
-      throw new UnauthorizedError('Invalid credentials')
-    }
+    if (!user) throw new UnauthorizedError('Invalid credentials')
 
     const isValid = await passwordService.verify(user.passwordHash, input.password)
 
-    if (!isValid) {
-      throw new UnauthorizedError('Invalid credentials')
-    }
-
+    if (!isValid) throw new UnauthorizedError('Invalid credentials')
+    
     if (await passwordService.needsRehash(user.passwordHash)) {
       const newHash = await passwordService.hash(input.password)
       await this.userRepository.update(user.id, { passwordHash: newHash })
@@ -76,9 +70,7 @@ export class AuthService {
 
     const user = await this.userRepository.findById(userId)
 
-    if (!user) {
-      throw new UnauthorizedError('User not found')
-    }
+    if (!user) throw new UnauthorizedError('User not found')
 
     const payload: TokenPayload = {
       userId: user.id,
