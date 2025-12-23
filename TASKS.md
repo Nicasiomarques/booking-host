@@ -9,6 +9,27 @@ This document tracks all development tasks for the Booking Service MVP. Each tas
 - Each task includes test commands and expected responses
 - Changelog updated with each significant change
 - **Each completed task requires a separate git commit (no co-author)**
+- **Commit after testing**: When a task/phase is tested and fully functional, create a commit immediately
+
+**Commit Format:**
+```
+feat(X.Y): short description
+
+- Bullet point explaining what was done
+- Another bullet point with details
+- Include "Tested with curl:" section for routes
+
+Example:
+feat(3.5): add establishment routes
+
+- POST /v1/establishments - create establishment (authenticated)
+- GET /v1/establishments/:id - get establishment by ID (public)
+- Register routes in http.adapter.ts
+
+Tested with curl:
+- Create: returns establishment with OWNER role
+- Get: returns establishment data
+```
 
 ---
 
@@ -75,7 +96,7 @@ This document tracks all development tasks for the Booking Service MVP. Each tas
   - src/adapters/outbound/prisma/prisma.client.ts
   - prisma/prisma.config.ts (Prisma 7.x adapter config)
 
-- [ ] **1.2.3** Create and apply initial migration
+- [x] **1.2.3** Create and apply initial migration
   ```bash
   npx prisma migrate dev --name init
   ```
@@ -144,29 +165,29 @@ curl -X GET http://localhost:3000/health
 
 ### 2.1 Password Service
 
-- [ ] **2.1.1** Create Argon2 configuration
+- [x] **2.1.1** Create Argon2 configuration
   - src/config/argon2.config.ts
   - argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4
 
-- [ ] **2.1.2** Create password service
+- [x] **2.1.2** Create password service
   - src/application/password.service.ts
   - hash(), verify(), needsRehash() methods
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed password service | Claude |
 
 ---
 
 ### 2.2 JWT Configuration
 
-- [ ] **2.2.1** Create JWT configuration
+- [x] **2.2.1** Create JWT configuration
   - src/config/jwt.config.ts
   - Validate with Zod (min 32 char secrets)
   - Access token: 15m, Refresh token: 7d
 
-- [ ] **2.2.2** Create JWT adapter
+- [x] **2.2.2** Create JWT adapter
   - src/adapters/outbound/token/jwt.adapter.ts
   - generateAccessToken(), generateRefreshToken()
   - verifyAccessToken(), verifyRefreshToken()
@@ -175,13 +196,13 @@ curl -X GET http://localhost:3000/health
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed JWT configuration and adapter | Claude |
 
 ---
 
 ### 2.3 User Repository
 
-- [ ] **2.3.1** Create user repository
+- [x] **2.3.1** Create user repository
   - src/adapters/outbound/prisma/user.repository.ts
   - findById(), findByEmail(), create(), update()
   - Include establishmentRoles in queries
@@ -189,74 +210,74 @@ curl -X GET http://localhost:3000/health
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed user repository | Claude |
 
 ---
 
 ### 2.4 Auth Service
 
-- [ ] **2.4.1** Create auth service
+- [x] **2.4.1** Create auth service
   - src/application/auth.service.ts
   - register(), login(), refresh(), logout()
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed auth service | Claude |
 
 ---
 
 ### 2.5 Auth Schemas
 
-- [ ] **2.5.1** Create common schemas
+- [x] **2.5.1** Create common schemas
   - src/adapters/inbound/http/schemas/common.schema.ts
   - uuidSchema, paginationSchema, emailSchema
 
-- [ ] **2.5.2** Create auth schemas
+- [x] **2.5.2** Create auth schemas
   - src/adapters/inbound/http/schemas/auth.schema.ts
   - registerSchema, loginSchema, refreshSchema
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed validation schemas | Claude |
 
 ---
 
 ### 2.6 Auth Middleware
 
-- [ ] **2.6.1** Create authentication middleware
+- [x] **2.6.1** Create authentication middleware
   - src/adapters/inbound/http/middleware/auth.middleware.ts
   - Extract Bearer token, verify, attach user to request
 
-- [ ] **2.6.2** Create validation middleware
+- [x] **2.6.2** Create validation middleware
   - src/adapters/inbound/http/middleware/validate.ts
   - validate() for body, validateQuery() for query params
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed auth and validation middleware | Claude |
 
 ---
 
 ### 2.7 Auth Routes
 
-- [ ] **2.7.1** POST /v1/auth/register
+- [x] **2.7.1** POST /v1/auth/register
   - Validate input with Zod
   - Hash password
   - Create user
   - Return tokens
 
-- [ ] **2.7.2** POST /v1/auth/login
+- [x] **2.7.2** POST /v1/auth/login
   - Validate credentials
   - Return access token + refresh token (HttpOnly cookie)
 
-- [ ] **2.7.3** POST /v1/auth/refresh
+- [x] **2.7.3** POST /v1/auth/refresh
   - Validate refresh token from cookie
   - Return new access token
 
-- [ ] **2.7.4** POST /v1/auth/logout
+- [x] **2.7.4** POST /v1/auth/logout
   - Clear refresh token cookie
 
 **Tests:**
@@ -288,7 +309,7 @@ curl -X POST http://localhost:3000/v1/auth/logout \
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed auth routes | Claude |
 
 ---
 
@@ -296,20 +317,20 @@ curl -X POST http://localhost:3000/v1/auth/logout \
 
 ### 3.1 Establishment Repository
 
-- [ ] **3.1.1** Create establishment repository
+- [x] **3.1.1** Create establishment repository
   - src/adapters/outbound/prisma/establishment.repository.ts
   - create(), findById(), findByUserId(), update()
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed establishment repository | Claude |
 
 ---
 
 ### 3.2 Establishment Service
 
-- [ ] **3.2.1** Create establishment service
+- [x] **3.2.1** Create establishment service
   - src/application/establishment.service.ts
   - create() - auto-assign creator as OWNER
   - findById(), findUserEstablishments(), update()
@@ -317,13 +338,13 @@ curl -X POST http://localhost:3000/v1/auth/logout \
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed establishment service | Claude |
 
 ---
 
 ### 3.3 ACL Middleware
 
-- [ ] **3.3.1** Create ACL middleware
+- [x] **3.3.1** Create ACL middleware
   - src/adapters/inbound/http/middleware/acl.middleware.ts
   - requireRole('OWNER'), requireRole('STAFF')
   - Check establishmentRoles from JWT payload
@@ -331,36 +352,36 @@ curl -X POST http://localhost:3000/v1/auth/logout \
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed ACL middleware | Claude |
 
 ---
 
 ### 3.4 Establishment Schemas
 
-- [ ] **3.4.1** Create establishment schemas
+- [x] **3.4.1** Create establishment schemas
   - src/adapters/inbound/http/schemas/establishment.schema.ts
   - createEstablishmentSchema, updateEstablishmentSchema
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed establishment schemas | Claude |
 
 ---
 
 ### 3.5 Establishment Routes
 
-- [ ] **3.5.1** POST /v1/establishments
+- [x] **3.5.1** POST /v1/establishments
   - Create establishment
   - Auto-assign creator as OWNER
 
-- [ ] **3.5.2** GET /v1/establishments/:id
+- [x] **3.5.2** GET /v1/establishments/:id
   - Get establishment by ID (public)
 
-- [ ] **3.5.3** PUT /v1/establishments/:id
+- [x] **3.5.3** PUT /v1/establishments/:id
   - Update establishment (OWNER only)
 
-- [ ] **3.5.4** GET /v1/establishments/my
+- [x] **3.5.4** GET /v1/establishments/my
   - Get user's establishments
 
 **Tests:**
@@ -371,10 +392,12 @@ curl -X POST http://localhost:3000/v1/establishments \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"name":"My Spa","description":"Relaxing spa","address":"123 Main St","timezone":"Europe/Lisbon"}'
 # Expected: {"id":"...","name":"My Spa",...}
+# Result: ✓
 
 # Get establishment
 curl -X GET http://localhost:3000/v1/establishments/{id}
 # Expected: {"id":"...","name":"My Spa",...}
+# Result: ✓
 
 # Update establishment
 curl -X PUT http://localhost:3000/v1/establishments/{id} \
@@ -382,17 +405,19 @@ curl -X PUT http://localhost:3000/v1/establishments/{id} \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"name":"My Updated Spa"}'
 # Expected: {"id":"...","name":"My Updated Spa",...}
+# Result: ✓
 
 # Get my establishments
 curl -X GET http://localhost:3000/v1/establishments/my \
   -H "Authorization: Bearer $TOKEN"
 # Expected: [{"id":"...","name":"My Spa",...}]
+# Result: ✓
 ```
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed establishment routes with tests | Claude |
 
 ---
 
@@ -881,8 +906,8 @@ npm run test:e2e -- auth.e2e.test.ts
 | Phase | Tasks | Status |
 |-------|-------|--------|
 | 1. Project Setup | 15 subtasks | Completed |
-| 2. Authentication | 14 subtasks | Not started |
-| 3. Establishments | 9 subtasks | Not started |
+| 2. Authentication | 14 subtasks | Completed |
+| 3. Establishments | 9 subtasks | Completed |
 | 4. Services | 9 subtasks | Not started |
 | 5. Extra Items | 8 subtasks | Not started |
 | 6. Availability | 8 subtasks | Not started |
@@ -899,3 +924,6 @@ npm run test:e2e -- auth.e2e.test.ts
 | Date | Phase | Change | Author |
 |------|-------|--------|--------|
 | 2025-12-23 | - | Initial task list created | Claude |
+| 2025-12-23 | 1 | Phase 1 completed - Project Setup & Infrastructure | Claude |
+| 2025-12-23 | 2 | Phase 2 completed - Authentication System | Claude |
+| 2025-12-23 | 3 | Phase 3 completed - Establishments | Claude |
