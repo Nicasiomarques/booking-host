@@ -1,0 +1,333 @@
+# 📘 Booking API — Backend README (MVP)
+
+## 1. Visão Geral
+
+Esta API fornece uma solução de **gestão de reservas para estabelecimentos**, permitindo que cada estabelecimento:
+
+* Registe serviços reserváveis
+* Defina disponibilidade por data/horário
+* Ofereça itens extras opcionais
+* Receba e gerencie reservas
+* Controle acessos via ACL
+
+A arquitetura é **multi-tenant por estabelecimento**, segura e preparada para evolução.
+
+---
+
+## 2. Objetivos do MVP
+
+* Evitar overbooking
+* Garantir consistência de preços
+* Separar responsabilidades (ACL)
+* Manter simplicidade operacional
+* Preparar terreno para features futuras
+
+---
+
+## 3. Stack Tecnológico (Sugerido)
+
+* **Backend:** REST API
+* **Auth:** JWT (Access + Refresh)
+* **DB:** PostgreSQL
+* **ORM:** Prisma / TypeORM / Sequelize (agnóstico)
+* **Cache/Lock:** Opcional (Redis)
+* **Formato:** JSON
+* **Timezone:** UTC + timezone por estabelecimento
+
+---
+
+## 4. Papéis (Roles)
+
+### Globais
+
+* `ADMIN` (plataforma)
+
+### Por Estabelecimento
+
+* `OWNER`
+* `STAFF`
+
+---
+
+## 5. Modelo de Dados (ERD)
+
+```mermaid
+erDiagram
+    USER {
+        uuid id PK
+        string name
+        string email
+        string password_hash
+        datetime created_at
+    }
+
+    ESTABLISHMENT {
+        uuid id PK
+        string name
+        string description
+        string address
+        string timezone
+        boolean active
+        datetime created_at
+    }
+
+    ESTABLISHMENT_USER {
+        uuid user_id FK
+        uuid establishment_id FK
+        string role
+    }
+
+    SERVICE {
+        uuid id PK
+        uuid establishment_id FK
+        string name
+        string description
+        decimal base_price
+        int duration_minutes
+        int capacity
+        boolean active
+    }
+
+    EXTRA_ITEM {
+        uuid id PK
+        uuid service_id FK
+        string name
+        decimal price
+        int max_quantity
+        boolean active
+    }
+
+    AVAILABILITY {
+        uuid id PK
+        uuid service_id FK
+        date date
+        time start_time
+        time end_time
+        int capacity
+    }
+
+    BOOKING {
+        uuid id PK
+        uuid user_id FK
+        uuid establishment_id FK
+        uuid service_id FK
+        uuid availability_id FK
+        int quantity
+        decimal total_price
+        string status
+        datetime created_at
+    }
+
+    BOOKING_EXTRA_ITEM {
+        uuid booking_id FK
+        uuid extra_item_id FK
+        int quantity
+        decimal price_at_booking
+    }
+
+    USER ||--o{ ESTABLISHMENT_USER : assigned
+    ESTABLISHMENT ||--o{ ESTABLISHMENT_USER : has
+    ESTABLISHMENT ||--o{ SERVICE : owns
+    SERVICE ||--o{ EXTRA_ITEM : has
+    SERVICE ||--o{ AVAILABILITY : schedules
+    SERVICE ||--o{ BOOKING : booked_as
+    AVAILABILITY ||--o{ BOOKING : used_in
+    BOOKING ||--o{ BOOKING_EXTRA_ITEM : includes
+```
+
+---
+
+## 6. Fluxo de Reserva (Sequence Diagram)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API
+    participant DB
+
+    Client->>API: POST /bookings
+    API->>DB: Validate service & availability
+    API->>DB: Lock availability
+    API->>DB: Calculate total price
+    API->>DB: Create booking (transaction)
+    API->>DB: Reduce capacity
+    API-->>Client: Booking CONFIRMED
+```
+
+---
+
+## 7. Endpoints (Detalhados)
+
+### 7.1 Autenticação
+
+```
+POST /auth/register
+POST /auth/login
+POST /auth/refresh
+POST /auth/logout
+```
+
+JWT inclui:
+
+* user_id
+* global_role
+* establishment_roles[]
+
+---
+
+### 7.2 Estabelecimentos
+
+```
+POST   /establishments
+GET    /establishments/{id}
+PUT    /establishments/{id}
+GET    /establishments/my
+```
+
+🔒 Apenas `OWNER` pode editar.
+
+---
+
+### 7.3 Serviços
+
+```
+POST   /establishments/{id}/services
+GET    /establishments/{id}/services
+GET    /services/{id}
+PUT    /services/{id}
+DELETE /services/{id}
+```
+
+* Soft delete
+* Não deletar se houver reservas ativas
+
+---
+
+### 7.4 Itens Extras
+
+```
+POST   /services/{id}/extras
+GET    /services/{id}/extras
+PUT    /extras/{id}
+DELETE /extras/{id}
+```
+
+📌 Preço congelado no booking.
+
+---
+
+### 7.5 Disponibilidade
+
+```
+POST   /services/{id}/availabilities
+GET    /services/{id}/availabilities
+PUT    /availabilities/{id}
+DELETE /availabilities/{id}
+```
+
+Regras:
+
+* Não pode haver overlap
+* Capacidade ≥ 1
+
+---
+
+### 7.6 Reservas
+
+```
+POST   /bookings
+GET    /bookings/{id}
+GET    /bookings/my
+GET    /establishments/{id}/bookings
+PUT    /bookings/{id}/cancel
+```
+
+Status:
+
+* `PENDING`
+* `CONFIRMED`
+* `CANCELLED`
+
+---
+
+## 8. Regras de Negócio Críticas
+
+### Booking
+
+* Sempre dentro de **transação**
+* Lock pessimista ou otimista
+* Capacidade nunca negativa
+
+### Preço
+
+* `total_price` calculado no backend
+* Extras usam `price_at_booking`
+
+### Timezone
+
+* Disponibilidade sempre salva em UTC
+* Convertida via timezone do estabelecimento
+
+---
+
+## 9. ACL — Regras Técnicas
+
+| Ação             | OWNER | STAFF |
+| ---------------- | ----- | ----- |
+| Criar serviço    | ✅     | ❌     |
+| Editar serviço   | ✅     | ❌     |
+| Gerir extras     | ✅     | ❌     |
+| Gerir horários   | ✅     | ❌     |
+| Ver reservas     | ✅     | ✅     |
+| Cancelar reserva | ✅     | ✅     |
+
+Middleware:
+
+```
+authorize(establishment_id, required_role)
+```
+
+---
+
+## 10. Error Handling (Padrão)
+
+### Estrutura
+
+```json
+{
+  "error": {
+    "code": "AVAILABILITY_FULL",
+    "message": "No available capacity for this slot"
+  }
+}
+```
+
+### Códigos Comuns
+
+| Código           | HTTP |
+| ---------------- | ---- |
+| UNAUTHORIZED     | 401  |
+| FORBIDDEN        | 403  |
+| NOT_FOUND        | 404  |
+| VALIDATION_ERROR | 422  |
+| CONFLICT         | 409  |
+| INTERNAL_ERROR   | 500  |
+
+---
+
+## 11. Validações Importantes
+
+* Email único
+* Capacidade > 0
+* Extras não excedem `max_quantity`
+* Booking só pode ser cancelado se ativo
+
+---
+
+## 12. Boas Práticas Obrigatórias
+
+✔ Soft delete
+✔ Logs estruturados
+✔ Idempotência em POST /bookings
+✔ Versionamento de API (`/v1`)
+✔ Testes de concorrência (booking)
