@@ -24,10 +24,11 @@ This guide documents best practices, patterns, and anti-patterns for the Booking
 | Technology | Version | Purpose |
 |------------|---------|---------|
 | Node.js | 22.x LTS | Runtime |
-| TypeScript | 5.7.x | Static typing |
+| TypeScript | 5.9.x | Static typing |
 | Fastify | 5.6.x | HTTP framework |
-| Prisma | 7.2.x | ORM |
-| Zod | 4.2.x | Validation |
+| Prisma | 7.2.x | ORM with PostgreSQL adapter |
+| Zod | 4.2.x | Validation + OpenAPI integration |
+| zod-to-openapi | 8.2.x | OpenAPI schema generation |
 | jsonwebtoken | 9.0.x | JWT authentication |
 | argon2 | 0.44.x | Password hashing |
 | Pino | 10.1.x | Logging (built into Fastify) |
@@ -38,15 +39,17 @@ This guide documents best practices, patterns, and anti-patterns for the Booking
 
 ```bash
 # Runtime dependencies
-npm install fastify @fastify/cors @fastify/helmet @fastify/cookie
-npm install prisma @prisma/client
-npm install zod
+npm install fastify @fastify/cors @fastify/helmet @fastify/cookie @fastify/rate-limit
+npm install @fastify/swagger @fastify/swagger-ui
+npm install prisma @prisma/client @prisma/adapter-pg pg
+npm install zod @asteasolutions/zod-to-openapi zod-to-json-schema
 npm install jsonwebtoken
 npm install argon2
+npm install dotenv
 
 # Dev dependencies
 npm install -D typescript @types/node tsx
-npm install -D @types/jsonwebtoken
+npm install -D @types/jsonwebtoken @types/pg
 npm install -D vitest supertest @types/supertest
 npm install -D pino-pretty
 npm install -D prisma
@@ -62,6 +65,7 @@ A simplified Hexagonal Architecture that separates concerns without over-enginee
 booking-service/
 ├── prisma/
 │   ├── schema.prisma
+│   ├── prisma.config.ts          # Prisma 7.x adapter configuration
 │   └── migrations/
 │
 ├── src/
@@ -69,43 +73,78 @@ booking-service/
 │   │   ├── entities/
 │   │   │   ├── user.ts
 │   │   │   ├── booking.ts
-│   │   │   └── establishment.ts
+│   │   │   ├── establishment.ts
+│   │   │   ├── service.ts
+│   │   │   ├── availability.ts
+│   │   │   ├── extra-item.ts
+│   │   │   └── common.ts          # Shared types (Role, BookingStatus, PaginatedResult)
 │   │   ├── errors.ts              # Domain-specific errors
-│   │   └── types.ts               # Shared domain types
+│   │   └── index.ts               # Barrel export
 │   │
 │   ├── application/               # Use cases / Application services
+│   │   ├── ports/                 # Port interfaces (contracts for adapters)
+│   │   │   ├── repositories.port.ts      # Repository interfaces
+│   │   │   ├── password-hasher.port.ts   # Password hashing interface
+│   │   │   ├── token-provider.port.ts    # Token generation/verification interface
+│   │   │   ├── unit-of-work.port.ts      # Transaction management interface
+│   │   │   └── repository-error-handler.port.ts
 │   │   ├── auth.service.ts
 │   │   ├── booking.service.ts
 │   │   ├── establishment.service.ts
-│   │   └── service.service.ts
+│   │   ├── service.service.ts
+│   │   ├── availability.service.ts
+│   │   └── extra-item.service.ts
 │   │
 │   ├── adapters/
 │   │   ├── inbound/               # Driving adapters (HTTP, CLI, etc.)
-│   │   │   ├── http/
-│   │   │   │   ├── routes/
-│   │   │   │   │   ├── auth.routes.ts
-│   │   │   │   │   ├── booking.routes.ts
-│   │   │   │   │   └── establishment.routes.ts
-│   │   │   │   ├── schemas/       # Zod request/response schemas
-│   │   │   │   │   ├── auth.schema.ts
-│   │   │   │   │   ├── booking.schema.ts
-│   │   │   │   │   └── common.schema.ts
-│   │   │   │   ├── middleware/
-│   │   │   │   │   ├── auth.middleware.ts
-│   │   │   │   │   └── acl.middleware.ts
-│   │   │   │   └── plugins/
-│   │   │   │       ├── prisma.plugin.ts
-│   │   │   │       └── error-handler.plugin.ts
-│   │   │   └── http.adapter.ts    # Fastify app configuration
+│   │   │   └── http/
+│   │   │       ├── routes/
+│   │   │       │   ├── auth.routes.ts
+│   │   │       │   ├── booking.routes.ts
+│   │   │       │   ├── establishment.routes.ts
+│   │   │       │   ├── service.routes.ts
+│   │   │       │   ├── availability.routes.ts
+│   │   │       │   └── extra-item.routes.ts
+│   │   │       ├── schemas/       # Zod request/response schemas + OpenAPI
+│   │   │       │   ├── auth.schema.ts
+│   │   │       │   ├── booking.schema.ts
+│   │   │       │   ├── establishment.schema.ts
+│   │   │       │   ├── service.schema.ts
+│   │   │       │   ├── availability.schema.ts
+│   │   │       │   ├── extra-item.schema.ts
+│   │   │       │   └── common.schema.ts
+│   │   │       ├── middleware/
+│   │   │       │   ├── auth.middleware.ts
+│   │   │       │   ├── acl.middleware.ts
+│   │   │       │   └── validate.ts
+│   │   │       ├── plugins/
+│   │   │       │   ├── prisma.plugin.ts
+│   │   │       │   ├── services.plugin.ts    # Dependency injection
+│   │   │       │   └── error-handler.plugin.ts
+│   │   │       ├── openapi/       # OpenAPI/Swagger configuration
+│   │   │       │   ├── registry.ts
+│   │   │       │   ├── fastify-schema.ts
+│   │   │       │   └── common.schemas.ts
+│   │   │       ├── services/
+│   │   │       │   └── service-factory.ts    # Composition Root
+│   │   │       └── http.adapter.ts    # Fastify app configuration
 │   │   │
 │   │   └── outbound/              # Driven adapters (Database, external APIs)
 │   │       ├── prisma/
 │   │       │   ├── prisma.client.ts
 │   │       │   ├── user.repository.ts
 │   │       │   ├── booking.repository.ts
-│   │       │   └── establishment.repository.ts
-│   │       └── token/
-│   │           └── jwt.adapter.ts
+│   │       │   ├── establishment.repository.ts
+│   │       │   ├── service.repository.ts
+│   │       │   ├── availability.repository.ts
+│   │       │   ├── extra-item.repository.ts
+│   │       │   ├── prisma-unit-of-work.adapter.ts
+│   │       │   └── prisma-repository-error-handler.adapter.ts
+│   │       ├── token/
+│   │       │   ├── jwt.adapter.ts
+│   │       │   └── jwt-token-provider.adapter.ts
+│   │       └── crypto/
+│   │           └── argon2-password-hasher.adapter.ts
 │   │
 │   ├── config/
 │   │   ├── app.config.ts
@@ -119,13 +158,20 @@ booking-service/
 │       ├── setup.ts
 │       ├── auth.e2e.test.ts
 │       ├── booking.e2e.test.ts
+│       ├── establishment.e2e.test.ts
+│       ├── service.e2e.test.ts
+│       ├── availability.e2e.test.ts
+│       ├── extra-item.e2e.test.ts
+│       ├── acl.e2e.test.ts
 │       └── helpers/
-│           └── test-client.ts
+│           ├── test-client.ts
+│           ├── factories.ts
+│           └── setup.ts
 │
 ├── .env.example
 ├── .env.test
 ├── package.json
-├── tsconfig.json
+├── tsconfig.json                  # Includes path aliases (#adapters, #application, etc.)
 └── vitest.config.ts
 ```
 
@@ -147,6 +193,63 @@ Dependencies only point inward:
 
 ```
 Inbound Adapters → Application → Domain ← Outbound Adapters
+```
+
+### Port Interfaces
+
+Ports define contracts that adapters must implement. This enables swapping implementations without changing business logic.
+
+```typescript
+// src/application/ports/password-hasher.port.ts
+export interface PasswordHasherPort {
+  hash(password: string): Promise<string>
+  verify(hash: string, password: string): Promise<boolean>
+  needsRehash(hash: string): Promise<boolean>
+}
+
+// src/application/ports/token-provider.port.ts
+export interface TokenProviderPort {
+  generateAccessToken(payload: TokenPayload): string
+  generateRefreshToken(userId: string): string
+  verifyAccessToken(token: string): TokenPayload
+  verifyRefreshToken(token: string): { userId: string }
+}
+
+// src/application/ports/unit-of-work.port.ts
+export interface UnitOfWorkPort {
+  execute<T>(work: (ctx: TransactionContext) => Promise<T>): Promise<T>
+}
+```
+
+**Benefits:**
+- Services depend on abstractions (ports), not concrete implementations
+- Easy to swap implementations (e.g., Argon2 → bcrypt, JWT → Paseto)
+- Testable: mock ports in unit tests
+
+### Path Aliases
+
+The project uses TypeScript path aliases for cleaner imports:
+
+```json
+// package.json - "imports" field
+{
+  "#adapters/*": "./src/adapters/*",
+  "#application/*": "./src/application/*",
+  "#config/*": "./src/config/*",
+  "#domain/*": "./src/domain/*"
+}
+```
+
+**Usage:**
+```typescript
+// Instead of relative imports
+import { UserRepository } from '../../../adapters/outbound/prisma/user.repository'
+
+// Use path aliases
+import { UserRepository } from '#adapters/outbound/prisma/user.repository'
+import { AuthService } from '#application/auth.service'
+import { jwtConfig } from '#config/jwt.config'
+import { NotFoundError } from '#domain/errors'
 ```
 
 ---
@@ -346,7 +449,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // URL is configured via prisma.config.ts for Prisma 7.x
 }
 
 model User {
@@ -1335,6 +1438,7 @@ async createAvailability(serviceId: string, data: CreateAvailabilityInput) {
 - [Fastify Documentation](https://fastify.dev/docs/latest/)
 - [Prisma Documentation](https://www.prisma.io/docs)
 - [Zod Documentation](https://zod.dev/)
+- [zod-to-openapi](https://github.com/asteasolutions/zod-to-openapi) - OpenAPI generation from Zod schemas
 - [JWT Best Practices](https://curity.io/resources/learn/jwt-best-practices/)
 - [OWASP Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
 - [Pino Logger](https://getpino.io/)
@@ -1348,3 +1452,7 @@ async createAvailability(serviceId: string, data: CreateAvailabilityInput) {
 - [argon2 npm](https://www.npmjs.com/package/argon2) - v0.44.x
 - [Pino npm](https://www.npmjs.com/package/pino) - v10.1.x
 - [Vitest Releases](https://github.com/vitest-dev/vitest/releases) - v4.0.x
+
+---
+
+*Last updated: December 2025*

@@ -16,11 +16,12 @@ A booking management API for establishments built with Fastify, Prisma, and Type
 ## Tech Stack
 
 - **Runtime**: Node.js 22+
-- **Framework**: Fastify 5
-- **Database**: PostgreSQL with Prisma 7
-- **Authentication**: JWT (jsonwebtoken) + Argon2
-- **Validation**: Zod
-- **Testing**: Vitest
+- **Framework**: Fastify 5.6
+- **Database**: PostgreSQL 15+ with Prisma 7.2
+- **Authentication**: JWT (jsonwebtoken 9.0) + Argon2 (0.44)
+- **Validation**: Zod 4.2 with OpenAPI integration
+- **Documentation**: OpenAPI/Swagger UI
+- **Testing**: Vitest 4.0 + Supertest
 
 ## Getting Started
 
@@ -160,20 +161,43 @@ npm run test:e2e
 
 # Run tests in watch mode
 npm test
+
+# Run specific test suites
+npm run test:e2e:smoke      # Smoke tests only
+npm run test:e2e:critical   # Critical tests only
+npm run test:e2e:security   # Security tests only
 ```
 
 ## Project Structure
 
 ```
 src/
+├── domain/                       # Core business logic (no dependencies)
+│   ├── entities/                 # Domain entities and types
+│   └── errors.ts                 # Domain-specific errors
+│
+├── application/                  # Business logic services
+│   ├── ports/                    # Port interfaces (contracts)
+│   │   ├── password-hasher.port.ts
+│   │   ├── token-provider.port.ts
+│   │   ├── repositories.port.ts
+│   │   └── unit-of-work.port.ts
+│   └── *.service.ts              # Application services
+│
 ├── adapters/
-│   ├── inbound/http/       # HTTP routes, middleware, schemas
-│   └── outbound/
-│       ├── prisma/         # Database repositories
-│       └── token/          # JWT adapter
-├── application/            # Business logic services
-├── config/                 # Configuration modules
-└── domain/                 # Domain errors
+│   ├── inbound/http/             # HTTP layer (driving adapters)
+│   │   ├── routes/               # HTTP endpoints
+│   │   ├── schemas/              # Zod validation + OpenAPI
+│   │   ├── middleware/           # Auth, ACL, validation
+│   │   ├── plugins/              # Fastify plugins
+│   │   └── openapi/              # OpenAPI/Swagger config
+│   │
+│   └── outbound/                 # Driven adapters
+│       ├── prisma/               # Database repositories
+│       ├── token/                # JWT token provider
+│       └── crypto/               # Password hashing (Argon2)
+│
+└── config/                       # Configuration modules
 ```
 
 ## License
