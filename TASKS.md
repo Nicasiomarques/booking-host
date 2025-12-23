@@ -884,29 +884,31 @@ npm run test:e2e
 
 ### 9.1 Security Hardening
 
-- [ ] **9.1.1** Rate limiting on auth endpoints
+- [x] **9.1.1** Rate limiting on auth endpoints
   - Install @fastify/rate-limit
-  - Configure for /v1/auth/* routes
+  - Configure for /v1/auth/* routes (5 req/min in prod, 100 in dev)
+  - Custom error response with 429 status
 
-- [ ] **9.1.2** Input sanitization review
-  - Verify all inputs validated with Zod
-  - Check for SQL injection vectors (Prisma handles)
-  - XSS prevention (JSON responses)
+- [x] **9.1.2** Input sanitization review
+  - Verify all inputs validated with Zod ✓
+  - Check for SQL injection vectors (Prisma handles) ✓
+  - XSS prevention (JSON responses) ✓
+  - Added .trim() to all string inputs
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed security hardening | Claude |
 
 ---
 
 ### 9.2 Documentation
 
-- [ ] **9.2.1** API documentation
-  - OpenAPI/Swagger spec (optional)
-  - Postman collection
+- [x] **9.2.1** API documentation
+  - OpenAPI/Swagger spec at /docs
+  - Swagger UI for interactive testing
 
-- [ ] **9.2.2** Update README with:
+- [x] **9.2.2** Update README with:
   - Setup instructions
   - Environment variables
   - API examples
@@ -914,7 +916,7 @@ npm run test:e2e
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed documentation | Claude |
 
 ---
 
@@ -930,9 +932,9 @@ npm run test:e2e
 | 6. Availability | 8 subtasks | Completed |
 | 7. Bookings | 9 subtasks | Completed |
 | 8. Testing | 4 subtasks | Completed |
-| 9. Final Polish | 4 subtasks | Not started |
+| 9. Final Polish | 4 subtasks | Completed |
 
-**Total: 80 subtasks**
+**Total: 80 subtasks - ALL COMPLETED ✓**
 
 ---
 
@@ -949,3 +951,4 @@ npm run test:e2e
 | 2025-12-23 | 6 | Phase 6 completed - Availability | Claude |
 | 2025-12-23 | 7 | Phase 7 completed - Bookings | Claude |
 | 2025-12-23 | 8 | Phase 8 completed - Testing (40 tests passing) | Claude |
+| 2025-12-23 | 9 | Phase 9 completed - Final Polish (rate limiting, docs, README) | Claude |
