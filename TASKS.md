@@ -618,7 +618,7 @@ curl -X DELETE http://localhost:3000/v1/extras/{id} \
 
 ### 6.1 Availability Repository
 
-- [ ] **6.1.1** Create availability repository
+- [x] **6.1.1** Create availability repository
   - src/adapters/outbound/prisma/availability.repository.ts
   - create(), findById(), findByService(), findByDateRange(), update(), delete()
   - checkOverlap() method
@@ -626,13 +626,13 @@ curl -X DELETE http://localhost:3000/v1/extras/{id} \
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed availability repository | Claude |
 
 ---
 
 ### 6.2 Availability Service
 
-- [ ] **6.2.1** Create availability service
+- [x] **6.2.1** Create availability service
   - src/application/availability.service.ts
   - create() with overlap validation
   - findByService(), update(), delete()
@@ -640,36 +640,36 @@ curl -X DELETE http://localhost:3000/v1/extras/{id} \
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed availability service | Claude |
 
 ---
 
 ### 6.3 Availability Schemas
 
-- [ ] **6.3.1** Create availability schemas
+- [x] **6.3.1** Create availability schemas
   - src/adapters/inbound/http/schemas/availability.schema.ts
   - createAvailabilitySchema, updateAvailabilitySchema, queryAvailabilitySchema
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed availability schemas | Claude |
 
 ---
 
 ### 6.4 Availability Routes
 
-- [ ] **6.4.1** POST /v1/services/:serviceId/availabilities
+- [x] **6.4.1** POST /v1/services/:serviceId/availabilities
   - Create availability slot (OWNER only)
   - Validate no overlap
 
-- [ ] **6.4.2** GET /v1/services/:serviceId/availabilities
+- [x] **6.4.2** GET /v1/services/:serviceId/availabilities
   - List availabilities with optional date filter (public)
 
-- [ ] **6.4.3** PUT /v1/availabilities/:id
+- [x] **6.4.3** PUT /v1/availabilities/:id
   - Update availability (OWNER only)
 
-- [ ] **6.4.4** DELETE /v1/availabilities/:id
+- [x] **6.4.4** DELETE /v1/availabilities/:id
   - Delete availability (OWNER only)
 
 **Tests:**
@@ -680,10 +680,12 @@ curl -X POST http://localhost:3000/v1/services/{serviceId}/availabilities \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"date":"2025-01-15","startTime":"09:00","endTime":"10:00","capacity":5}'
 # Expected: {"id":"...","date":"2025-01-15",...}
+# Result: ✓
 
 # List availabilities
 curl -X GET "http://localhost:3000/v1/services/{serviceId}/availabilities?startDate=2025-01-01&endDate=2025-01-31"
 # Expected: [{"id":"...","date":"2025-01-15",...}]
+# Result: ✓
 
 # Update availability
 curl -X PUT http://localhost:3000/v1/availabilities/{id} \
@@ -691,11 +693,13 @@ curl -X PUT http://localhost:3000/v1/availabilities/{id} \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"capacity":10}'
 # Expected: {"id":"...","capacity":10,...}
+# Result: ✓
 
 # Delete availability
 curl -X DELETE http://localhost:3000/v1/availabilities/{id} \
   -H "Authorization: Bearer $TOKEN"
 # Expected: {"success":true}
+# Result: ✓
 
 # Test overlap prevention
 curl -X POST http://localhost:3000/v1/services/{serviceId}/availabilities \
@@ -703,12 +707,13 @@ curl -X POST http://localhost:3000/v1/services/{serviceId}/availabilities \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"date":"2025-01-15","startTime":"09:30","endTime":"10:30","capacity":5}'
 # Expected: {"error":{"code":"CONFLICT","message":"Time slot overlaps..."}}
+# Result: ✓
 ```
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
-| - | Task created | - |
+| 2025-12-23 | Completed availability routes with tests | Claude |
 
 ---
 
@@ -919,7 +924,7 @@ npm run test:e2e -- auth.e2e.test.ts
 | 3. Establishments | 9 subtasks | Completed |
 | 4. Services | 9 subtasks | Completed |
 | 5. Extra Items | 8 subtasks | Completed |
-| 6. Availability | 8 subtasks | Not started |
+| 6. Availability | 8 subtasks | Completed |
 | 7. Bookings | 9 subtasks | Not started |
 | 8. Testing | 4 subtasks | Not started |
 | 9. Final Polish | 4 subtasks | Not started |
@@ -938,3 +943,4 @@ npm run test:e2e -- auth.e2e.test.ts
 | 2025-12-23 | 3 | Phase 3 completed - Establishments | Claude |
 | 2025-12-23 | 4 | Phase 4 completed - Services | Claude |
 | 2025-12-23 | 5 | Phase 5 completed - Extra Items | Claude |
+| 2025-12-23 | 6 | Phase 6 completed - Availability | Claude |
