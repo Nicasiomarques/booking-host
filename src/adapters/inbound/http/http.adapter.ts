@@ -44,6 +44,7 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // Routes
   await app.register(import('./routes/auth.routes.js'), { prefix: '/v1/auth' })
+  await app.register(import('./routes/establishment.routes.js'), { prefix: '/v1/establishments' })
 
   // Health check
   app.get('/health', async () => ({ status: 'ok' }))
