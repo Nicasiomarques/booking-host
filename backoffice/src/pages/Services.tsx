@@ -23,6 +23,7 @@ import {
   CreateServiceModal,
   EditServiceModal,
   DeleteServiceModal,
+  ExtraItemsList,
   type Service,
   type ServiceFormData,
 } from '@/features/services'
@@ -33,6 +34,11 @@ const Services: Component = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = createSignal(false)
   const [editingService, setEditingService] = createSignal<Service | null>(null)
   const [deletingService, setDeletingService] = createSignal<Service | null>(null)
+  const [expandedServiceId, setExpandedServiceId] = createSignal<string | null>(null)
+
+  const toggleExpanded = (serviceId: string) => {
+    setExpandedServiceId((prev) => (prev === serviceId ? null : serviceId))
+  }
 
   const establishmentQuery = useEstablishment(() => params.establishmentId)
   const servicesQuery = useServices(() => params.establishmentId)
@@ -186,45 +192,81 @@ const Services: Component = () => {
                 >
                   <For each={servicesQuery.data}>
                     {(service) => (
-                      <TableRow>
-                        <TableCell>
-                          <div>
-                            <div class="font-medium">{service.name}</div>
-                            <Show when={service.description}>
-                              <div class="text-sm text-base-content/60 truncate max-w-xs">
-                                {service.description}
+                      <>
+                        <TableRow>
+                          <TableCell>
+                            <div class="flex items-center gap-2">
+                              <button
+                                type="button"
+                                class="btn btn-ghost btn-xs btn-square"
+                                onClick={() => toggleExpanded(service.id)}
+                                aria-label={
+                                  expandedServiceId() === service.id
+                                    ? 'Collapse extras'
+                                    : 'Expand extras'
+                                }
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  class={`h-4 w-4 transition-transform ${expandedServiceId() === service.id ? 'rotate-90' : ''}`}
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M9 5l7 7-7 7"
+                                  />
+                                </svg>
+                              </button>
+                              <div>
+                                <div class="font-medium">{service.name}</div>
+                                <Show when={service.description}>
+                                  <div class="text-sm text-base-content/60 truncate max-w-xs">
+                                    {service.description}
+                                  </div>
+                                </Show>
                               </div>
-                            </Show>
-                          </div>
-                        </TableCell>
-                        <TableCell>{formatDuration(service.durationMinutes)}</TableCell>
-                        <TableCell>{formatPrice(service.basePrice)}</TableCell>
-                        <TableCell>{service.capacity}</TableCell>
-                        <TableCell>
-                          <Badge variant={service.isActive ? 'success' : 'ghost'} size="sm">
-                            {service.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell class="text-right">
-                          <div class="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingService(service)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              class="text-error"
-                              onClick={() => setDeletingService(service)}
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                            </div>
+                          </TableCell>
+                          <TableCell>{formatDuration(service.durationMinutes)}</TableCell>
+                          <TableCell>{formatPrice(service.basePrice)}</TableCell>
+                          <TableCell>{service.capacity}</TableCell>
+                          <TableCell>
+                            <Badge variant={service.isActive ? 'success' : 'ghost'} size="sm">
+                              {service.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell class="text-right">
+                            <div class="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setEditingService(service)}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                class="text-error"
+                                onClick={() => setDeletingService(service)}
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        <Show when={expandedServiceId() === service.id}>
+                          <tr>
+                            <td colSpan={6} class="bg-base-200/50 p-4">
+                              <ExtraItemsList serviceId={service.id} serviceName={service.name} />
+                            </td>
+                          </tr>
+                        </Show>
+                      </>
                     )}
                   </For>
                 </Show>
