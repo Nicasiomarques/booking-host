@@ -863,18 +863,24 @@ npm run dev
 
 ---
 
-## Phase 11: Testing
+## Phase 11: E2E Testing
 
-### 11.1 Unit Tests Setup
+### 11.1 Playwright Setup
 
-- [ ] **11.1.1** Install testing dependencies
+- [ ] **11.1.1** Install Playwright
   ```bash
-  npm install -D vitest @testing-library/solid jsdom
+  npm install -D @playwright/test
+  npx playwright install
   ```
 
-- [ ] **11.1.2** Configure Vitest
-  - vitest.config.ts
-  - test setup file
+- [ ] **11.1.2** Configure Playwright
+  - playwright.config.ts
+  - Base URL configuration
+  - Browser settings (Chromium, Firefox, WebKit)
+
+- [ ] **11.1.3** Create test utilities
+  - e2e/fixtures/auth.fixture.ts (login helper)
+  - e2e/fixtures/api.fixture.ts (API mocking)
 
 **Changelog:**
 | Date | Change | Author |
@@ -883,15 +889,18 @@ npm run dev
 
 ---
 
-### 11.2 Component Tests
+### 11.2 Auth E2E Tests
 
-- [ ] **11.2.1** Test UI components
-  - Button, Input, Modal tests
-  - Verify rendering and interactions
+- [ ] **11.2.1** Test login flow
+  - e2e/auth/login.spec.ts
+  - Valid credentials -> redirect to dashboard
+  - Invalid credentials -> error message
+  - Form validation errors
 
-- [ ] **11.2.2** Test feature components
-  - EstablishmentForm validation
-  - ServiceForm validation
+- [ ] **11.2.2** Test protected routes
+  - Unauthenticated access -> redirect to login
+  - Authenticated access -> allowed
+  - Logout -> redirect to login
 
 **Changelog:**
 | Date | Change | Author |
@@ -900,21 +909,30 @@ npm run dev
 
 ---
 
-### 11.3 Integration Tests
+### 11.3 Feature E2E Tests
 
-- [ ] **11.3.1** Test auth flow
-  - Login flow
-  - Logout flow
-  - Protected routes
+- [ ] **11.3.1** Test establishments CRUD
+  - e2e/establishments/establishments.spec.ts
+  - List establishments
+  - Create new establishment
+  - Edit establishment
+  - View establishment details
 
-- [ ] **11.3.2** Test CRUD operations
-  - Create/Read/Update/Delete establishments
-  - Create/Read/Update/Delete services
+- [ ] **11.3.2** Test services CRUD
+  - e2e/services/services.spec.ts
+  - List services for establishment
+  - Create/Edit/Delete service
+
+- [ ] **11.3.3** Test bookings flow
+  - e2e/bookings/bookings.spec.ts
+  - List bookings with filters
+  - View booking details
+  - Cancel booking
 
 **Test:**
 ```bash
-npm run test
-# All tests should pass
+npm run test:e2e
+# All E2E tests should pass
 ```
 
 **Changelog:**
@@ -986,10 +1004,10 @@ npm run preview
 | 8. Availability | 7 subtasks | Not started |
 | 9. Bookings | 5 subtasks | Not started |
 | 10. Polish & UX | 10 subtasks | Not started |
-| 11. Testing | 5 subtasks | Not started |
+| 11. E2E Testing | 8 subtasks | Not started |
 | 12. Build & Deploy | 5 subtasks | Not started |
 
-**Total: 94 subtasks**
+**Total: 97 subtasks**
 
 ---
 

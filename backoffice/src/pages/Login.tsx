@@ -93,10 +93,11 @@ const Login: Component = () => {
 
           <form onSubmit={handleSubmit} class="space-y-4">
             <div class="form-control">
-              <label class="label">
+              <label for="email" class="label">
                 <span class="label-text">Email</span>
               </label>
               <Input
+                id="email"
                 type="email"
                 value={email()}
                 onInput={(e) => setEmail(e.currentTarget.value)}
@@ -105,17 +106,16 @@ const Login: Component = () => {
                 autocomplete="email"
               />
               <Show when={errors().email}>
-                <label class="label">
-                  <span class="label-text-alt text-error">{errors().email}</span>
-                </label>
+                <span class="label-text-alt text-error">{errors().email}</span>
               </Show>
             </div>
 
             <div class="form-control">
-              <label class="label">
+              <label for="password" class="label">
                 <span class="label-text">Password</span>
               </label>
               <Input
+                id="password"
                 type="password"
                 value={password()}
                 onInput={(e) => setPassword(e.currentTarget.value)}
@@ -124,9 +124,7 @@ const Login: Component = () => {
                 autocomplete="current-password"
               />
               <Show when={errors().password}>
-                <label class="label">
-                  <span class="label-text-alt text-error">{errors().password}</span>
-                </label>
+                <span class="label-text-alt text-error">{errors().password}</span>
               </Show>
             </div>
 

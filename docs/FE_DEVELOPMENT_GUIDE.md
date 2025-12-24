@@ -15,8 +15,9 @@ This guide documents best practices, patterns, and anti-patterns for the Booking
 7. [Forms & Validation](#7-forms--validation)
 8. [Styling (TailwindCSS + DaisyUI)](#8-styling-tailwindcss--daisyui)
 9. [Authentication](#9-authentication)
-10. [Common Patterns](#10-common-patterns)
-11. [Anti-Patterns to Avoid](#11-anti-patterns-to-avoid)
+10. [E2E Testing (Playwright)](#10-e2e-testing-playwright)
+11. [Common Patterns](#11-common-patterns)
+12. [Anti-Patterns to Avoid](#12-anti-patterns-to-avoid)
 
 ---
 
@@ -27,12 +28,13 @@ This guide documents best practices, patterns, and anti-patterns for the Booking
 | SolidJS | 1.9.x | Reactive UI framework |
 | solid-router | 0.15.x | Client-side routing |
 | TypeScript | 5.x | Static typing |
-| Vite | 6.x | Build tool & dev server |
+| Vite | 7.x | Build tool & dev server |
 | TailwindCSS | 4.x | Utility-first CSS |
 | DaisyUI | 5.x | Component library for TailwindCSS |
 | Kobalte | 0.13.x | Accessible UI primitives |
 | Zod | 4.x | Schema validation |
 | @tanstack/solid-query | 5.x | Server state management |
+| Playwright | 1.57.x | E2E testing framework |
 
 ### Installation
 
@@ -51,6 +53,10 @@ npm install daisyui
 # Dev dependencies
 npm install -D typescript @types/node
 npm install -D tailwindcss postcss autoprefixer
+
+# E2E Testing
+npm install -D @playwright/test
+npx playwright install chromium
 ```
 
 ---
@@ -1114,9 +1120,316 @@ export default Login
 
 ---
 
-## 10. Common Patterns
+## 10. E2E Testing (Playwright)
 
-### 10.1 List with Pagination
+### 10.1 Setup & Configuration
+
+```bash
+# Install Playwright
+npm install -D @playwright/test
+npx playwright install chromium
+```
+
+```ts
+// playwright.config.ts
+import { defineConfig, devices } from '@playwright/test'
+
+export default defineConfig({
+  testDir: './e2e',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: 'html',
+  use: {
+    baseURL: 'http://localhost:5173',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+  },
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+  ],
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: !process.env.CI,
+  },
+})
+```
+
+### 10.2 Test Organization
+
+```
+e2e/
+├── fixtures/              # Reusable test fixtures
+│   ├── auth.fixture.ts    # Login/logout helpers
+│   └── api.fixture.ts     # API mocking utilities
+├── auth/                  # Auth-related tests
+│   └── login.spec.ts
+├── establishments/        # Feature tests
+│   └── establishments.spec.ts
+├── services/
+│   └── services.spec.ts
+└── bookings/
+    └── bookings.spec.ts
+```
+
+### 10.3 Best Practices
+
+#### Test User-Visible Behavior
+Focus on what users see and interact with, not implementation details.
+
+```ts
+// GOOD - Tests user behavior
+test('user can login with valid credentials', async ({ page }) => {
+  await page.goto('/login')
+  await page.getByLabel('Email').fill('user@example.com')
+  await page.getByLabel('Password').fill('password123')
+  await page.getByRole('button', { name: 'Sign In' }).click()
+  await expect(page).toHaveURL('/')
+  await expect(page.getByText('Dashboard')).toBeVisible()
+})
+
+// BAD - Tests implementation details
+test('login sets token in localStorage', async ({ page }) => {
+  // Don't test internal state directly
+})
+```
+
+#### Use Role-Based Locators (Recommended)
+Prioritize accessibility-focused locators that mirror how users interact.
+
+```ts
+// BEST - Role-based locators
+await page.getByRole('button', { name: 'Submit' }).click()
+await page.getByRole('textbox', { name: 'Email' }).fill('test@example.com')
+await page.getByRole('link', { name: 'Dashboard' }).click()
+
+// GOOD - Label-based
+await page.getByLabel('Email').fill('test@example.com')
+await page.getByPlaceholder('Enter your email').fill('test@example.com')
+await page.getByText('Welcome').isVisible()
+
+// ACCEPTABLE - Test IDs (when no semantic option exists)
+await page.getByTestId('submit-button').click()
+
+// AVOID - CSS selectors (fragile, break on refactoring)
+await page.locator('.btn-primary').click()
+await page.locator('#submit').click()
+```
+
+#### Test Isolation
+Each test must be independent and not rely on previous test state.
+
+```ts
+// GOOD - Each test sets up its own state
+test.describe('Bookings', () => {
+  test.beforeEach(async ({ page }) => {
+    // Mock authenticated state for each test
+    await page.route('**/v1/auth/me', async route => {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({ id: '1', email: 'test@example.com' })
+      })
+    })
+  })
+
+  test('shows booking list', async ({ page }) => {
+    // Each test starts fresh
+  })
+})
+```
+
+#### API Mocking for Reliable Tests
+Use Playwright's route API to mock backend responses.
+
+```ts
+test('handles login error gracefully', async ({ page }) => {
+  // Mock failed login
+  await page.route('**/v1/auth/login', async route => {
+    await route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' }
+      })
+    })
+  })
+
+  await page.goto('/login')
+  await page.getByLabel('Email').fill('wrong@example.com')
+  await page.getByLabel('Password').fill('wrongpassword')
+  await page.getByRole('button', { name: 'Sign In' }).click()
+
+  await expect(page.getByRole('alert')).toContainText('Invalid email or password')
+})
+```
+
+#### Use Web-First Assertions
+Playwright's assertions auto-wait for conditions, reducing flaky tests.
+
+```ts
+// GOOD - Auto-waits for element
+await expect(page.getByText('Success')).toBeVisible()
+await expect(page.getByRole('button')).toBeEnabled()
+await expect(page).toHaveURL('/dashboard')
+
+// BAD - Manual waits
+await page.waitForTimeout(1000) // Avoid fixed delays
+await page.waitForSelector('.success') // Prefer expect assertions
+```
+
+### 10.4 Common Patterns
+
+#### Authentication Fixture
+
+```ts
+// e2e/fixtures/auth.fixture.ts
+import { test as base, Page } from '@playwright/test'
+
+type AuthFixtures = {
+  authenticatedPage: Page
+}
+
+export const test = base.extend<AuthFixtures>({
+  authenticatedPage: async ({ page }, use) => {
+    // Mock successful auth
+    await page.route('**/v1/auth/me', async route => {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Test User',
+          establishmentRoles: [{ establishmentId: 'est-1', role: 'OWNER' }]
+        })
+      })
+    })
+
+    // Set auth token
+    await page.goto('/login')
+    await page.evaluate(() => {
+      localStorage.setItem('accessToken', 'mock-token')
+    })
+
+    await use(page)
+  }
+})
+
+// Usage in tests
+test('dashboard shows user name', async ({ authenticatedPage }) => {
+  await authenticatedPage.goto('/')
+  await expect(authenticatedPage.getByText('Test User')).toBeVisible()
+})
+```
+
+#### Testing Loading States
+
+```ts
+test('shows loading spinner during API call', async ({ page }) => {
+  // Mock slow API
+  await page.route('**/v1/establishments', async route => {
+    await new Promise(resolve => setTimeout(resolve, 500))
+    await route.fulfill({
+      status: 200,
+      body: JSON.stringify([])
+    })
+  })
+
+  await page.goto('/establishments')
+
+  // Check loading state appears
+  await expect(page.getByRole('progressbar')).toBeVisible()
+
+  // Check loading state disappears
+  await expect(page.getByRole('progressbar')).not.toBeVisible()
+})
+```
+
+#### Testing Form Validation
+
+```ts
+test('validates required fields', async ({ page }) => {
+  await page.goto('/establishments/new')
+
+  // Submit empty form
+  await page.getByRole('button', { name: 'Save' }).click()
+
+  // Check validation errors
+  await expect(page.getByText('Name is required')).toBeVisible()
+  await expect(page.getByText('Address is required')).toBeVisible()
+
+  // Fill required fields
+  await page.getByLabel('Name').fill('My Establishment')
+  await expect(page.getByText('Name is required')).not.toBeVisible()
+})
+```
+
+### 10.5 Running Tests
+
+```bash
+# Run all tests
+npm run test:e2e
+
+# Run with UI mode (debugging)
+npm run test:e2e:ui
+
+# Run specific test file
+npx playwright test e2e/auth/login.spec.ts
+
+# Run in headed mode (see browser)
+npx playwright test --headed
+
+# Generate test code by recording
+npx playwright codegen localhost:5173
+```
+
+### 10.6 CI/CD Integration
+
+```yaml
+# .github/workflows/e2e.yml
+name: E2E Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: cd backoffice && npm ci
+      - name: Install Playwright
+        run: cd backoffice && npx playwright install --with-deps chromium
+      - name: Run E2E tests
+        run: cd backoffice && npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: backoffice/playwright-report/
+```
+
+### 10.7 Anti-Patterns
+
+| Anti-Pattern | Problem | Solution |
+|--------------|---------|----------|
+| Fixed `waitForTimeout` | Flaky, slow tests | Use web-first assertions |
+| Testing third-party sites | Unreliable, slow | Mock external dependencies |
+| Sharing state between tests | Test interdependence | Isolate each test |
+| CSS/XPath selectors | Break on refactoring | Use role-based locators |
+| Testing implementation details | Brittle tests | Test user behavior |
+| Not mocking APIs | Slow, unreliable | Mock backend responses |
+| Large monolithic tests | Hard to debug | Split into focused tests |
+
+---
+
+## 11. Common Patterns
+
+### 11.1 List with Pagination
 
 ```tsx
 // src/features/bookings/components/BookingList.tsx
@@ -1231,7 +1544,7 @@ export const BookingList: Component<BookingListProps> = (props) => {
 }
 ```
 
-### 10.2 Modal Dialog
+### 11.2 Modal Dialog
 
 ```tsx
 // src/components/ui/Modal.tsx
@@ -1268,7 +1581,7 @@ export const Modal: Component<ModalProps> = (props) => {
 }
 ```
 
-### 10.3 Toast Notifications
+### 11.3 Toast Notifications
 
 ```tsx
 // src/hooks/useToast.ts
@@ -1332,9 +1645,9 @@ export const ToastContainer: Component = () => {
 
 ---
 
-## 11. Anti-Patterns to Avoid
+## 12. Anti-Patterns to Avoid
 
-### 11.1 Reactivity Issues
+### 12.1 Reactivity Issues
 
 | Anti-Pattern | Problem | Solution |
 |--------------|---------|----------|
@@ -1343,7 +1656,7 @@ export const ToastContainer: Component = () => {
 | Mutating arrays/objects | No reactivity trigger | Create new references with spread |
 | Using index as key in For | Incorrect updates | Use unique IDs |
 
-### 11.2 Performance Issues
+### 12.2 Performance Issues
 
 | Anti-Pattern | Problem | Solution |
 |--------------|---------|----------|
@@ -1352,7 +1665,7 @@ export const ToastContainer: Component = () => {
 | Fetching without caching | Unnecessary requests | Use TanStack Query |
 | Large component trees | Slow re-renders | Split into smaller components |
 
-### 11.3 Security Issues
+### 12.3 Security Issues
 
 | Anti-Pattern | Problem | Solution |
 |--------------|---------|----------|
@@ -1372,6 +1685,8 @@ export const ToastContainer: Component = () => {
 - [Kobalte Documentation](https://kobalte.dev/)
 - [TailwindCSS Documentation](https://tailwindcss.com/docs)
 - [Zod Documentation](https://zod.dev/)
+- [Playwright Documentation](https://playwright.dev/docs/intro)
+- [Playwright Best Practices](https://playwright.dev/docs/best-practices)
 
 ---
 
