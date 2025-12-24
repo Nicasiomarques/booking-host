@@ -14,8 +14,9 @@ export {
   loginSchema,
   authResponseSchema,
   refreshResponseSchema,
+  meResponseSchema,
 } from './auth.schema.js'
-export type { RegisterInput, LoginInput, AuthResponse, RefreshResponse } from './auth.schema.js'
+export type { RegisterInput, LoginInput, AuthResponse, RefreshResponse, MeResponse } from './auth.schema.js'
 
 // Establishment
 export {

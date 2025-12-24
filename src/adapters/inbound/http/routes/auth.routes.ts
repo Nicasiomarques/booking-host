@@ -4,11 +4,12 @@ import {
   loginSchema,
   authResponseSchema,
   refreshResponseSchema,
+  meResponseSchema,
   RegisterInput,
   LoginInput,
 } from '../schemas/index.js'
 import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '../openapi/index.js'
-import { validate } from '../middleware/index.js'
+import { validate, authenticate } from '../middleware/index.js'
 import { isProduction } from '#config/index.js'
 
 export default async function authRoutes(fastify: FastifyInstance) {
@@ -142,6 +143,26 @@ export default async function authRoutes(fastify: FastifyInstance) {
       })
 
       return { success: true }
+    }
+  )
+
+  fastify.get(
+    '/me',
+    {
+      schema: buildRouteSchema({
+        tags: ['Auth'],
+        summary: 'Get current user',
+        description: 'Returns the currently authenticated user information based on the access token.',
+        security: true,
+        responses: {
+          200: { description: 'Current user information', schema: meResponseSchema },
+          401: { description: 'Not authenticated', schema: ErrorResponseSchema },
+        },
+      }),
+      preHandler: [authenticate],
+    },
+    async (request: FastifyRequest) => {
+      return authService.me(request.user.userId)
     }
   )
 }

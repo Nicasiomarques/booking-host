@@ -93,6 +93,19 @@ export class AuthService {
     }
   }
 
+  async me(userId: string): Promise<{ id: string; email: string; name: string; establishmentRoles: Array<{ establishmentId: string; role: string }> }> {
+    const user = await this.userRepository.findById(userId)
+
+    if (!user) throw new UnauthorizedError('User not found')
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      establishmentRoles: user.establishmentRoles,
+    }
+  }
+
   private generateAuthResult(user: UserWithRoles): AuthResult {
     const payload: TokenPayload = {
       userId: user.id,

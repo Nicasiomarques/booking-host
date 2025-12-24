@@ -81,7 +81,27 @@ export const refreshResponseSchema = z.object({
   },
 })
 
+export const meResponseSchema = z.object({
+  id: z.string().uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
+  email: z.string().email().openapi({ example: 'user@example.com' }),
+  name: z.string().openapi({ example: 'John Doe' }),
+  establishmentRoles: z.array(z.object({
+    establishmentId: z.string().uuid(),
+    role: z.enum(['OWNER', 'STAFF']),
+  })).openapi({
+    example: [{ establishmentId: '550e8400-e29b-41d4-a716-446655440001', role: 'OWNER' }],
+  }),
+}).openapi('MeResponse', {
+  example: {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    email: 'user@example.com',
+    name: 'John Doe',
+    establishmentRoles: [{ establishmentId: '550e8400-e29b-41d4-a716-446655440001', role: 'OWNER' }],
+  },
+})
+
 export type RegisterInput = z.infer<typeof registerSchema>
 export type LoginInput = z.infer<typeof loginSchema>
 export type AuthResponse = z.infer<typeof authResponseSchema>
 export type RefreshResponse = z.infer<typeof refreshResponseSchema>
+export type MeResponse = z.infer<typeof meResponseSchema>
