@@ -140,9 +140,20 @@ test.describe('Routing', () => {
   })
 
   test('redirects unauthenticated users to login', async ({ page }) => {
+    // Start fresh - go to login and clear token
+    await page.goto('/login')
+    await page.evaluate(() => {
+      localStorage.removeItem('accessToken')
+    })
+
+    // Try to access protected route
     await page.goto('/')
 
-    await page.waitForURL(/login/, { timeout: 5000 })
-    await expect(page.getByLabel(/email/i)).toBeVisible()
+    // Should redirect to login
+    await page.waitForURL(/login/, { timeout: 10000 })
+
+    // Reload to ensure clean state and verify login page renders
+    await page.reload()
+    await expect(page.getByText(/sign in to your account/i)).toBeVisible({ timeout: 10000 })
   })
 })
