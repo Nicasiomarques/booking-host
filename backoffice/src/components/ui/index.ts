@@ -15,3 +15,4 @@ export {
   TableEmpty,
   TableSkeleton,
 } from './Table'
+export { ToastContainer } from './ToastContainer'

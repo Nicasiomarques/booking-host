@@ -1,6 +1,7 @@
 import { Router } from '@solidjs/router'
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query'
 import { routes } from './routes'
+import { ToastContainer } from '@/components/ui'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,6 +17,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>{routes}</Router>
+      <ToastContainer />
     </QueryClientProvider>
   )
 }
