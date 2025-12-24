@@ -241,6 +241,12 @@ const Services: Component = () => {
                           </TableCell>
                           <TableCell class="text-right">
                             <div class="flex justify-end gap-2">
+                              <A
+                                href={`/establishments/${params.establishmentId}/services/${service.id}/availability`}
+                                class="btn btn-ghost btn-sm"
+                              >
+                                Availability
+                              </A>
                               <Button
                                 variant="ghost"
                                 size="sm"
