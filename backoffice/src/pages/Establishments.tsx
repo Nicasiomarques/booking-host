@@ -1,24 +1,11 @@
-import { type Component, For, Show } from 'solid-js'
+import { type Component, For, Show, createSignal } from 'solid-js'
 import { A } from '@solidjs/router'
-import { createQuery } from '@tanstack/solid-query'
-import { api } from '@/lib/api'
-import { QUERY_KEYS } from '@/lib/constants'
 import { Button, Card, CardBody, CardTitle, CardActions, Spinner, Alert } from '@/components/ui'
-
-interface Establishment {
-  id: string
-  name: string
-  description: string | null
-  address: string
-  timezone: string
-  createdAt: string
-}
+import { useEstablishments, CreateEstablishmentModal } from '@/features/establishments'
 
 const Establishments: Component = () => {
-  const query = createQuery(() => ({
-    queryKey: [QUERY_KEYS.ESTABLISHMENTS, 'my'],
-    queryFn: () => api.get<Establishment[]>('/v1/establishments/my'),
-  }))
+  const [isCreateModalOpen, setIsCreateModalOpen] = createSignal(false)
+  const query = useEstablishments()
 
   return (
     <div class="space-y-6">
@@ -30,7 +17,7 @@ const Establishments: Component = () => {
             Manage your establishments and their services.
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setIsCreateModalOpen(true)}>
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
@@ -53,7 +40,7 @@ const Establishments: Component = () => {
       </Show>
 
       {/* Empty state */}
-      <Show when={query.data?.length === 0}>
+      <Show when={!query.isLoading && query.data?.length === 0}>
         <Card>
           <CardBody class="text-center py-12">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -63,7 +50,7 @@ const Establishments: Component = () => {
             <p class="text-base-content/60 mt-2">
               Get started by creating your first establishment.
             </p>
-            <Button class="mt-4">
+            <Button class="mt-4" onClick={() => setIsCreateModalOpen(true)}>
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
@@ -107,6 +94,12 @@ const Establishments: Component = () => {
           </For>
         </div>
       </Show>
+
+      {/* Create Modal */}
+      <CreateEstablishmentModal
+        isOpen={isCreateModalOpen()}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
     </div>
   )
 }
