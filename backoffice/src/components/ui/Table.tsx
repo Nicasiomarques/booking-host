@@ -86,13 +86,14 @@ export const TableCell: Component<TableCellProps> = (props) => {
 interface TableEmptyProps {
   message?: string
   colSpan: number
+  children?: JSX.Element
 }
 
 export const TableEmpty: Component<TableEmptyProps> = (props) => {
   return (
     <tr>
       <td colSpan={props.colSpan} class="text-center py-8 text-base-content/60">
-        {props.message ?? 'No data available'}
+        {props.children ?? props.message ?? 'No data available'}
       </td>
     </tr>
   )
