@@ -3,19 +3,25 @@ import { serviceService, type CreateServiceData, type UpdateServiceData } from '
 import { toastStore } from '@/hooks/useToast'
 
 export function useServices(establishmentId: () => string | undefined) {
-  return createQuery(() => ({
-    queryKey: ['services', establishmentId()],
-    queryFn: () => serviceService.getByEstablishment(establishmentId()!),
-    enabled: !!establishmentId(),
-  }))
+  return createQuery(() => {
+    const currentId = establishmentId()
+    return {
+      queryKey: ['services', currentId],
+      queryFn: () => serviceService.getByEstablishment(currentId!),
+      enabled: !!currentId,
+    }
+  })
 }
 
 export function useService(id: () => string | undefined) {
-  return createQuery(() => ({
-    queryKey: ['service', id()],
-    queryFn: () => serviceService.getById(id()!),
-    enabled: !!id(),
-  }))
+  return createQuery(() => {
+    const currentId = id()
+    return {
+      queryKey: ['service', currentId],
+      queryFn: () => serviceService.getById(currentId!),
+      enabled: !!currentId,
+    }
+  })
 }
 
 export function useCreateService() {

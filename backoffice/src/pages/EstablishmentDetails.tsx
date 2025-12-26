@@ -23,8 +23,8 @@ const EstablishmentDetails: Component = () => {
         </ul>
       </div>
 
-      {/* Loading */}
-      <Show when={query.isLoading}>
+      {/* Loading - show when fetching or when query is enabled but no data yet */}
+      <Show when={query.isFetching || (query.isPending && params.id)}>
         <div class="flex justify-center py-12">
           <Spinner size="lg" />
         </div>
@@ -34,6 +34,9 @@ const EstablishmentDetails: Component = () => {
       <Show when={query.isError}>
         <Alert variant="error">
           Failed to load establishment details. Please try again.
+          <Show when={query.error}>
+            <pre class="mt-2 text-xs">{String(query.error)}</pre>
+          </Show>
         </Alert>
       </Show>
 

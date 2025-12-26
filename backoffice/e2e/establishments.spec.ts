@@ -211,7 +211,7 @@ test.describe('Establishments Page', () => {
       await page.waitForLoadState('networkidle')
       await expect(page.getByRole('heading', { name: 'Test Establishment' })).toBeVisible({ timeout: 10000 })
 
-      await page.getByRole('button', { name: /view details/i }).click()
+      await page.getByRole('link', { name: /view details/i }).click()
 
       await page.waitForURL(/\/establishments\/est-1/)
       await expect(page.getByRole('heading', { name: 'Test Establishment' })).toBeVisible()

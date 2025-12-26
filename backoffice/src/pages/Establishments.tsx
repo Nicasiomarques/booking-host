@@ -79,13 +79,14 @@ const Establishments: Component = () => {
                     <span class="truncate">{establishment.address}</span>
                   </div>
                   <CardActions class="mt-4">
-                    <A href={`/establishments/${establishment.id}`}>
-                      <Button variant="ghost" size="sm">
-                        View Details
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                      </Button>
+                    <A
+                      href={`/establishments/${establishment.id}`}
+                      class="btn btn-ghost btn-sm"
+                    >
+                      View Details
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
                     </A>
                   </CardActions>
                 </CardBody>

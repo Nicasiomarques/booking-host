@@ -7,11 +7,14 @@ import {
 import { toastStore } from '@/hooks/useToast'
 
 export function useExtraItems(serviceId: () => string | undefined) {
-  return createQuery(() => ({
-    queryKey: ['extra-items', serviceId()],
-    queryFn: () => extraItemService.getByService(serviceId()!),
-    enabled: !!serviceId(),
-  }))
+  return createQuery(() => {
+    const currentId = serviceId()
+    return {
+      queryKey: ['extra-items', currentId],
+      queryFn: () => extraItemService.getByService(currentId!),
+      enabled: !!currentId,
+    }
+  })
 }
 
 export function useCreateExtraItem() {

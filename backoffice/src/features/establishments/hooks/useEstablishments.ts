@@ -14,11 +14,14 @@ export function useEstablishments() {
 }
 
 export function useEstablishment(id: () => string | undefined) {
-  return createQuery(() => ({
-    queryKey: [QUERY_KEYS.ESTABLISHMENT, id()],
-    queryFn: () => establishmentService.getById(id()!),
-    enabled: !!id(),
-  }))
+  return createQuery(() => {
+    const currentId = id()
+    return {
+      queryKey: [QUERY_KEYS.ESTABLISHMENT, currentId],
+      queryFn: () => establishmentService.getById(currentId!),
+      enabled: !!currentId,
+    }
+  })
 }
 
 export function useCreateEstablishment() {
