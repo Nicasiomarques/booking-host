@@ -9,13 +9,15 @@ export const Header: Component = () => {
   const { user, logout } = authStore
   const { theme, toggleTheme, toggleSidebar } = uiStore
 
-  const handleLogout = async () => {
-    try {
-      await api.post('/v1/auth/logout')
-    } catch {
-      // Ignore logout errors
-    }
+  const handleLogout = () => {
+    // Clear local state first, then try to clear server-side cookie
     logout()
+
+    // Fire and forget - don't wait for server response
+    api.post('/v1/auth/logout').catch(() => {
+      // Ignore logout errors - cookie will expire anyway
+    })
+
     navigate('/login', { replace: true })
   }
 

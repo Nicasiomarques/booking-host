@@ -67,7 +67,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
   // Add headers
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    ...(init.body ? { 'Content-Type': 'application/json' } : {}),
     ...init.headers,
   }
 
@@ -118,10 +118,16 @@ export const api = {
     request<T>(endpoint, { method: 'GET', params }),
 
   post: <T>(endpoint: string, body?: unknown) =>
-    request<T>(endpoint, { method: 'POST', body: JSON.stringify(body) }),
+    request<T>(endpoint, {
+      method: 'POST',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
 
   put: <T>(endpoint: string, body?: unknown) =>
-    request<T>(endpoint, { method: 'PUT', body: JSON.stringify(body) }),
+    request<T>(endpoint, {
+      method: 'PUT',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
 
   delete: <T>(endpoint: string) =>
     request<T>(endpoint, { method: 'DELETE' }),

@@ -11,19 +11,26 @@ export function useAvailability(
   serviceId: () => string | undefined,
   filters?: () => AvailabilityFilters | undefined
 ) {
-  return createQuery(() => ({
-    queryKey: ['availability', serviceId(), filters?.()],
-    queryFn: () => availabilityService.getByService(serviceId()!, filters?.()),
-    enabled: !!serviceId(),
-  }))
+  return createQuery(() => {
+    const currentId = serviceId()
+    const currentFilters = filters?.()
+    return {
+      queryKey: ['availability', currentId, currentFilters],
+      queryFn: () => availabilityService.getByService(currentId!, currentFilters),
+      enabled: !!currentId,
+    }
+  })
 }
 
 export function useAvailabilitySlot(id: () => string | undefined) {
-  return createQuery(() => ({
-    queryKey: ['availability-slot', id()],
-    queryFn: () => availabilityService.getById(id()!),
-    enabled: !!id(),
-  }))
+  return createQuery(() => {
+    const currentId = id()
+    return {
+      queryKey: ['availability-slot', currentId],
+      queryFn: () => availabilityService.getById(currentId!),
+      enabled: !!currentId,
+    }
+  })
 }
 
 export function useCreateAvailability() {

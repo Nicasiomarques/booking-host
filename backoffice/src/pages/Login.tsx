@@ -34,9 +34,10 @@ const Login: Component = () => {
   const [apiError, setApiError] = createSignal('')
   const [isLoading, setIsLoading] = createSignal(false)
 
-  // Redirect if already logged in
+  // Redirect if already logged in - use onMount to avoid blocking initial render
   onMount(() => {
-    if (getAccessToken()) {
+    const token = getAccessToken()
+    if (token) {
       navigate('/', { replace: true })
     }
   })

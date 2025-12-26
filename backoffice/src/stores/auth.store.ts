@@ -28,9 +28,11 @@ function createAuthStore() {
   }
 
   const hasRole = (establishmentId: string, role: 'OWNER' | 'STAFF') => {
-    return user()?.establishmentRoles.some(
-      r => r.establishmentId === establishmentId && r.role === role
-    ) ?? false
+    const currentUser = user()
+    if (!currentUser?.establishmentRoles) return false
+    return currentUser.establishmentRoles.some(
+      (r) => r.establishmentId === establishmentId && r.role === role
+    )
   }
 
   const isOwner = (establishmentId: string) => hasRole(establishmentId, 'OWNER')
