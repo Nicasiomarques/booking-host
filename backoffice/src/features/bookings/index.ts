@@ -9,7 +9,7 @@ export type {
 } from './services/booking.service'
 
 // Hooks
-export { useBookings, useBooking, useCancelBooking } from './hooks/useBookings'
+export { useBookings, useBooking, useCancelBooking, useConfirmBooking } from './hooks/useBookings'
 
 // Components
 export { BookingDetailsModal } from './components/BookingDetailsModal'

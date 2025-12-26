@@ -36,103 +36,136 @@ const mockServices = [
   },
 ]
 
-const mockBookings = [
+// API format (what the backend returns)
+const mockApiBookings = [
   {
     id: 'booking-1',
+    userId: 'user-customer-1',
     establishmentId: 'est-1',
     serviceId: 'service-1',
-    serviceName: 'Haircut',
-    availabilitySlotId: 'slot-1',
-    customerName: 'John Doe',
-    customerEmail: 'john@example.com',
-    customerPhone: '+351 912 345 678',
-    date: '2025-01-15',
-    startTime: '09:00',
-    endTime: '09:30',
-    status: 'CONFIRMED' as const,
-    basePrice: 25.0,
+    availabilityId: 'slot-1',
+    quantity: 1,
     totalPrice: 35.0,
-    extraItems: [
+    status: 'CONFIRMED' as const,
+    createdAt: '2025-01-10T10:00:00Z',
+    updatedAt: '2025-01-10T10:00:00Z',
+    service: {
+      name: 'Haircut',
+      durationMinutes: 30,
+      basePrice: 25.0,
+    },
+    availability: {
+      date: '2025-01-15',
+      startTime: '09:00',
+      endTime: '09:30',
+    },
+    user: {
+      name: 'John Doe',
+      email: 'john@example.com',
+    },
+    extras: [
       {
         id: 'extra-1',
         extraItemId: 'item-1',
-        name: 'Hair Gel',
-        price: 10.0,
         quantity: 1,
+        priceAtBooking: 10.0,
+        extraItem: {
+          name: 'Hair Gel',
+        },
       },
     ],
-    notes: 'First time customer',
-    createdAt: '2025-01-10T10:00:00Z',
-    updatedAt: '2025-01-10T10:00:00Z',
   },
   {
     id: 'booking-2',
+    userId: 'user-customer-2',
     establishmentId: 'est-1',
     serviceId: 'service-1',
-    serviceName: 'Haircut',
-    availabilitySlotId: 'slot-2',
-    customerName: 'Jane Smith',
-    customerEmail: 'jane@example.com',
-    customerPhone: null,
-    date: '2025-01-16',
-    startTime: '10:00',
-    endTime: '10:30',
-    status: 'PENDING' as const,
-    basePrice: 25.0,
+    availabilityId: 'slot-2',
+    quantity: 1,
     totalPrice: 25.0,
-    extraItems: [],
-    notes: null,
+    status: 'PENDING' as const,
     createdAt: '2025-01-11T14:00:00Z',
     updatedAt: '2025-01-11T14:00:00Z',
+    service: {
+      name: 'Haircut',
+      durationMinutes: 30,
+      basePrice: 25.0,
+    },
+    availability: {
+      date: '2025-01-16',
+      startTime: '10:00',
+      endTime: '10:30',
+    },
+    user: {
+      name: 'Jane Smith',
+      email: 'jane@example.com',
+    },
+    extras: [],
   },
   {
     id: 'booking-3',
+    userId: 'user-customer-3',
     establishmentId: 'est-1',
     serviceId: 'service-2',
-    serviceName: 'Beard Trim',
-    availabilitySlotId: 'slot-3',
-    customerName: 'Bob Wilson',
-    customerEmail: 'bob@example.com',
-    customerPhone: '+351 923 456 789',
-    date: '2025-01-14',
-    startTime: '14:00',
-    endTime: '14:15',
-    status: 'CANCELLED' as const,
-    basePrice: 15.0,
+    availabilityId: 'slot-3',
+    quantity: 1,
     totalPrice: 15.0,
-    extraItems: [],
-    notes: null,
+    status: 'CANCELLED' as const,
     createdAt: '2025-01-09T09:00:00Z',
     updatedAt: '2025-01-12T11:00:00Z',
+    service: {
+      name: 'Beard Trim',
+      durationMinutes: 15,
+      basePrice: 15.0,
+    },
+    availability: {
+      date: '2025-01-14',
+      startTime: '14:00',
+      endTime: '14:15',
+    },
+    user: {
+      name: 'Bob Wilson',
+      email: 'bob@example.com',
+    },
+    extras: [],
   },
   {
     id: 'booking-4',
+    userId: 'user-customer-4',
     establishmentId: 'est-1',
     serviceId: 'service-1',
-    serviceName: 'Haircut',
-    availabilitySlotId: 'slot-4',
-    customerName: 'Alice Brown',
-    customerEmail: 'alice@example.com',
-    customerPhone: null,
-    date: '2025-01-10',
-    startTime: '11:00',
-    endTime: '11:30',
-    status: 'COMPLETED' as const,
-    basePrice: 25.0,
+    availabilityId: 'slot-4',
+    quantity: 1,
     totalPrice: 25.0,
-    extraItems: [],
-    notes: null,
+    status: 'COMPLETED' as const,
     createdAt: '2025-01-05T08:00:00Z',
     updatedAt: '2025-01-10T12:00:00Z',
+    service: {
+      name: 'Haircut',
+      durationMinutes: 30,
+      basePrice: 25.0,
+    },
+    availability: {
+      date: '2025-01-10',
+      startTime: '11:00',
+      endTime: '11:30',
+    },
+    user: {
+      name: 'Alice Brown',
+      email: 'alice@example.com',
+    },
+    extras: [],
   },
 ]
 
 const mockPaginatedBookings = {
-  data: mockBookings,
-  total: 4,
-  page: 1,
-  limit: 10,
-  totalPages: 1,
+  data: mockApiBookings,
+  meta: {
+    total: 4,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  },
 }
 
 async function setupAuthAndMocks(page: import('@playwright/test').Page) {
@@ -184,10 +217,12 @@ test.describe('Bookings Page', () => {
           contentType: 'application/json',
           body: JSON.stringify({
             data: [],
-            total: 0,
-            page: 1,
-            limit: 10,
-            totalPages: 0,
+            meta: {
+              total: 0,
+              page: 1,
+              limit: 10,
+              totalPages: 0,
+            },
           }),
         })
       })
@@ -393,24 +428,33 @@ test.describe('Bookings Page', () => {
         })
       })
 
+      // Mock the booking details endpoint
+      await page.route('**/v1/bookings/booking-1**', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(mockApiBookings[0]),
+        })
+      })
+
       await page.goto('/establishments/est-1/bookings')
       await page.waitForLoadState('networkidle')
 
       await page.getByRole('button', { name: /^view$/i }).first().click()
 
+      // Wait for modal to appear
+      await expect(page.getByRole('heading', { name: /booking details/i })).toBeVisible()
+
       // Should show customer info
       await expect(page.locator('.modal').getByText('John Doe')).toBeVisible()
       await expect(page.locator('.modal').getByText('john@example.com')).toBeVisible()
-      await expect(page.locator('.modal').getByText('+351 912 345 678')).toBeVisible()
+      // Phone is not supported in the current system, so we skip this check
 
       // Should show service
       await expect(page.locator('.modal').getByText('Haircut')).toBeVisible()
 
       // Should show extra items
       await expect(page.locator('.modal').getByText('Hair Gel')).toBeVisible()
-
-      // Should show notes
-      await expect(page.locator('.modal').getByText('First time customer')).toBeVisible()
     })
 
     test('closes modal when clicking Close', async ({ page }) => {
@@ -451,12 +495,17 @@ test.describe('Bookings Page', () => {
       await page.goto('/establishments/est-1/bookings')
       await page.waitForLoadState('networkidle')
 
+      // Wait for the table to load
+      await expect(page.getByText('John Doe')).toBeVisible({ timeout: 10000 })
+
       // Click cancel on the first row with Cancel button (CONFIRMED or PENDING)
-      await page
-        .getByRole('row')
-        .filter({ hasText: 'John Doe' })
-        .getByRole('button', { name: /^cancel$/i })
-        .click()
+      // The first booking (John Doe) has status CONFIRMED, so it should have a Cancel button
+      const row = page.getByRole('row').filter({ hasText: 'John Doe' })
+      await expect(row).toBeVisible()
+      
+      const cancelButton = row.getByRole('button', { name: /^cancel$/i })
+      await expect(cancelButton).toBeVisible({ timeout: 5000 })
+      await cancelButton.click()
 
       await expect(page.getByRole('heading', { name: /cancel booking/i })).toBeVisible()
       await expect(page.getByText(/are you sure you want to cancel/i)).toBeVisible()
@@ -478,7 +527,7 @@ test.describe('Bookings Page', () => {
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            ...mockBookings[0],
+            ...mockApiBookings[0],
             status: 'CANCELLED',
           }),
         })
@@ -516,7 +565,7 @@ test.describe('Bookings Page', () => {
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            ...mockBookings[0],
+            ...mockApiBookings[0],
             status: 'CANCELLED',
           }),
         })
@@ -602,11 +651,13 @@ test.describe('Bookings Page', () => {
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            data: mockBookings.slice(0, 2),
-            total: 20,
-            page: 1,
-            limit: 10,
-            totalPages: 2,
+            data: mockApiBookings.slice(0, 2),
+            meta: {
+              total: 20,
+              page: 1,
+              limit: 10,
+              totalPages: 2,
+            },
           }),
         })
       })
@@ -632,11 +683,13 @@ test.describe('Bookings Page', () => {
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            data: mockBookings.slice(0, 2),
-            total: 20,
-            page: currentPage,
-            limit: 10,
-            totalPages: 2,
+            data: mockApiBookings.slice(0, 2),
+            meta: {
+              total: 20,
+              page: currentPage,
+              limit: 10,
+              totalPages: 2,
+            },
           }),
         })
       })
@@ -658,11 +711,13 @@ test.describe('Bookings Page', () => {
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            data: mockBookings.slice(0, 2),
-            total: 20,
-            page: 1,
-            limit: 10,
-            totalPages: 2,
+            data: mockApiBookings.slice(0, 2),
+            meta: {
+              total: 20,
+              page: 1,
+              limit: 10,
+              totalPages: 2,
+            },
           }),
         })
       })

@@ -20,6 +20,7 @@ import {
 import {
   useBookings,
   useCancelBooking,
+  useConfirmBooking,
   BookingDetailsModal,
   CancelBookingModal,
   type Booking,
@@ -51,6 +52,7 @@ const Bookings: Component = () => {
     () => page()
   )
   const cancelMutation = useCancelBooking()
+  const confirmMutation = useConfirmBooking()
 
   const handleFilterChange = (key: keyof BookingFilters, value: string) => {
     setFilters((prev) => ({
@@ -82,8 +84,22 @@ const Bookings: Component = () => {
     }
   }
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('pt-PT', {
+  const handleConfirm = (booking: Booking) => {
+    confirmMutation.mutate(
+      { id: booking.id, establishmentId: params.establishmentId },
+      {
+        onSuccess: () => {
+          setSelectedBooking(null)
+        },
+      }
+    )
+  }
+
+  const formatDate = (dateStr: string | undefined | null) => {
+    if (!dateStr) return 'Invalid Date'
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return 'Invalid Date'
+    return date.toLocaleDateString('pt-PT', {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
@@ -91,7 +107,8 @@ const Bookings: Component = () => {
     })
   }
 
-  const formatTime = (time: string) => {
+  const formatTime = (time: string | undefined | null) => {
+    if (!time) return ''
     return time.slice(0, 5)
   }
 
@@ -282,6 +299,17 @@ const Bookings: Component = () => {
                             >
                               View
                             </Button>
+                            <Show when={booking.status === 'PENDING'}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                class="text-success"
+                                onClick={() => handleConfirm(booking)}
+                                disabled={confirmMutation.isPending}
+                              >
+                                Confirm
+                              </Button>
+                            </Show>
                             <Show
                               when={
                                 booking.status !== 'CANCELLED' && booking.status !== 'COMPLETED'
@@ -292,6 +320,7 @@ const Bookings: Component = () => {
                                 size="sm"
                                 class="text-error"
                                 onClick={() => setCancellingBooking(booking)}
+                                disabled={cancelMutation.isPending}
                               >
                                 Cancel
                               </Button>

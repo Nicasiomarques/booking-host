@@ -51,7 +51,10 @@ export const BookingDetailsModal: Component<BookingDetailsModalProps> = (props) 
   return (
     <Modal isOpen={props.isOpen} onClose={props.onClose} title="Booking Details">
       <Show when={props.booking}>
-        {(booking) => (
+        {(booking) => {
+          console.log('BookingDetailsModal - booking:', booking())
+          console.log('BookingDetailsModal - extraItems:', booking().extraItems)
+          return (
           <div class="space-y-6">
             {/* Status and ID */}
             <div class="flex items-center justify-between">
@@ -87,7 +90,7 @@ export const BookingDetailsModal: Component<BookingDetailsModalProps> = (props) 
             </div>
 
             {/* Extra Items */}
-            <Show when={booking().extraItems.length > 0}>
+            <Show when={booking().extraItems && Array.isArray(booking().extraItems) && booking().extraItems.length > 0}>
               <div>
                 <h4 class="font-medium mb-2">Extra Items</h4>
                 <div class="space-y-2">
@@ -95,9 +98,9 @@ export const BookingDetailsModal: Component<BookingDetailsModalProps> = (props) 
                     {(item) => (
                       <div class="flex justify-between text-sm">
                         <span>
-                          {item.name} x{item.quantity}
+                          {item.name || 'Unknown'} x{item.quantity || 0}
                         </span>
-                        <span>{formatPrice(item.price * item.quantity)}</span>
+                        <span>{formatPrice((item.price || 0) * (item.quantity || 0))}</span>
                       </div>
                     )}
                   </For>
@@ -158,7 +161,8 @@ export const BookingDetailsModal: Component<BookingDetailsModalProps> = (props) 
               </Show>
             </div>
           </div>
-        )}
+          )
+        }}
       </Show>
     </Modal>
   )

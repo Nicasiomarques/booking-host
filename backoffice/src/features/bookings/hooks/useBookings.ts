@@ -8,25 +8,34 @@ export function useBookings(
   page?: () => number,
   limit?: () => number
 ) {
-  return createQuery(() => ({
-    queryKey: ['bookings', establishmentId(), filters?.(), page?.(), limit?.()],
-    queryFn: () =>
-      bookingService.getByEstablishment(
-        establishmentId()!,
-        filters?.(),
-        page?.() ?? 1,
-        limit?.() ?? 10
-      ),
-    enabled: !!establishmentId(),
-  }))
+  return createQuery(() => {
+    const currentId = establishmentId()
+    const currentFilters = filters?.()
+    const currentPage = page?.() ?? 1
+    const currentLimit = limit?.() ?? 10
+    return {
+      queryKey: ['bookings', currentId, currentFilters, currentPage, currentLimit],
+      queryFn: () =>
+        bookingService.getByEstablishment(
+          currentId!,
+          currentFilters,
+          currentPage,
+          currentLimit
+        ),
+      enabled: !!currentId,
+    }
+  })
 }
 
 export function useBooking(id: () => string | undefined) {
-  return createQuery(() => ({
-    queryKey: ['booking', id()],
-    queryFn: () => bookingService.getById(id()!),
-    enabled: !!id(),
-  }))
+  return createQuery(() => {
+    const currentId = id()
+    return {
+      queryKey: ['booking', currentId],
+      queryFn: () => bookingService.getById(currentId!),
+      enabled: !!currentId,
+    }
+  })
 }
 
 export function useCancelBooking() {
@@ -41,6 +50,23 @@ export function useCancelBooking() {
     },
     onError: (error: Error) => {
       toastStore.error(error.message || 'Failed to cancel booking')
+    },
+  }))
+}
+
+export function useConfirmBooking() {
+  const queryClient = useQueryClient()
+
+  return createMutation(() => ({
+    mutationFn: ({ id, establishmentId }: { id: string; establishmentId: string }) =>
+      bookingService.confirm(id).then((booking) => ({ booking, establishmentId })),
+    onSuccess: ({ establishmentId }) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', establishmentId] })
+      queryClient.invalidateQueries({ queryKey: ['booking'] })
+      toastStore.success('Booking confirmed successfully')
+    },
+    onError: (error: Error) => {
+      toastStore.error(error.message || 'Failed to confirm booking')
     },
   }))
 }
