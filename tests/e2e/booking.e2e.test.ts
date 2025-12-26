@@ -19,9 +19,12 @@ interface Booking {
 
 interface PaginatedResponse<T> {
   data: T[]
-  total: number
-  page: number
-  limit: number
+  meta: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
 }
 
 describe('Booking E2E @critical', () => {
@@ -225,9 +228,12 @@ describe('Booking E2E @critical', () => {
       const body = T.expectStatus(response, 200)
       expect(body).toMatchObject({
         data: expect.any(Array),
-        total: expect.any(Number),
-        page: 1,
-        limit: 10,
+        meta: {
+          total: expect.any(Number),
+          page: 1,
+          limit: 10,
+          totalPages: expect.any(Number),
+        },
       })
       expect(body.data.length).toBeGreaterThan(0)
     })
@@ -248,9 +254,12 @@ describe('Booking E2E @critical', () => {
       const body = T.expectStatus(response, 200)
       expect(body).toMatchObject({
         data: expect.any(Array),
-        total: expect.any(Number),
-        page: expect.any(Number),
-        limit: expect.any(Number),
+        meta: {
+          total: expect.any(Number),
+          page: expect.any(Number),
+          limit: expect.any(Number),
+          totalPages: expect.any(Number),
+        },
       })
     })
 

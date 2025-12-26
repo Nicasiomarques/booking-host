@@ -91,6 +91,10 @@ export const bookingResponseSchema = z.object({
   establishment: z.object({
     name: z.string().openapi({ example: 'Wellness Spa Center' }),
   }),
+  user: z.object({
+    name: z.string().openapi({ example: 'John Doe' }),
+    email: z.string().email().openapi({ example: 'john.doe@example.com' }),
+  }).optional(),
   extras: z.array(bookingExtraResponseSchema),
 }).openapi('BookingResponse', {
   example: {

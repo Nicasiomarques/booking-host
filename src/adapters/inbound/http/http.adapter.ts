@@ -43,7 +43,11 @@ export async function buildApp(): Promise<FastifyInstance> {
   })
 
   // Security plugins
-  await app.register(cors, { origin: true, credentials: true })
+  await app.register(cors, {
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  })
   await app.register(helmet)
   await app.register(cookie)
 

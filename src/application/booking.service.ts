@@ -175,4 +175,30 @@ export class BookingService {
 
     return this.bookingRepository.findById(id) as Promise<BookingWithDetails>
   }
+
+  async confirm(id: string, userId: string): Promise<BookingWithDetails> {
+    const ownership = await this.bookingRepository.getBookingOwnership(id)
+
+    if (!ownership) throw new NotFoundError('Booking')
+
+    // Check if user has role in establishment (only staff/owner can confirm)
+    const role = await this.establishmentRepository.getUserRole(userId, ownership.establishmentId)
+    if (!role) {
+      throw new ForbiddenError('You do not have permission to confirm this booking')
+    }
+
+    // Check if booking can be confirmed
+    if (ownership.status === 'CONFIRMED') {
+      throw new ConflictError('Booking is already confirmed')
+    }
+
+    if (ownership.status === 'CANCELLED') {
+      throw new ConflictError('Cannot confirm a cancelled booking')
+    }
+
+    // Update booking status
+    await this.bookingRepository.updateStatus(id, 'CONFIRMED')
+
+    return this.bookingRepository.findById(id) as Promise<BookingWithDetails>
+  }
 }

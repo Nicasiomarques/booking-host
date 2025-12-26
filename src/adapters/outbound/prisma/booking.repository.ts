@@ -27,6 +27,7 @@ function toBooking(prismaBooking: PrismaBooking): Booking {
 }
 
 function toBookingWithDetails(prismaBooking: PrismaBooking & {
+  user?: { id: string; name: string; email: string }
   service: { id: string; name: string; basePrice: Prisma.Decimal; durationMinutes: number }
   availability: { id: string; date: Date; startTime: string; endTime: string }
   extraItems: Array<{
@@ -84,6 +85,13 @@ export class BookingRepository {
     const result = await this.prisma.booking.findUnique({
       where: { id },
       include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         service: {
           select: {
             id: true,
@@ -134,6 +142,13 @@ export class BookingRepository {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
           service: {
             select: {
               id: true,
@@ -192,6 +207,13 @@ export class BookingRepository {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
           service: {
             select: {
               id: true,

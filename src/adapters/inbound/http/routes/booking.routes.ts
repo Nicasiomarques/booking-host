@@ -16,9 +16,34 @@ const idParamSchema = z.object({
   id: z.string().uuid(),
 })
 
-function formatBookingResponse<T extends { totalPrice: string | number; service?: { basePrice: string | number }; extraItems?: Array<{ priceAtBooking: string | number }> }>(booking: T) {
+function formatBookingResponse<T extends { 
+  totalPrice: string | number
+  service?: { basePrice: string | number }
+  extraItems?: Array<{ 
+    quantity: number
+    priceAtBooking: string | number
+    extraItem: { id: string; name: string }
+  }>
+  user?: { name: string; email: string }
+  availability?: { date: Date | string; startTime: string; endTime: string }
+}>(booking: T) {
+  // Format date to YYYY-MM-DD string if it's a Date object
+  const formatDate = (date: Date | string): string => {
+    if (date instanceof Date) {
+      return date.toISOString().split('T')[0]
+    }
+    return date
+  }
+
+  // Extract extraItems and transform to extras format
+  const { extraItems, ...rest } = booking as T & { extraItems?: Array<{ 
+    quantity: number
+    priceAtBooking: string | number
+    extraItem: { id: string; name: string }
+  }> }
+
   return {
-    ...booking,
+    ...rest,
     totalPrice: typeof booking.totalPrice === 'string' ? parseFloat(booking.totalPrice) : booking.totalPrice,
     ...(booking.service && {
       service: {
@@ -26,19 +51,44 @@ function formatBookingResponse<T extends { totalPrice: string | number; service?
         basePrice: typeof booking.service.basePrice === 'string' ? parseFloat(booking.service.basePrice) : booking.service.basePrice,
       },
     }),
-    ...(booking.extraItems && {
-      extraItems: booking.extraItems.map(item => ({
-        ...item,
-        priceAtBooking: typeof item.priceAtBooking === 'string' ? parseFloat(item.priceAtBooking) : item.priceAtBooking,
-      })),
+    ...(booking.availability && {
+      availability: {
+        ...booking.availability,
+        date: formatDate(booking.availability.date),
+      },
+    }),
+    extras: extraItems && extraItems.length > 0
+      ? extraItems.map(item => ({
+          id: item.extraItem.id,
+          extraItemId: item.extraItem.id,
+          quantity: item.quantity,
+          priceAtBooking: typeof item.priceAtBooking === 'string' ? parseFloat(item.priceAtBooking) : item.priceAtBooking,
+          extraItem: {
+            name: item.extraItem.name,
+          },
+        }))
+      : [],
+    ...(booking.user && {
+      user: booking.user,
     }),
   }
 }
 
-function formatPaginatedBookings<T extends { data: Array<{ totalPrice: string | number; service?: { basePrice: string | number }; extraItems?: Array<{ priceAtBooking: string | number }> }> }>(result: T) {
+function formatPaginatedBookings<T extends { 
+  data: Array<{ totalPrice: string | number; service?: { basePrice: string | number }; extraItems?: Array<{ priceAtBooking: string | number }> }>
+  total: number
+  page: number
+  limit: number
+}>(result: T) {
+  const totalPages = Math.ceil(result.total / result.limit)
   return {
-    ...result,
     data: result.data.map(formatBookingResponse),
+    meta: {
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages,
+    },
   }
 }
 
@@ -176,6 +226,31 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
     },
     async (request: FastifyRequest<{ Params: { id: string } }>) => {
       const result = await service.cancel(request.params.id, request.user.userId)
+      return formatBookingResponse(result)
+    }
+  )
+
+  fastify.put<{ Params: { id: string } }>(
+    '/bookings/:id/confirm',
+    {
+      schema: buildRouteSchema({
+        tags: ['Bookings'],
+        summary: 'Confirm a booking',
+        description: 'Confirms a pending booking. Only accessible by establishment owners/staff.',
+        security: true,
+        params: idParamSchema,
+        responses: {
+          200: { description: 'Booking confirmed successfully', schema: bookingResponseSchema },
+          401: { description: 'Unauthorized', schema: ErrorResponseSchema },
+          403: { description: 'No permission to confirm this booking', schema: ErrorResponseSchema },
+          404: { description: 'Booking not found', schema: ErrorResponseSchema },
+          409: { description: 'Booking already confirmed or cancelled', schema: ErrorResponseSchema },
+        },
+      }),
+      preHandler: [authenticate],
+    },
+    async (request: FastifyRequest<{ Params: { id: string } }>) => {
+      const result = await service.confirm(request.params.id, request.user.userId)
       return formatBookingResponse(result)
     }
   )
