@@ -17,7 +17,8 @@
     "db:generate": "prisma generate --schema=src/adapters/outbound/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --config=src/adapters/outbound/prisma/prisma.config.ts",
     "db:push": "prisma db push --schema=src/adapters/outbound/prisma/schema.prisma",
-    "db:studio": "prisma studio --schema=src/adapters/outbound/prisma/schema.prisma"
+    "db:studio": "prisma studio --schema=src/adapters/outbound/prisma/schema.prisma",
+    "db:seed": "tsx src/adapters/outbound/prisma/seed.ts"
   },
   "keywords": [
     "booking",
