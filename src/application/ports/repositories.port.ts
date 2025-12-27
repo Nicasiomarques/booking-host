@@ -16,6 +16,7 @@ import type {
   ExtraItem,
   CreateExtraItemData,
   UpdateExtraItemData,
+  Booking,
   BookingWithDetails,
   ListBookingsOptions,
   PaginatedResult,
@@ -106,5 +107,8 @@ export interface BookingRepositoryPort {
     quantity: number
     availabilityId: string
     status: BookingStatus
+    roomId: string | null
+    serviceType: string | null
   } | null>
+  updateStatus(id: string, status: BookingStatus): Promise<Booking>
 }

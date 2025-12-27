@@ -30,4 +30,5 @@ export type {
   AvailabilityRepositoryPort,
   ExtraItemRepositoryPort,
   BookingRepositoryPort,
+  RoomRepositoryPort,
 } from './repositories.port.js'
