@@ -6,10 +6,17 @@ A booking management API for establishments built with Fastify, Prisma, and Type
 
 - **Authentication**: JWT-based auth with access/refresh token pattern
 - **Establishments**: Create and manage business establishments
-- **Services**: Define services with pricing and duration
+- **Services**: Define services with pricing and duration (supports SERVICE, HOTEL, CINEMA types)
 - **Extra Items**: Add-ons for services (aromatherapy, hot stones, etc.)
 - **Availabilities**: Manage time slots with capacity
 - **Bookings**: Full booking flow with capacity management and cancellation
+- **Hotel Bookings**: Specialized booking system for hotels with:
+  - Room management (create, update, delete rooms)
+  - Check-in/check-out functionality
+  - No-show handling
+  - Automatic room assignment
+  - Price calculation per night
+  - Guest information management
 - **Rate Limiting**: Brute force protection on auth endpoints
 - **API Documentation**: OpenAPI/Swagger UI at `/docs`
 
@@ -119,7 +126,7 @@ Interactive API documentation is available at:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/v1/establishments/:id/services` | Create service (owner only) |
+| POST | `/v1/establishments/:id/services` | Create service (owner only) - supports SERVICE, HOTEL, CINEMA types |
 | GET | `/v1/establishments/:id/services` | List services |
 | GET | `/v1/services/:id` | Get service by ID |
 | PUT | `/v1/services/:id` | Update service (owner only) |
@@ -147,17 +154,33 @@ Interactive API documentation is available at:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/v1/bookings` | Create booking (auth required) |
+| POST | `/v1/bookings` | Create booking (auth required) - supports hotel bookings with check-in/check-out dates |
 | GET | `/v1/bookings/:id` | Get booking by ID (owner/staff) |
 | GET | `/v1/bookings/my` | Get user's bookings (auth required) |
 | GET | `/v1/establishments/:id/bookings` | Get establishment bookings (staff only) |
 | PUT | `/v1/bookings/:id/cancel` | Cancel booking (owner/staff) |
+| PUT | `/v1/bookings/:id/check-in` | Check-in hotel booking (staff only) |
+| PUT | `/v1/bookings/:id/check-out` | Check-out hotel booking (staff only) |
+| PUT | `/v1/bookings/:id/no-show` | Mark hotel booking as no-show (staff only) |
+
+### Rooms (Hotel Services)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/v1/services/:serviceId/rooms` | Create room (owner only) |
+| GET | `/v1/services/:serviceId/rooms` | List rooms for service |
+| GET | `/v1/rooms/:id` | Get room by ID |
+| PUT | `/v1/rooms/:id` | Update room (owner only) |
+| DELETE | `/v1/rooms/:id` | Delete room (owner only) |
 
 ## Testing
 
 ```bash
 # Run all E2E tests
 npm run test:e2e
+
+# Run tests with coverage
+npm run test:coverage
 
 # Run tests in watch mode
 npm test
@@ -168,12 +191,18 @@ npm run test:e2e:critical   # Critical tests only
 npm run test:e2e:security   # Security tests only
 ```
 
+**Test Coverage**: 94.93% lines, 91.72% statements, 79.17% branches, 97.27% functions
+
 ## Project Structure
 
 ```
 src/
 ├── domain/                       # Core business logic (no dependencies)
 │   ├── entities/                 # Domain entities and types
+│   │   ├── room.ts               # Room entity (hotel bookings)
+│   │   ├── booking.ts             # Booking entity (includes hotel fields)
+│   │   ├── service.ts             # Service entity (includes ServiceType)
+│   │   └── common.ts             # Common types (ServiceType, RoomStatus, BookingStatus)
 │   └── errors.ts                 # Domain-specific errors
 │
 ├── application/                  # Business logic services
@@ -183,17 +212,25 @@ src/
 │   │   ├── repositories.port.ts
 │   │   └── unit-of-work.port.ts
 │   └── *.service.ts              # Application services
+│       ├── room.service.ts        # Room management service
+│       └── booking.service.ts    # Booking service (includes hotel logic)
 │
 ├── adapters/
 │   ├── inbound/http/             # HTTP layer (driving adapters)
 │   │   ├── routes/               # HTTP endpoints
+│   │   │   ├── room.routes.ts    # Room management routes
+│   │   │   └── booking.routes.ts # Booking routes (includes hotel endpoints)
 │   │   ├── schemas/              # Zod validation + OpenAPI
+│   │   │   ├── room.schema.ts    # Room schemas
+│   │   │   └── booking.schema.ts # Booking schemas (includes hotel fields)
 │   │   ├── middleware/           # Auth, ACL, validation
 │   │   ├── plugins/              # Fastify plugins
 │   │   └── openapi/              # OpenAPI/Swagger config
 │   │
 │   └── outbound/                 # Driven adapters
 │       ├── prisma/               # Database repositories
+│       │   ├── room.repository.ts # Room repository
+│       │   └── booking.repository.ts # Booking repository (includes hotel fields)
 │       ├── token/                # JWT token provider
 │       └── crypto/               # Password hashing (Argon2)
 │

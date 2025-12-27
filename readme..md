@@ -6,10 +6,12 @@ API de gestao de reservas para estabelecimentos multi-tenant.
 
 Esta API permite que estabelecimentos:
 
-- Registem servicos reservaveis
+- Registem servicos reservaveis (SERVICE, HOTEL, CINEMA)
 - Definam disponibilidade por data/horario
 - Oferecem itens extras opcionais
 - Recebam e gerenciem reservas
+- Gerenciem quartos para servicos de hotel (criar, atualizar, eliminar)
+- Realizem check-in/check-out de reservas de hotel
 - Controlem acessos via ACL (OWNER/STAFF)
 
 ---
@@ -49,6 +51,7 @@ graph TB
         AVS[AvailabilityService]
         EIS[ExtraItemService]
         BS[BookingService]
+        RS[RoomService]
     end
 
     subgraph "Domain"
@@ -65,9 +68,9 @@ graph TB
     end
 
     HTTP --> MW
-    MW --> AS & ES & SS & AVS & EIS & BS
-    AS & ES & SS & AVS & EIS & BS --> DT
-    AS & ES & SS & AVS & EIS & BS --> PR & JWT
+    MW --> AS & ES & SS & AVS & EIS & BS & RS
+    AS & ES & SS & AVS & EIS & BS & RS --> DT
+    AS & ES & SS & AVS & EIS & BS & RS --> PR & JWT
     PR --> DB
 ```
 
@@ -80,7 +83,8 @@ src/
 │   └── types.ts              # Role types
 ├── application/              # Servicos de negocio
 │   ├── auth.service.ts
-│   ├── booking.service.ts
+│   ├── booking.service.ts    # Inclui logica de hotel bookings
+│   ├── room.service.ts       # Gestao de quartos
 │   ├── establishment.service.ts
 │   ├── service.service.ts
 │   ├── availability.service.ts
@@ -138,7 +142,19 @@ erDiagram
         decimal basePrice
         int durationMinutes
         int capacity
+        enum type "SERVICE | HOTEL | CINEMA"
         boolean active
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Room {
+        uuid id PK
+        uuid serviceId FK
+        string number UK
+        int floor
+        string description
+        enum status "AVAILABLE | OCCUPIED | CLEANING | MAINTENANCE | BLOCKED"
         datetime createdAt
         datetime updatedAt
     }
@@ -171,9 +187,16 @@ erDiagram
         uuid establishmentId FK
         uuid serviceId FK
         uuid availabilityId FK
+        uuid roomId FK
         int quantity
         decimal totalPrice
-        enum status "PENDING | CONFIRMED | CANCELLED"
+        date checkInDate
+        date checkOutDate
+        int numberOfNights
+        string guestName
+        string guestEmail
+        string guestDocument
+        enum status "PENDING | CONFIRMED | CANCELLED | CHECKED_IN | CHECKED_OUT | NO_SHOW"
         datetime createdAt
         datetime updatedAt
     }
@@ -193,6 +216,8 @@ erDiagram
     Service ||--o{ ExtraItem : "has extras"
     Service ||--o{ Availability : "has slots"
     Service ||--o{ Booking : "is booked"
+    Service ||--o{ Room : "has rooms"
+    Room ||--o{ Booking : "assigned to"
     Availability ||--o{ Booking : "used in"
     Booking ||--o{ BookingExtraItem : "includes"
     ExtraItem ||--o{ BookingExtraItem : "added to"
@@ -541,11 +566,24 @@ Base URL: `/v1`
 
 | Metodo | Endpoint | Descricao | Auth |
 |--------|----------|-----------|------|
-| POST | `/bookings` | Criar reserva | Bearer |
+| POST | `/bookings` | Criar reserva (suporta hotel com check-in/check-out) | Bearer |
 | GET | `/bookings/:id` | Obter reserva | Bearer |
 | GET | `/bookings/my` | Minhas reservas | Bearer |
 | GET | `/establishments/:id/bookings` | Reservas do estabelecimento | STAFF+ |
 | PUT | `/bookings/:id/cancel` | Cancelar reserva | Owner |
+| PUT | `/bookings/:id/check-in` | Check-in reserva hotel | STAFF+ |
+| PUT | `/bookings/:id/check-out` | Check-out reserva hotel | STAFF+ |
+| PUT | `/bookings/:id/no-show` | Marcar no-show reserva hotel | STAFF+ |
+
+### Quartos (Servicos Hotel)
+
+| Metodo | Endpoint | Descricao | Auth |
+|--------|----------|-----------|------|
+| POST | `/services/:serviceId/rooms` | Criar quarto | OWNER |
+| GET | `/services/:serviceId/rooms` | Listar quartos | - |
+| GET | `/rooms/:id` | Obter quarto | - |
+| PUT | `/rooms/:id` | Atualizar quarto | OWNER |
+| DELETE | `/rooms/:id` | Eliminar quarto | OWNER |
 
 ---
 
@@ -556,9 +594,11 @@ Base URL: `/v1`
 | Criar/Editar servico | ✅ | ❌ | ❌ |
 | Gerir extras | ✅ | ❌ | ❌ |
 | Gerir disponibilidade | ✅ | ❌ | ❌ |
+| Gerir quartos | ✅ | ❌ | ❌ |
 | Ver reservas do estabelecimento | ✅ | ✅ | ❌ |
 | Criar reserva | ✅ | ✅ | ✅ |
 | Cancelar propria reserva | ✅ | ✅ | ✅ |
+| Check-in/check-out reservas | ✅ | ✅ | ❌ |
 
 ---
 
@@ -723,3 +763,8 @@ Testes E2E cobrem:
 - CRUD de todas as entidades
 - ACL e permissoes
 - Cenarios de booking (sucesso, conflito, cancelamento)
+- Reservas de hotel (check-in, check-out, no-show)
+- Gestao de quartos
+- Validacoes e edge cases
+
+**Cobertura de Testes**: 94.93% linhas, 91.72% statements, 79.17% branches, 97.27% funcoes

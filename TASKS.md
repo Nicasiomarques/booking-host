@@ -833,6 +833,55 @@ curl -X PUT http://localhost:3000/v1/bookings/{id}/cancel \
 
 ---
 
+### 7.5 Hotel Booking Features
+
+- [x] **7.5.1** Add ServiceType enum (SERVICE, HOTEL, CINEMA)
+  - src/domain/entities/common.ts
+  - src/domain/entities/service.ts
+  - Update Service entity with type field
+
+- [x] **7.5.2** Add Room entity
+  - src/domain/entities/room.ts
+  - RoomStatus enum (AVAILABLE, OCCUPIED, CLEANING, MAINTENANCE, BLOCKED)
+  - Room repository and service
+
+- [x] **7.5.3** Extend Booking entity for hotel bookings
+  - src/domain/entities/booking.ts
+  - Add checkInDate, checkOutDate, roomId, numberOfNights
+  - Add guestName, guestEmail, guestDocument
+  - Extend BookingStatus (CHECKED_IN, CHECKED_OUT, NO_SHOW)
+
+- [x] **7.5.4** Add Room routes and schemas
+  - src/adapters/inbound/http/routes/room.routes.ts
+  - src/adapters/inbound/http/schemas/room.schema.ts
+  - CRUD operations for rooms
+
+- [x] **7.5.5** Extend BookingService with hotel logic
+  - Validate check-in/check-out dates
+  - Auto-assign available room if roomId not provided
+  - Calculate price per night
+  - Mark room as OCCUPIED on booking creation
+  - Restore room to AVAILABLE on cancellation
+
+- [x] **7.5.6** Add hotel booking endpoints
+  - PUT /v1/bookings/:id/check-in
+  - PUT /v1/bookings/:id/check-out
+  - PUT /v1/bookings/:id/no-show
+
+- [x] **7.5.7** Database migration for hotel features
+  - Add ServiceType enum
+  - Add RoomStatus enum
+  - Create Room model
+  - Extend Booking model with hotel fields
+  - Add indexes for performance
+
+**Changelog:**
+| Date | Change | Author |
+|------|--------|--------|
+| 2025-01-24 | Completed hotel booking features | Auto |
+
+---
+
 ## Phase 8: Testing & Quality
 
 ### 8.1 E2E Test Setup
@@ -866,17 +915,47 @@ curl -X PUT http://localhost:3000/v1/bookings/{id}/cancel \
   - OWNER permissions
   - Unauthorized access attempts
 
+- [x] **8.2.4** Hotel booking E2E tests
+  - tests/e2e/hotel-booking.e2e.test.ts
+  - tests/e2e/hotel-booking-edge-cases.e2e.test.ts
+  - Hotel booking flow, check-in/check-out, room management
+
+- [x] **8.2.5** Room management E2E tests
+  - tests/e2e/room.e2e.test.ts
+  - tests/e2e/room-update-edge-cases.e2e.test.ts
+  - Room CRUD operations and edge cases
+
+- [x] **8.2.6** Additional E2E tests
+  - tests/e2e/booking-confirm.e2e.test.ts
+  - tests/e2e/booking-no-show-edge-cases.e2e.test.ts
+  - tests/e2e/error-handler.e2e.test.ts
+  - tests/e2e/jwt-token.e2e.test.ts
+  - tests/e2e/validation.e2e.test.ts
+  - tests/e2e/date-range-schema.e2e.test.ts
+  - tests/e2e/service-hotel.e2e.test.ts
+  - tests/e2e/coverage-gaps.e2e.test.ts
+
+- [x] **8.2.7** Test coverage configuration
+  - vitest.config.ts with coverage settings
+  - @vitest/coverage-v8 dependency
+  - Coverage: 94.93% lines, 91.72% statements
+
 **Tests:**
 ```bash
 # Run all E2E tests
 npm run test:e2e
-# Result: 40 tests passed ✓
+# Result: 186 tests passed ✓
+
+# Run tests with coverage
+npm run test:coverage
+# Result: 94.93% lines, 91.72% statements
 ```
 
 **Changelog:**
 | Date | Change | Author |
 |------|--------|--------|
 | 2025-12-23 | Completed E2E tests - 40 tests passing | Claude |
+| 2025-01-24 | Extended E2E tests - 186 tests passing, 94.93% coverage | Auto |
 
 ---
 
@@ -931,10 +1010,11 @@ npm run test:e2e
 | 5. Extra Items | 8 subtasks | Completed |
 | 6. Availability | 8 subtasks | Completed |
 | 7. Bookings | 9 subtasks | Completed |
-| 8. Testing | 4 subtasks | Completed |
+| 7.5. Hotel Bookings | 7 subtasks | Completed |
+| 8. Testing | 7 subtasks | Completed |
 | 9. Final Polish | 4 subtasks | Completed |
 
-**Total: 80 subtasks - ALL COMPLETED ✓**
+**Total: 90 subtasks - ALL COMPLETED ✓**
 
 ---
 
@@ -950,5 +1030,7 @@ npm run test:e2e
 | 2025-12-23 | 5 | Phase 5 completed - Extra Items | Claude |
 | 2025-12-23 | 6 | Phase 6 completed - Availability | Claude |
 | 2025-12-23 | 7 | Phase 7 completed - Bookings | Claude |
+| 2025-01-24 | 7.5 | Phase 7.5 completed - Hotel Bookings (rooms, check-in/check-out) | Auto |
 | 2025-12-23 | 8 | Phase 8 completed - Testing (40 tests passing) | Claude |
+| 2025-01-24 | 8 | Phase 8 extended - Testing (186 tests passing, 94.93% coverage) | Auto |
 | 2025-12-23 | 9 | Phase 9 completed - Final Polish (rate limiting, docs, README) | Claude |
