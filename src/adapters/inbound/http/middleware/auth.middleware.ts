@@ -1,5 +1,5 @@
 import { FastifyRequest } from 'fastify'
-import { jwtAdapter, TokenPayload } from '#adapters/outbound/token/index.js'
+import type { TokenPayload } from '#application/ports/index.js'
 import { UnauthorizedError } from '#domain/index.js'
 
 declare module 'fastify' {
@@ -21,6 +21,6 @@ export async function authenticate(request: FastifyRequest): Promise<void> {
     throw new UnauthorizedError('Invalid authorization header format')
   }
 
-  const payload = jwtAdapter.verifyAccessToken(token)
+  const payload = request.server.services.adapters.tokenProvider.verifyAccessToken(token)
   request.user = payload
 }

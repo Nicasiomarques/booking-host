@@ -7,12 +7,17 @@ export default fp(async (fastify: FastifyInstance) => {
     request.log.error(error)
 
     if (error instanceof DomainError) {
-      return reply.status(error.statusCode).send({
+      const response: any = {
         error: {
           code: error.code,
           message: error.message,
         },
-      })
+      }
+      // Include validation details if available
+      if (error.code === 'VALIDATION_ERROR' && (error as any).details) {
+        response.error.details = (error as any).details
+      }
+      return reply.status(error.statusCode).send(response)
     }
 
     // Fastify validation errors

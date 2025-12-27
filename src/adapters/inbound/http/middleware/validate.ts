@@ -31,18 +31,3 @@ export function validateQuery<T extends ZodSchema>(schema: T) {
     request.query = result.data as typeof request.query
   }
 }
-
-export function validateParams<T extends ZodSchema>(schema: T) {
-  return async (request: FastifyRequest) => {
-    const result = schema.safeParse(request.params)
-
-    if (!result.success) {
-      throw new ValidationError(
-        'Invalid path parameters',
-        result.error.flatten()
-      )
-    }
-
-    request.params = result.data as typeof request.params
-  }
-}
