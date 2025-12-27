@@ -14,6 +14,15 @@ beforeAll(async () => {
   const { prisma: prismaClient } = await import('../../src/adapters/outbound/prisma/prisma.client.js')
   prisma = prismaClient
 
+  // Clean up in order (respecting foreign keys)
+  // Try to delete rooms, but ignore if table doesn't exist
+  try {
+    await prisma.$executeRawUnsafe('DELETE FROM rooms')
+  } catch (error: any) {
+    // Ignore if table doesn't exist
+    if (!error.message?.includes('does not exist')) throw error
+  }
+  
   await prisma.$transaction([
     prisma.bookingExtraItem.deleteMany(),
     prisma.booking.deleteMany(),

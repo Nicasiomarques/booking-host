@@ -6,6 +6,7 @@ import {
   ExtraItemService,
   AvailabilityService,
   BookingService,
+  RoomService,
 } from '#application/index.js'
 import type {
   PasswordHasherPort,
@@ -20,6 +21,7 @@ import {
   ExtraItemRepository,
   AvailabilityRepository,
   BookingRepository,
+  RoomRepository,
   PrismaUnitOfWorkAdapter,
   PrismaRepositoryErrorHandlerAdapter,
 } from '#adapters/outbound/prisma/index.js'
@@ -33,6 +35,7 @@ export interface Services {
   extraItem: ExtraItemService
   availability: AvailabilityService
   booking: BookingService
+  room: RoomService
 }
 
 export interface Repositories {
@@ -42,6 +45,7 @@ export interface Repositories {
   extraItem: ExtraItemRepository
   availability: AvailabilityRepository
   booking: BookingRepository
+  room: RoomRepository
 }
 
 export interface Adapters {
@@ -74,6 +78,7 @@ function createRepositories(prisma: PrismaClient): Repositories {
     extraItem: new ExtraItemRepository(prisma),
     availability: new AvailabilityRepository(prisma),
     booking: new BookingRepository(prisma),
+    room: new RoomRepository(prisma),
   }
 }
 
@@ -103,6 +108,12 @@ function createServices(repositories: Repositories, adapters: Adapters): Service
       repositories.service,
       repositories.availability,
       repositories.extraItem,
+      repositories.establishment,
+      repositories.room
+    ),
+    room: new RoomService(
+      repositories.room,
+      repositories.service,
       repositories.establishment
     ),
   }

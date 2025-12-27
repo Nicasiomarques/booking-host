@@ -1,9 +1,10 @@
-import { PrismaClient, Prisma, Booking as PrismaBooking } from '@prisma/client'
+import { PrismaClient, Prisma, Booking as PrismaBooking, Room as PrismaRoom, RoomStatus } from '@prisma/client'
 import type {
   UnitOfWorkPort,
   UnitOfWorkContext,
   TransactionalBookingRepository,
   TransactionalAvailabilityRepository,
+  TransactionalRoomRepository,
 } from '#application/ports/index.js'
 import type {
   Booking,
@@ -11,6 +12,7 @@ import type {
   BookingExtraItemData,
   BookingStatus,
   Availability,
+  Room,
 } from '#domain/index.js'
 
 function toBooking(prismaBooking: PrismaBooking): Booking {
@@ -18,6 +20,13 @@ function toBooking(prismaBooking: PrismaBooking): Booking {
     ...prismaBooking,
     totalPrice: prismaBooking.totalPrice.toString(),
     status: prismaBooking.status as BookingStatus,
+    checkInDate: prismaBooking.checkInDate,
+    checkOutDate: prismaBooking.checkOutDate,
+    roomId: prismaBooking.roomId,
+    numberOfNights: prismaBooking.numberOfNights,
+    guestName: prismaBooking.guestName,
+    guestEmail: prismaBooking.guestEmail,
+    guestDocument: prismaBooking.guestDocument,
   }
 }
 
@@ -41,6 +50,14 @@ function createTransactionalBookingRepository(
           quantity: data.quantity,
           totalPrice: new Prisma.Decimal(data.totalPrice),
           status: data.status ?? 'CONFIRMED',
+          // Hotel-specific fields
+          checkInDate: data.checkInDate ?? null,
+          checkOutDate: data.checkOutDate ?? null,
+          roomId: data.roomId ?? null,
+          numberOfNights: data.numberOfNights ?? null,
+          guestName: data.guestName ?? null,
+          guestEmail: data.guestEmail ?? null,
+          guestDocument: data.guestDocument ?? null,
           extraItems: {
             create: extras.map((e) => ({
               extraItemId: e.extraItemId,
@@ -86,6 +103,30 @@ function createTransactionalAvailabilityRepository(
   }
 }
 
+function toRoom(prismaRoom: PrismaRoom): Room {
+  return {
+    ...prismaRoom,
+    status: prismaRoom.status as RoomStatus,
+  }
+}
+
+/**
+ * Creates transactional room repository bound to a transaction client
+ */
+function createTransactionalRoomRepository(
+  tx: Prisma.TransactionClient
+): TransactionalRoomRepository {
+  return {
+    async updateStatus(id: string, status: RoomStatus): Promise<Room> {
+      const result = await tx.room.update({
+        where: { id },
+        data: { status },
+      })
+      return toRoom(result)
+    },
+  }
+}
+
 /**
  * Prisma implementation of the UnitOfWorkPort.
  * Wraps Prisma interactive transactions.
@@ -98,6 +139,7 @@ export class PrismaUnitOfWorkAdapter implements UnitOfWorkPort {
       const context: UnitOfWorkContext = {
         bookingRepository: createTransactionalBookingRepository(tx),
         availabilityRepository: createTransactionalAvailabilityRepository(tx),
+        roomRepository: createTransactionalRoomRepository(tx),
       }
       return work(context)
     })

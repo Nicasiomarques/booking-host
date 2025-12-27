@@ -8,6 +8,14 @@ export interface CreateBookingData {
   quantity: number
   totalPrice: number
   status?: BookingStatus
+  // Hotel-specific fields
+  checkInDate?: Date
+  checkOutDate?: Date
+  roomId?: string
+  numberOfNights?: number
+  guestName?: string
+  guestEmail?: string
+  guestDocument?: string
 }
 
 export interface BookingExtraItemData {
@@ -25,6 +33,14 @@ export interface Booking {
   quantity: number
   totalPrice: string
   status: BookingStatus
+  // Hotel-specific fields (optional for backward compatibility)
+  checkInDate: Date | null
+  checkOutDate: Date | null
+  roomId: string | null
+  numberOfNights: number | null
+  guestName: string | null
+  guestEmail: string | null
+  guestDocument: string | null
   createdAt: Date
   updatedAt: Date
 }

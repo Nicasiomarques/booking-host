@@ -26,6 +26,13 @@ function formatBookingResponse<T extends {
   }>
   user?: { name: string; email: string }
   availability?: { date: Date | string; startTime: string; endTime: string }
+  checkInDate?: Date | string | null
+  checkOutDate?: Date | string | null
+  roomId?: string | null
+  numberOfNights?: number | null
+  guestName?: string | null
+  guestEmail?: string | null
+  guestDocument?: string | null
 }>(booking: T) {
   // Format date to YYYY-MM-DD string if it's a Date object
   const formatDate = (date: Date | string): string => {
@@ -71,6 +78,18 @@ function formatBookingResponse<T extends {
     ...(booking.user && {
       user: booking.user,
     }),
+    // Hotel-specific fields
+    ...(booking.checkInDate !== undefined && {
+      checkInDate: booking.checkInDate ? formatDate(booking.checkInDate) : null,
+    }),
+    ...(booking.checkOutDate !== undefined && {
+      checkOutDate: booking.checkOutDate ? formatDate(booking.checkOutDate) : null,
+    }),
+    ...(booking.roomId !== undefined && { roomId: booking.roomId }),
+    ...(booking.numberOfNights !== undefined && { numberOfNights: booking.numberOfNights }),
+    ...(booking.guestName !== undefined && { guestName: booking.guestName }),
+    ...(booking.guestEmail !== undefined && { guestEmail: booking.guestEmail }),
+    ...(booking.guestDocument !== undefined && { guestDocument: booking.guestDocument }),
   }
 }
 
@@ -251,6 +270,81 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
     },
     async (request: FastifyRequest<{ Params: { id: string } }>) => {
       const result = await service.confirm(request.params.id, request.user.userId)
+      return formatBookingResponse(result)
+    }
+  )
+
+  fastify.put<{ Params: { id: string } }>(
+    '/bookings/:id/check-in',
+    {
+      schema: buildRouteSchema({
+        tags: ['Bookings'],
+        summary: 'Check in a hotel booking',
+        description: 'Marks a hotel booking as checked in. Only accessible by establishment owners/staff. Only available for hotel bookings.',
+        security: true,
+        params: idParamSchema,
+        responses: {
+          200: { description: 'Booking checked in successfully', schema: bookingResponseSchema },
+          401: { description: 'Unauthorized', schema: ErrorResponseSchema },
+          403: { description: 'No permission to check in this booking', schema: ErrorResponseSchema },
+          404: { description: 'Booking not found', schema: ErrorResponseSchema },
+          409: { description: 'Booking cannot be checked in (already checked in, checked out, cancelled, or no-show)', schema: ErrorResponseSchema },
+        },
+      }),
+      preHandler: [authenticate],
+    },
+    async (request: FastifyRequest<{ Params: { id: string } }>) => {
+      const result = await service.checkIn(request.params.id, request.user.userId)
+      return formatBookingResponse(result)
+    }
+  )
+
+  fastify.put<{ Params: { id: string } }>(
+    '/bookings/:id/check-out',
+    {
+      schema: buildRouteSchema({
+        tags: ['Bookings'],
+        summary: 'Check out a hotel booking',
+        description: 'Marks a hotel booking as checked out and frees the room. Only accessible by establishment owners/staff. Only available for hotel bookings.',
+        security: true,
+        params: idParamSchema,
+        responses: {
+          200: { description: 'Booking checked out successfully', schema: bookingResponseSchema },
+          401: { description: 'Unauthorized', schema: ErrorResponseSchema },
+          403: { description: 'No permission to check out this booking', schema: ErrorResponseSchema },
+          404: { description: 'Booking not found', schema: ErrorResponseSchema },
+          409: { description: 'Booking cannot be checked out (already checked out, cancelled, or no-show)', schema: ErrorResponseSchema },
+        },
+      }),
+      preHandler: [authenticate],
+    },
+    async (request: FastifyRequest<{ Params: { id: string } }>) => {
+      const result = await service.checkOut(request.params.id, request.user.userId)
+      return formatBookingResponse(result)
+    }
+  )
+
+  fastify.put<{ Params: { id: string } }>(
+    '/bookings/:id/no-show',
+    {
+      schema: buildRouteSchema({
+        tags: ['Bookings'],
+        summary: 'Mark a hotel booking as no-show',
+        description: 'Marks a hotel booking as no-show and frees the room. Only accessible by establishment owners/staff. Only available for hotel bookings.',
+        security: true,
+        params: idParamSchema,
+        responses: {
+          200: { description: 'Booking marked as no-show successfully', schema: bookingResponseSchema },
+          401: { description: 'Unauthorized', schema: ErrorResponseSchema },
+          403: { description: 'No permission to mark this booking as no-show', schema: ErrorResponseSchema },
+          404: { description: 'Booking not found', schema: ErrorResponseSchema },
+          409: { description: 'Booking cannot be marked as no-show (already checked in, checked out, cancelled, or no-show)', schema: ErrorResponseSchema },
+        },
+      }),
+      preHandler: [authenticate],
+    },
+    async (request: FastifyRequest<{ Params: { id: string } }>) => {
+      const result = await service.markNoShow(request.params.id, request.user.userId)
       return formatBookingResponse(result)
     }
   )

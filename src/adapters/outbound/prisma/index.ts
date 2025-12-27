@@ -8,6 +8,7 @@ export { EstablishmentRepository } from './establishment.repository.js'
 export { ServiceRepository } from './service.repository.js'
 export { AvailabilityRepository } from './availability.repository.js'
 export { ExtraItemRepository } from './extra-item.repository.js'
+export { RoomRepository } from './room.repository.js'
 
 // Port Adapters
 export { PrismaUnitOfWorkAdapter } from './prisma-unit-of-work.adapter.js'

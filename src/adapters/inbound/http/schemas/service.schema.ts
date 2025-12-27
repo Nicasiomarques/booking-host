@@ -24,6 +24,10 @@ export const createServiceSchema = z.object({
     description: 'Maximum capacity per slot',
     example: 1,
   }),
+  type: z.enum(['SERVICE', 'HOTEL', 'CINEMA']).default('SERVICE').optional().openapi({
+    description: 'Service type',
+    example: 'SERVICE',
+  }),
 }).openapi('CreateServiceInput', {
   example: {
     name: 'Deep Tissue Massage',
@@ -53,6 +57,10 @@ export const updateServiceSchema = z.object({
   capacity: z.number().int().positive().max(1000).optional().openapi({
     description: 'Maximum capacity per slot',
   }),
+  type: z.enum(['SERVICE', 'HOTEL', 'CINEMA']).optional().openapi({
+    description: 'Service type',
+    example: 'SERVICE',
+  }),
   active: z.boolean().optional().openapi({
     description: 'Whether the service is active',
     example: true,
@@ -76,6 +84,7 @@ export const serviceResponseSchema = z.object({
   basePrice: z.number().openapi({ example: 150.00 }),
   durationMinutes: z.number().int().openapi({ example: 60 }),
   capacity: z.number().int().openapi({ example: 1 }),
+  type: z.enum(['SERVICE', 'HOTEL', 'CINEMA']).openapi({ example: 'SERVICE' }),
   active: z.boolean().openapi({ example: true }),
   createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
   updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),

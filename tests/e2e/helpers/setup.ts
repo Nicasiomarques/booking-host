@@ -92,6 +92,7 @@ export async function createTestService(
     basePrice: number
     durationMinutes: number
     capacity?: number
+    type?: 'SERVICE' | 'HOTEL' | 'CINEMA'
   }
 ): Promise<{ id: string; name: string; establishmentId: string }> {
   const response = await app.inject({
@@ -100,6 +101,7 @@ export async function createTestService(
     headers: { authorization: `Bearer ${accessToken}` },
     payload: {
       capacity: 1,
+      type: 'SERVICE',
       ...data,
     },
   })
@@ -137,6 +139,22 @@ export async function createTestExtraItem(
       maxQuantity: 1,
       ...data,
     },
+  })
+
+  return JSON.parse(response.body)
+}
+
+export async function createTestRoom(
+  app: FastifyInstance,
+  accessToken: string,
+  serviceId: string,
+  data: { number: string; floor?: number; description?: string }
+): Promise<{ id: string; serviceId: string; number: string }> {
+  const response = await app.inject({
+    method: 'POST',
+    url: `/v1/services/${serviceId}/rooms`,
+    headers: { authorization: `Bearer ${accessToken}` },
+    payload: data,
   })
 
   return JSON.parse(response.body)

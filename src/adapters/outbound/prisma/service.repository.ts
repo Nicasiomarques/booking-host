@@ -1,5 +1,5 @@
 import { PrismaClient, Service as PrismaService, Prisma } from '@prisma/client'
-import type { Service, CreateServiceData, UpdateServiceData, ExtraItem } from '#domain/entities/index.js'
+import type { Service, CreateServiceData, UpdateServiceData, ExtraItem, ServiceType } from '#domain/entities/index.js'
 
 export type { Service, CreateServiceData, UpdateServiceData }
 
@@ -7,6 +7,7 @@ function toService(prismaService: PrismaService): Service {
   return {
     ...prismaService,
     basePrice: prismaService.basePrice.toString(),
+    type: prismaService.type as Service['type'],
   }
 }
 
@@ -33,6 +34,7 @@ export class ServiceRepository {
         basePrice: new Prisma.Decimal(data.basePrice),
         durationMinutes: data.durationMinutes,
         capacity: data.capacity ?? 1,
+        type: data.type ?? 'SERVICE',
       },
     })
     return toService(result)

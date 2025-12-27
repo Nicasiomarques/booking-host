@@ -23,6 +23,13 @@ function toBooking(prismaBooking: PrismaBooking): Booking {
     ...prismaBooking,
     totalPrice: prismaBooking.totalPrice.toString(),
     status: prismaBooking.status as BookingStatus,
+    checkInDate: prismaBooking.checkInDate,
+    checkOutDate: prismaBooking.checkOutDate,
+    roomId: prismaBooking.roomId,
+    numberOfNights: prismaBooking.numberOfNights,
+    guestName: prismaBooking.guestName,
+    guestEmail: prismaBooking.guestEmail,
+    guestDocument: prismaBooking.guestDocument,
   }
 }
 
@@ -69,6 +76,14 @@ export class BookingRepository {
         quantity: data.quantity,
         totalPrice: new Prisma.Decimal(data.totalPrice),
         status: data.status ?? 'CONFIRMED',
+        // Hotel-specific fields
+        checkInDate: data.checkInDate ?? null,
+        checkOutDate: data.checkOutDate ?? null,
+        roomId: data.roomId ?? null,
+        numberOfNights: data.numberOfNights ?? null,
+        guestName: data.guestName ?? null,
+        guestEmail: data.guestEmail ?? null,
+        guestDocument: data.guestDocument ?? null,
         extraItems: {
           create: extras.map((e) => ({
             extraItemId: e.extraItemId,
@@ -272,8 +287,10 @@ export class BookingRepository {
     quantity: number
     availabilityId: string
     status: BookingStatus
+    roomId: string | null
+    serviceType: string | null
   } | null> {
-    return this.prisma.booking.findUnique({
+    const booking = await this.prisma.booking.findUnique({
       where: { id },
       select: {
         userId: true,
@@ -281,7 +298,25 @@ export class BookingRepository {
         quantity: true,
         availabilityId: true,
         status: true,
+        roomId: true,
+        service: {
+          select: {
+            type: true,
+          },
+        },
       },
     })
+
+    if (!booking) return null
+
+    return {
+      userId: booking.userId,
+      establishmentId: booking.establishmentId,
+      quantity: booking.quantity,
+      availabilityId: booking.availabilityId,
+      status: booking.status,
+      roomId: booking.roomId,
+      serviceType: booking.service.type,
+    }
   }
 }

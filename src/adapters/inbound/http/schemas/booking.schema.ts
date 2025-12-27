@@ -27,6 +27,31 @@ export const createBookingSchema = z.object({
   extras: z.array(bookingExtraSchema).optional().openapi({
     description: 'Optional extra items to add',
   }),
+  // Hotel-specific fields
+  checkInDate: z.string().date().optional().openapi({
+    description: 'Check-in date (required for hotel bookings)',
+    example: '2025-02-01',
+  }),
+  checkOutDate: z.string().date().optional().openapi({
+    description: 'Check-out date (required for hotel bookings)',
+    example: '2025-02-05',
+  }),
+  roomId: z.string().uuid().optional().openapi({
+    description: 'Specific room ID (optional, will auto-assign if not provided)',
+    example: '550e8400-e29b-41d4-a716-446655440006',
+  }),
+  guestName: z.string().optional().openapi({
+    description: 'Guest name (for third-party bookings)',
+    example: 'John Doe',
+  }),
+  guestEmail: z.string().email().optional().openapi({
+    description: 'Guest email (for third-party bookings)',
+    example: 'guest@example.com',
+  }),
+  guestDocument: z.string().optional().openapi({
+    description: 'Guest document (CPF, passport, etc.)',
+    example: '12345678900',
+  }),
 }).openapi('CreateBookingInput', {
   example: {
     serviceId: '550e8400-e29b-41d4-a716-446655440003',
@@ -42,7 +67,7 @@ export const createBookingSchema = z.object({
 })
 
 export const listBookingsQuerySchema = paginationSchema.extend({
-  status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED']).optional().openapi({
+  status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'CHECKED_IN', 'CHECKED_OUT', 'NO_SHOW']).optional().openapi({
     description: 'Filter by booking status',
     example: 'CONFIRMED',
   }),
@@ -76,7 +101,15 @@ export const bookingResponseSchema = z.object({
   availabilityId: z.string().uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440004' }),
   quantity: z.number().int().openapi({ example: 1 }),
   totalPrice: z.number().openapi({ example: 175.00 }),
-  status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED']).openapi({ example: 'CONFIRMED' }),
+  status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'CHECKED_IN', 'CHECKED_OUT', 'NO_SHOW']).openapi({ example: 'CONFIRMED' }),
+  // Hotel-specific fields
+  checkInDate: z.string().date().nullable().optional().openapi({ example: '2025-02-01' }),
+  checkOutDate: z.string().date().nullable().optional().openapi({ example: '2025-02-05' }),
+  roomId: z.string().uuid().nullable().optional().openapi({ example: '550e8400-e29b-41d4-a716-446655440006' }),
+  numberOfNights: z.number().int().nullable().optional().openapi({ example: 4 }),
+  guestName: z.string().nullable().optional().openapi({ example: 'John Doe' }),
+  guestEmail: z.string().email().nullable().optional().openapi({ example: 'guest@example.com' }),
+  guestDocument: z.string().nullable().optional().openapi({ example: '12345678900' }),
   createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
   updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
   service: z.object({

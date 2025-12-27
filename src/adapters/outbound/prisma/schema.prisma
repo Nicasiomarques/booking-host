@@ -54,24 +54,41 @@ enum Role {
   STAFF
 }
 
+enum ServiceType {
+  SERVICE
+  HOTEL
+  CINEMA
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  CLEANING
+  MAINTENANCE
+  BLOCKED
+}
+
 model Service {
-  id              String   @id @default(uuid())
-  establishmentId String   @map("establishment_id")
+  id              String      @id @default(uuid())
+  establishmentId String      @map("establishment_id")
   name            String
   description     String?
-  basePrice       Decimal  @map("base_price") @db.Decimal(10, 2)
-  durationMinutes Int      @map("duration_minutes")
-  capacity        Int      @default(1)
-  active          Boolean  @default(true)
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  basePrice       Decimal     @map("base_price") @db.Decimal(10, 2)
+  durationMinutes Int         @map("duration_minutes")
+  capacity        Int         @default(1)
+  type            ServiceType @default(SERVICE)
+  active          Boolean     @default(true)
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
 
   establishment  Establishment  @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
   extraItems     ExtraItem[]
   availabilities Availability[]
   bookings       Booking[]
+  rooms          Room[]
 
   @@index([establishmentId])
+  @@index([type])
   @@map("services")
 }
 
@@ -110,6 +127,25 @@ model Availability {
   @@map("availabilities")
 }
 
+model Room {
+  id          String     @id @default(uuid())
+  serviceId   String     @map("service_id")
+  number      String
+  floor       Int?
+  description String?
+  status      RoomStatus @default(AVAILABLE)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  service  Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@unique([serviceId, number])
+  @@index([serviceId])
+  @@index([status])
+  @@map("rooms")
+}
+
 model Booking {
   id              String        @id @default(uuid())
   userId          String        @map("user_id")
@@ -119,18 +155,30 @@ model Booking {
   quantity        Int
   totalPrice      Decimal       @map("total_price") @db.Decimal(10, 2)
   status          BookingStatus @default(PENDING)
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  // Hotel-specific fields
+  checkInDate     DateTime?     @map("check_in_date") @db.Date
+  checkOutDate    DateTime?       @map("check_out_date") @db.Date
+  roomId          String?         @map("room_id")
+  numberOfNights  Int?            @map("number_of_nights")
+  guestName       String?         @map("guest_name")
+  guestEmail      String?         @map("guest_email")
+  guestDocument   String?         @map("guest_document")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
 
   user          User               @relation(fields: [userId], references: [id])
   establishment Establishment      @relation(fields: [establishmentId], references: [id])
   service       Service            @relation(fields: [serviceId], references: [id])
   availability  Availability       @relation(fields: [availabilityId], references: [id])
+  room          Room?              @relation(fields: [roomId], references: [id], onDelete: SetNull)
   extraItems    BookingExtraItem[]
 
   @@index([userId])
   @@index([establishmentId])
   @@index([status])
+  @@index([roomId])
+  @@index([checkInDate])
+  @@index([checkOutDate])
   @@map("bookings")
 }
 
@@ -138,6 +186,9 @@ enum BookingStatus {
   PENDING
   CONFIRMED
   CANCELLED
+  CHECKED_IN
+  CHECKED_OUT
+  NO_SHOW
 }
 
 model BookingExtraItem {

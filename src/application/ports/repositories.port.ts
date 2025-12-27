@@ -7,6 +7,9 @@ import type {
   Service,
   CreateServiceData,
   UpdateServiceData,
+  Room,
+  CreateRoomData,
+  UpdateRoomData,
   Availability,
   CreateAvailabilityData,
   UpdateAvailabilityData,
@@ -72,6 +75,19 @@ export interface ExtraItemRepositoryPort {
   findByService(serviceId: string, options?: { activeOnly?: boolean }): Promise<ExtraItem[]>
   update(id: string, data: UpdateExtraItemData): Promise<ExtraItem>
   softDelete(id: string): Promise<ExtraItem>
+}
+
+/**
+ * Port interface for Room repository operations
+ */
+export interface RoomRepositoryPort {
+  create(data: CreateRoomData): Promise<Room>
+  findById(id: string): Promise<Room | null>
+  findByService(serviceId: string): Promise<Room[]>
+  findAvailableRooms(serviceId: string, checkInDate: Date, checkOutDate: Date): Promise<Room[]>
+  update(id: string, data: UpdateRoomData): Promise<Room>
+  delete(id: string): Promise<Room>
+  hasActiveBookings(id: string): Promise<boolean>
 }
 
 /**

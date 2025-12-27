@@ -83,6 +83,7 @@ export async function buildApp(): Promise<FastifyInstance> {
         { name: 'Extras', description: 'Extra items management' },
         { name: 'Availabilities', description: 'Availability slots management' },
         { name: 'Bookings', description: 'Booking management' },
+        { name: 'Rooms', description: 'Room management for hotel services' },
       ],
       components: {
         securitySchemes: {
@@ -116,6 +117,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(import('./routes/extra-item.routes.js'), { prefix: '/v1' })
   await app.register(import('./routes/availability.routes.js'), { prefix: '/v1' })
   await app.register(import('./routes/booking.routes.js'), { prefix: '/v1' })
+  await app.register(import('./routes/room.routes.js'), { prefix: '/v1' })
 
   // Health check
   app.get('/health', async () => ({ status: 'ok' }))

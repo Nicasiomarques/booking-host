@@ -1,3 +1,5 @@
+import type { ServiceType } from './common.js'
+
 export interface CreateServiceData {
   establishmentId: string
   name: string
@@ -5,6 +7,7 @@ export interface CreateServiceData {
   basePrice: number
   durationMinutes: number
   capacity?: number
+  type?: ServiceType
 }
 
 export interface UpdateServiceData {
@@ -24,6 +27,7 @@ export interface Service {
   basePrice: string
   durationMinutes: number
   capacity: number
+  type: ServiceType
   active: boolean
   createdAt: Date
   updatedAt: Date

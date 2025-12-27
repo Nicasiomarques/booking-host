@@ -1,6 +1,10 @@
 export type Role = 'OWNER' | 'STAFF'
 
-export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED'
+export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'NO_SHOW'
+
+export type ServiceType = 'SERVICE' | 'HOTEL' | 'CINEMA'
+
+export type RoomStatus = 'AVAILABLE' | 'OCCUPIED' | 'CLEANING' | 'MAINTENANCE' | 'BLOCKED'
 
 export interface EstablishmentRole {
   establishmentId: string

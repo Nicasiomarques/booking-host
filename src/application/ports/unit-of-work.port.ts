@@ -4,6 +4,8 @@ import type {
   BookingExtraItemData,
   BookingStatus,
   Availability,
+  Room,
+  RoomStatus,
 } from '#domain/index.js'
 
 /**
@@ -23,11 +25,19 @@ export interface TransactionalAvailabilityRepository {
 }
 
 /**
+ * Transactional room repository - operations that run within a transaction
+ */
+export interface TransactionalRoomRepository {
+  updateStatus(id: string, status: RoomStatus): Promise<Room>
+}
+
+/**
  * Unit of Work context provided within transactions
  */
 export interface UnitOfWorkContext {
   bookingRepository: TransactionalBookingRepository
   availabilityRepository: TransactionalAvailabilityRepository
+  roomRepository: TransactionalRoomRepository
 }
 
 /**

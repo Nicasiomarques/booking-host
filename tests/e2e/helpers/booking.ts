@@ -6,6 +6,13 @@ export interface BookingData {
   availabilityId: string
   quantity?: number
   extras?: Array<{ extraItemId: string; quantity: number }>
+  // Hotel-specific fields
+  checkInDate?: string
+  checkOutDate?: string
+  roomId?: string
+  guestName?: string
+  guestEmail?: string
+  guestDocument?: string
 }
 
 export interface BookingResponse {
