@@ -73,11 +73,12 @@ booking-service/
 │   │   ├── entities/
 │   │   │   ├── user.ts
 │   │   │   ├── booking.ts
+│   │   │   ├── room.ts             # Room entity (hotel bookings)
 │   │   │   ├── establishment.ts
 │   │   │   ├── service.ts
 │   │   │   ├── availability.ts
 │   │   │   ├── extra-item.ts
-│   │   │   └── common.ts          # Shared types (Role, BookingStatus, PaginatedResult)
+│   │   │   └── common.ts          # Shared types (Role, BookingStatus, ServiceType, RoomStatus, PaginatedResult)
 │   │   ├── errors.ts              # Domain-specific errors
 │   │   └── index.ts               # Barrel export
 │   │
@@ -89,7 +90,8 @@ booking-service/
 │   │   │   ├── unit-of-work.port.ts      # Transaction management interface
 │   │   │   └── repository-error-handler.port.ts
 │   │   ├── auth.service.ts
-│   │   ├── booking.service.ts
+│   │   ├── booking.service.ts      # Includes hotel booking logic
+│   │   ├── room.service.ts         # Room management service
 │   │   ├── establishment.service.ts
 │   │   ├── service.service.ts
 │   │   ├── availability.service.ts
@@ -100,16 +102,18 @@ booking-service/
 │   │   │   └── http/
 │   │   │       ├── routes/
 │   │   │       │   ├── auth.routes.ts
-│   │   │       │   ├── booking.routes.ts
+│   │   │       │   ├── booking.routes.ts      # Includes hotel endpoints (check-in/check-out/no-show)
+│   │   │       │   ├── room.routes.ts         # Room management routes
 │   │   │       │   ├── establishment.routes.ts
 │   │   │       │   ├── service.routes.ts
 │   │   │       │   ├── availability.routes.ts
 │   │   │       │   └── extra-item.routes.ts
 │   │   │       ├── schemas/       # Zod request/response schemas + OpenAPI
 │   │   │       │   ├── auth.schema.ts
-│   │   │       │   ├── booking.schema.ts
+│   │   │       │   ├── booking.schema.ts      # Includes hotel booking fields
+│   │   │       │   ├── room.schema.ts          # Room schemas
 │   │   │       │   ├── establishment.schema.ts
-│   │   │       │   ├── service.schema.ts
+│   │   │       │   ├── service.schema.ts       # Includes ServiceType
 │   │   │       │   ├── availability.schema.ts
 │   │   │       │   ├── extra-item.schema.ts
 │   │   │       │   └── common.schema.ts
@@ -133,16 +137,16 @@ booking-service/
 │   │       ├── prisma/
 │   │       │   ├── prisma.client.ts
 │   │       │   ├── user.repository.ts
-│   │       │   ├── booking.repository.ts
+│   │       │   ├── booking.repository.ts      # Includes hotel booking fields
+│   │       │   ├── room.repository.ts          # Room repository
 │   │       │   ├── establishment.repository.ts
-│   │       │   ├── service.repository.ts
+│   │       │   ├── service.repository.ts       # Includes ServiceType
 │   │       │   ├── availability.repository.ts
 │   │       │   ├── extra-item.repository.ts
 │   │       │   ├── prisma-unit-of-work.adapter.ts
 │   │       │   └── prisma-repository-error-handler.adapter.ts
 │   │       ├── token/
-│   │       │   ├── jwt.adapter.ts
-│   │       │   └── jwt-token-provider.adapter.ts
+│   │       │   └── jwt-token-provider.adapter.ts  # Port-based JWT adapter (jwt.adapter.ts deprecated)
 │   │       └── crypto/
 │   │           └── argon2-password-hasher.adapter.ts
 │   │
@@ -158,6 +162,18 @@ booking-service/
 │       ├── setup.ts
 │       ├── auth.e2e.test.ts
 │       ├── booking.e2e.test.ts
+│       ├── hotel-booking.e2e.test.ts
+│       ├── hotel-booking-edge-cases.e2e.test.ts
+│       ├── room.e2e.test.ts
+│       ├── room-update-edge-cases.e2e.test.ts
+│       ├── service-hotel.e2e.test.ts
+│       ├── booking-confirm.e2e.test.ts
+│       ├── booking-no-show-edge-cases.e2e.test.ts
+│       ├── error-handler.e2e.test.ts
+│       ├── jwt-token.e2e.test.ts
+│       ├── validation.e2e.test.ts
+│       ├── date-range-schema.e2e.test.ts
+│       ├── coverage-gaps.e2e.test.ts
 │       ├── establishment.e2e.test.ts
 │       ├── service.e2e.test.ts
 │       ├── availability.e2e.test.ts
@@ -495,6 +511,23 @@ enum BookingStatus {
   PENDING
   CONFIRMED
   CANCELLED
+  CHECKED_IN      # Hotel bookings
+  CHECKED_OUT     # Hotel bookings
+  NO_SHOW         # Hotel bookings
+}
+
+enum ServiceType {
+  SERVICE
+  HOTEL
+  CINEMA
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  CLEANING
+  MAINTENANCE
+  BLOCKED
 }
 ```
 
