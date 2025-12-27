@@ -1,5 +1,5 @@
 // Common types
-export type { Role, BookingStatus, EstablishmentRole, PaginatedResult, ListOptions } from './common.js'
+export type { Role, BookingStatus, ServiceType, RoomStatus, EstablishmentRole, PaginatedResult, ListOptions } from './common.js'
 
 // User
 export type { CreateUserData, UserWithRoles } from './user.js'
@@ -9,6 +9,9 @@ export type { Establishment, CreateEstablishmentData, UpdateEstablishmentData, E
 
 // Service
 export type { Service, CreateServiceData, UpdateServiceData } from './service.js'
+
+// Room
+export type { Room, CreateRoomData, UpdateRoomData } from './room.js'
 
 // Availability
 export type { Availability, CreateAvailabilityData, UpdateAvailabilityData } from './availability.js'

@@ -84,3 +84,15 @@ export type {
   ListBookingsQueryInput,
   BookingResponse,
 } from './booking.schema.js'
+
+// Room
+export {
+  createRoomSchema,
+  updateRoomSchema,
+  roomResponseSchema,
+} from './room.schema.js'
+export type {
+  CreateRoomInput,
+  UpdateRoomInput,
+  RoomResponse,
+} from './room.schema.js'

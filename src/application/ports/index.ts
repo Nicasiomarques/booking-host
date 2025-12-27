@@ -13,6 +13,7 @@ export type {
   UnitOfWorkContext,
   TransactionalBookingRepository,
   TransactionalAvailabilityRepository,
+  TransactionalRoomRepository,
 } from './unit-of-work.port.js'
 
 // Repository Error Handler
