@@ -96,7 +96,7 @@ describe('Booking No-Show Edge Cases E2E', () => {
       })
 
       // Act - try to mark as no-show
-      const response = await T.put(sut, `/v1/bookings/${booking.id}/no-show`, {
+      const response = await T.put<{ error?: { code?: string; message?: string } }>(sut, `/v1/bookings/${booking.id}/no-show`, {
         token: owner.accessToken,
       })
 
@@ -133,7 +133,7 @@ describe('Booking No-Show Edge Cases E2E', () => {
       })
 
       // Act - try to mark as no-show again
-      const response = await T.put(sut, `/v1/bookings/${booking.id}/no-show`, {
+      const response = await T.put<{ error?: { code?: string; message?: string } }>(sut, `/v1/bookings/${booking.id}/no-show`, {
         token: owner.accessToken,
       })
 
@@ -170,7 +170,7 @@ describe('Booking No-Show Edge Cases E2E', () => {
       })
 
       // Act - try to mark as no-show
-      const response = await T.put(sut, `/v1/bookings/${booking.id}/no-show`, {
+      const response = await T.put<{ error?: { code?: string; message?: string } }>(sut, `/v1/bookings/${booking.id}/no-show`, {
         token: owner.accessToken,
       })
 
@@ -181,4 +181,5 @@ describe('Booking No-Show Edge Cases E2E', () => {
     })
   })
 })
+
 

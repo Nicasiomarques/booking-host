@@ -3,6 +3,17 @@ import { FastifyInstance } from 'fastify'
 import * as T from './helpers/test-client.js'
 import { futureDate, futureCheckOutDate } from './helpers/factories.js'
 
+interface Room {
+  id: string
+  serviceId: string
+  number: string
+  floor: number | null
+  description: string | null
+  status: string
+  createdAt: string
+  updatedAt: string
+}
+
 describe('Room Update Edge Cases E2E', () => {
   let sut: FastifyInstance
   let owner: T.TestUser
@@ -71,7 +82,7 @@ describe('Room Update Edge Cases E2E', () => {
       })
 
       // Act - try to update room2 with room1's number
-      const response = await T.put(sut, `/v1/rooms/${room2.id}`, {
+      const response = await T.put<{ error?: { code?: string; message?: string } }>(sut, `/v1/rooms/${room2.id}`, {
         token: owner.accessToken,
         payload: {
           number: '2001', // Duplicate
@@ -91,7 +102,7 @@ describe('Room Update Edge Cases E2E', () => {
       })
 
       // Act - update with same number (should be allowed)
-      const response = await T.put(sut, `/v1/rooms/${room.id}`, {
+      const response = await T.put<Room>(sut, `/v1/rooms/${room.id}`, {
         token: owner.accessToken,
         payload: {
           number: '2003', // Same number
@@ -106,4 +117,5 @@ describe('Room Update Edge Cases E2E', () => {
     })
   })
 })
+
 

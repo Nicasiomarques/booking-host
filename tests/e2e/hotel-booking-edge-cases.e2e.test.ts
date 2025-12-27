@@ -109,7 +109,7 @@ describe('Hotel Booking Edge Cases E2E', () => {
       }
 
       // Act
-      const response = await T.post(sut, '/v1/bookings', {
+      const response = await T.post<{ error?: { code?: string } }>(sut, '/v1/bookings', {
         token: customer.accessToken,
         payload: bookingData,
       })
@@ -150,7 +150,7 @@ describe('Hotel Booking Edge Cases E2E', () => {
       }
 
       // Act
-      const response = await T.post(sut, '/v1/bookings', {
+      const response = await T.post<{ error?: { code?: string; message?: string } }>(sut, '/v1/bookings', {
         token: customer.accessToken,
         payload: bookingData,
       })
@@ -307,7 +307,7 @@ describe('Hotel Booking Edge Cases E2E', () => {
       }
 
       // Act
-      const response = await T.post(sut, '/v1/bookings', {
+      const response = await T.post<{ error?: { code?: string } }>(sut, '/v1/bookings', {
         token: customer.accessToken,
         payload: bookingData,
       })
@@ -364,7 +364,7 @@ describe('Hotel Booking Edge Cases E2E', () => {
       }
 
       // Act
-      const response = await T.post(sut, '/v1/bookings', {
+      const response = await T.post<{ error?: { code?: string } }>(sut, '/v1/bookings', {
         token: customer.accessToken,
         payload: bookingData,
       })
