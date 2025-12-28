@@ -23,6 +23,18 @@ export const createAvailabilitySchema = z.object({
     description: 'Available capacity for this slot',
     example: 5,
   }),
+  price: z.number().positive().multipleOf(0.01).optional().openapi({
+    description: 'Dynamic price for this slot (overrides service basePrice)',
+    example: 250.00,
+  }),
+  notes: z.string().trim().max(1000).optional().openapi({
+    description: 'Notes about this availability slot',
+    example: 'Horário com desconto promocional',
+  }),
+  isRecurring: z.boolean().default(false).optional().openapi({
+    description: 'Whether this slot is recurring',
+    example: false,
+  }),
 }).refine(
   (data) => data.startTime < data.endTime,
   { message: 'Start time must be before end time', path: ['endTime'] }
@@ -52,6 +64,18 @@ export const updateAvailabilitySchema = z.object({
     description: 'Available capacity for this slot',
     example: 10,
   }),
+  price: z.number().positive().multipleOf(0.01).nullable().optional().openapi({
+    description: 'Dynamic price for this slot (overrides service basePrice, null to remove)',
+    example: 250.00,
+  }),
+  notes: z.string().trim().max(1000).optional().openapi({
+    description: 'Notes about this availability slot',
+    example: 'Horário com desconto promocional',
+  }),
+  isRecurring: z.boolean().optional().openapi({
+    description: 'Whether this slot is recurring',
+    example: false,
+  }),
 }).openapi('UpdateAvailabilityInput', {
   example: {
     date: '2025-01-21',
@@ -79,6 +103,9 @@ export const availabilityResponseSchema = z.object({
   startTime: z.string().openapi({ example: '09:00' }),
   endTime: z.string().openapi({ example: '10:00' }),
   capacity: z.number().int().openapi({ example: 5 }),
+  price: z.number().nullable().optional().openapi({ example: 250.00 }),
+  notes: z.string().nullable().optional().openapi({ example: 'Horário com desconto promocional' }),
+  isRecurring: z.boolean().openapi({ example: false }),
   createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
   updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
 }).openapi('AvailabilityResponse', {

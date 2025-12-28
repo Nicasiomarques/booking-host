@@ -20,6 +20,30 @@ export const createEstablishmentSchema = z.object({
     description: 'IANA timezone identifier',
     example: 'America/Sao_Paulo',
   }),
+  phone: z.string().trim().max(50).optional().openapi({
+    description: 'Contact phone number',
+    example: '+55 11 98765-4321',
+  }),
+  email: z.string().email().trim().max(255).optional().openapi({
+    description: 'Contact email address',
+    example: 'contato@spa.com.br',
+  }),
+  city: z.string().trim().max(100).optional().openapi({
+    description: 'City',
+    example: 'São Paulo',
+  }),
+  state: z.string().trim().max(100).optional().openapi({
+    description: 'State/Province',
+    example: 'SP',
+  }),
+  website: z.string().url().trim().max(500).optional().openapi({
+    description: 'Website URL',
+    example: 'https://www.spa.com.br',
+  }),
+  taxId: z.string().trim().max(50).optional().openapi({
+    description: 'Tax ID (CNPJ/CPF)',
+    example: '12.345.678/0001-90',
+  }),
 }).openapi('CreateEstablishmentInput', {
   example: {
     name: 'Wellness Spa Center',
@@ -50,6 +74,30 @@ export const updateEstablishmentSchema = z.object({
     description: 'Whether the establishment is active',
     example: true,
   }),
+  phone: z.string().trim().max(50).optional().openapi({
+    description: 'Contact phone number',
+    example: '+55 11 98765-4321',
+  }),
+  email: z.string().email().trim().max(255).optional().openapi({
+    description: 'Contact email address',
+    example: 'contato@spa.com.br',
+  }),
+  city: z.string().trim().max(100).optional().openapi({
+    description: 'City',
+    example: 'São Paulo',
+  }),
+  state: z.string().trim().max(100).optional().openapi({
+    description: 'State/Province',
+    example: 'SP',
+  }),
+  website: z.string().url().trim().max(500).optional().openapi({
+    description: 'Website URL',
+    example: 'https://www.spa.com.br',
+  }),
+  taxId: z.string().trim().max(50).optional().openapi({
+    description: 'Tax ID (CNPJ/CPF)',
+    example: '12.345.678/0001-90',
+  }),
 }).openapi('UpdateEstablishmentInput', {
   example: {
     name: 'Wellness Spa Center - Updated',
@@ -67,6 +115,12 @@ export const establishmentResponseSchema = z.object({
   address: z.string().openapi({ example: '123 Main Street, Downtown, City 12345' }),
   timezone: z.string().openapi({ example: 'America/Sao_Paulo' }),
   active: z.boolean().openapi({ example: true }),
+  phone: z.string().nullable().optional().openapi({ example: '+55 11 98765-4321' }),
+  email: z.string().email().nullable().optional().openapi({ example: 'contato@spa.com.br' }),
+  city: z.string().nullable().optional().openapi({ example: 'São Paulo' }),
+  state: z.string().nullable().optional().openapi({ example: 'SP' }),
+  website: z.string().url().nullable().optional().openapi({ example: 'https://www.spa.com.br' }),
+  taxId: z.string().nullable().optional().openapi({ example: '12.345.678/0001-90' }),
   createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
   updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
 }).openapi('EstablishmentResponse', {
@@ -77,6 +131,12 @@ export const establishmentResponseSchema = z.object({
     address: '123 Main Street, Downtown, City 12345',
     timezone: 'America/Sao_Paulo',
     active: true,
+    phone: '+55 11 98765-4321',
+    email: 'contato@spa.com.br',
+    city: 'São Paulo',
+    state: 'SP',
+    website: 'https://www.spa.com.br',
+    taxId: '12.345.678/0001-90',
     createdAt: '2025-01-15T10:30:00.000Z',
     updatedAt: '2025-01-15T10:30:00.000Z',
   },

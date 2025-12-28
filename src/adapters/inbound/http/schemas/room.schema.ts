@@ -17,6 +17,26 @@ export const createRoomSchema = z
       description: 'Room description',
       example: 'Standard room with ocean view',
     }),
+    capacity: z.number().int().positive().optional().openapi({
+      description: 'Maximum capacity of people',
+      example: 2,
+    }),
+    roomType: z.enum(['SINGLE', 'DOUBLE', 'TWIN', 'SUITE', 'FAMILY', 'OTHER']).optional().openapi({
+      description: 'Type of room',
+      example: 'DOUBLE',
+    }),
+    bedType: z.string().trim().max(100).optional().openapi({
+      description: 'Type of bed',
+      example: 'King Size',
+    }),
+    amenities: z.array(z.string()).optional().openapi({
+      description: 'Room amenities',
+      example: ['WiFi', 'TV', 'Ar Condicionado', 'Frigobar'],
+    }),
+    maxOccupancy: z.number().int().positive().optional().openapi({
+      description: 'Maximum occupancy (adults + children)',
+      example: 3,
+    }),
   })
   .openapi({
     title: 'CreateRoomInput',
@@ -41,6 +61,26 @@ export const updateRoomSchema = z
       description: 'Current status of the room',
       example: 'AVAILABLE',
     }),
+    capacity: z.number().int().positive().optional().openapi({
+      description: 'Maximum capacity of people',
+      example: 2,
+    }),
+    roomType: z.enum(['SINGLE', 'DOUBLE', 'TWIN', 'SUITE', 'FAMILY', 'OTHER']).optional().openapi({
+      description: 'Type of room',
+      example: 'DOUBLE',
+    }),
+    bedType: z.string().trim().max(100).optional().openapi({
+      description: 'Type of bed',
+      example: 'King Size',
+    }),
+    amenities: z.array(z.string()).optional().openapi({
+      description: 'Room amenities',
+      example: ['WiFi', 'TV', 'Ar Condicionado', 'Frigobar'],
+    }),
+    maxOccupancy: z.number().int().positive().optional().openapi({
+      description: 'Maximum occupancy (adults + children)',
+      example: 3,
+    }),
   })
   .openapi({
     title: 'UpdateRoomInput',
@@ -55,6 +95,11 @@ export const roomResponseSchema = z
     floor: z.number().nullable(),
     description: z.string().nullable(),
     status: z.enum(['AVAILABLE', 'OCCUPIED', 'CLEANING', 'MAINTENANCE', 'BLOCKED']),
+    capacity: z.number().int().nullable().optional(),
+    roomType: z.enum(['SINGLE', 'DOUBLE', 'TWIN', 'SUITE', 'FAMILY', 'OTHER']).nullable().optional(),
+    bedType: z.string().nullable().optional(),
+    amenities: z.array(z.string()).nullable().optional(),
+    maxOccupancy: z.number().int().nullable().optional(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
   })

@@ -23,6 +23,18 @@ export const registerSchema = z.object({
     description: 'User full name',
     example: 'John Doe',
   }),
+  phone: z.string().trim().max(50).optional().openapi({
+    description: 'Phone number',
+    example: '+55 11 98765-4321',
+  }),
+  birthDate: z.string().date().optional().openapi({
+    description: 'Birth date',
+    example: '1990-01-15',
+  }),
+  address: z.string().trim().max(500).optional().openapi({
+    description: 'User address',
+    example: 'Rua das Flores, 123',
+  }),
 }).openapi('RegisterInput', {
   example: {
     email: 'user@example.com',

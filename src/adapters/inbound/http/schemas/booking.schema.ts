@@ -48,9 +48,21 @@ export const createBookingSchema = z.object({
     description: 'Guest email (for third-party bookings)',
     example: 'guest@example.com',
   }),
+  guestPhone: z.string().trim().max(50).optional().openapi({
+    description: 'Guest phone number',
+    example: '+55 11 98765-4321',
+  }),
   guestDocument: z.string().optional().openapi({
     description: 'Guest document (CPF, passport, etc.)',
     example: '12345678900',
+  }),
+  numberOfGuests: z.number().int().positive().optional().openapi({
+    description: 'Number of guests (for hotel bookings)',
+    example: 2,
+  }),
+  notes: z.string().trim().max(1000).optional().openapi({
+    description: 'Notes about the booking',
+    example: 'Cliente prefere quarto no térreo',
   }),
 }).openapi('CreateBookingInput', {
   example: {
@@ -107,9 +119,17 @@ export const bookingResponseSchema = z.object({
   checkOutDate: z.string().date().nullable().optional().openapi({ example: '2025-02-05' }),
   roomId: z.string().uuid().nullable().optional().openapi({ example: '550e8400-e29b-41d4-a716-446655440006' }),
   numberOfNights: z.number().int().nullable().optional().openapi({ example: 4 }),
+  numberOfGuests: z.number().int().nullable().optional().openapi({ example: 2 }),
   guestName: z.string().nullable().optional().openapi({ example: 'John Doe' }),
   guestEmail: z.string().email().nullable().optional().openapi({ example: 'guest@example.com' }),
+  guestPhone: z.string().nullable().optional().openapi({ example: '+55 11 98765-4321' }),
   guestDocument: z.string().nullable().optional().openapi({ example: '12345678900' }),
+  notes: z.string().nullable().optional().openapi({ example: 'Cliente prefere quarto no térreo' }),
+  confirmedAt: z.string().datetime().nullable().optional().openapi({ example: '2025-01-15T14:30:00.000Z' }),
+  cancelledAt: z.string().datetime().nullable().optional().openapi({ example: '2025-01-16T10:00:00.000Z' }),
+  cancellationReason: z.string().nullable().optional().openapi({ example: 'Mudança de planos do cliente' }),
+  checkedInAt: z.string().datetime().nullable().optional().openapi({ example: '2025-02-01T15:30:00.000Z' }),
+  checkedOutAt: z.string().datetime().nullable().optional().openapi({ example: '2025-02-05T11:00:00.000Z' }),
   createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
   updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
   service: z.object({

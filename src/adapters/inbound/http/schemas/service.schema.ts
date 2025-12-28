@@ -24,9 +24,29 @@ export const createServiceSchema = z.object({
     description: 'Maximum capacity per slot',
     example: 1,
   }),
-  type: z.enum(['SERVICE', 'HOTEL', 'CINEMA']).default('SERVICE').optional().openapi({
+  type: z.enum(['SERVICE', 'HOTEL']).default('SERVICE').optional().openapi({
     description: 'Service type',
     example: 'SERVICE',
+  }),
+  images: z.array(z.string().url()).optional().openapi({
+    description: 'Array of image URLs',
+    example: ['https://cdn.example.com/service1.jpg'],
+  }),
+  cancellationPolicy: z.string().trim().max(1000).optional().openapi({
+    description: 'Cancellation policy',
+    example: 'Cancelamento gratuito até 24h antes',
+  }),
+  minimumAdvanceBooking: z.number().int().positive().optional().openapi({
+    description: 'Minimum advance booking in hours',
+    example: 2,
+  }),
+  maximumAdvanceBooking: z.number().int().positive().optional().openapi({
+    description: 'Maximum advance booking in days',
+    example: 90,
+  }),
+  requiresConfirmation: z.boolean().default(false).optional().openapi({
+    description: 'Whether the service requires manual confirmation',
+    example: false,
   }),
 }).openapi('CreateServiceInput', {
   example: {
@@ -57,13 +77,33 @@ export const updateServiceSchema = z.object({
   capacity: z.number().int().positive().max(1000).optional().openapi({
     description: 'Maximum capacity per slot',
   }),
-  type: z.enum(['SERVICE', 'HOTEL', 'CINEMA']).optional().openapi({
+  type: z.enum(['SERVICE', 'HOTEL']).optional().openapi({
     description: 'Service type',
     example: 'SERVICE',
   }),
   active: z.boolean().optional().openapi({
     description: 'Whether the service is active',
     example: true,
+  }),
+  images: z.array(z.string().url()).optional().openapi({
+    description: 'Array of image URLs',
+    example: ['https://cdn.example.com/service1.jpg'],
+  }),
+  cancellationPolicy: z.string().trim().max(1000).optional().openapi({
+    description: 'Cancellation policy',
+    example: 'Cancelamento gratuito até 24h antes',
+  }),
+  minimumAdvanceBooking: z.number().int().positive().optional().openapi({
+    description: 'Minimum advance booking in hours',
+    example: 2,
+  }),
+  maximumAdvanceBooking: z.number().int().positive().optional().openapi({
+    description: 'Maximum advance booking in days',
+    example: 90,
+  }),
+  requiresConfirmation: z.boolean().optional().openapi({
+    description: 'Whether the service requires manual confirmation',
+    example: false,
   }),
 }).openapi('UpdateServiceInput', {
   example: {
@@ -84,8 +124,13 @@ export const serviceResponseSchema = z.object({
   basePrice: z.number().openapi({ example: 150.00 }),
   durationMinutes: z.number().int().openapi({ example: 60 }),
   capacity: z.number().int().openapi({ example: 1 }),
-  type: z.enum(['SERVICE', 'HOTEL', 'CINEMA']).openapi({ example: 'SERVICE' }),
+  type: z.enum(['SERVICE', 'HOTEL']).openapi({ example: 'SERVICE' }),
   active: z.boolean().openapi({ example: true }),
+  images: z.array(z.string().url()).nullable().optional().openapi({ example: ['https://cdn.example.com/service1.jpg'] }),
+  cancellationPolicy: z.string().nullable().optional().openapi({ example: 'Cancelamento gratuito até 24h antes' }),
+  minimumAdvanceBooking: z.number().int().nullable().optional().openapi({ example: 2 }),
+  maximumAdvanceBooking: z.number().int().nullable().optional().openapi({ example: 90 }),
+  requiresConfirmation: z.boolean().openapi({ example: false }),
   createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
   updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
 }).openapi('ServiceResponse', {

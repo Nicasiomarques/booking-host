@@ -16,6 +16,14 @@ export const createExtraItemSchema = z.object({
     description: 'Maximum quantity per booking',
     example: 2,
   }),
+  description: z.string().trim().max(1000).optional().openapi({
+    description: 'Detailed description of the extra item',
+    example: 'Massagem relaxante de 30 minutos',
+  }),
+  image: z.string().url().optional().openapi({
+    description: 'Image URL',
+    example: 'https://cdn.example.com/extra1.jpg',
+  }),
 }).openapi('CreateExtraItemInput', {
   example: {
     name: 'Hot Stones',
@@ -40,6 +48,14 @@ export const updateExtraItemSchema = z.object({
     description: 'Whether the extra item is active',
     example: true,
   }),
+  description: z.string().trim().max(1000).optional().openapi({
+    description: 'Detailed description of the extra item',
+    example: 'Massagem relaxante de 30 minutos',
+  }),
+  image: z.string().url().optional().openapi({
+    description: 'Image URL',
+    example: 'https://cdn.example.com/extra1.jpg',
+  }),
 }).openapi('UpdateExtraItemInput', {
   example: {
     name: 'Premium Hot Stones',
@@ -53,7 +69,9 @@ export const extraItemResponseSchema = z.object({
   id: z.string().uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
   serviceId: z.string().uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440001' }),
   name: z.string().openapi({ example: 'Hot Stones' }),
+  description: z.string().nullable().optional().openapi({ example: 'Massagem relaxante de 30 minutos' }),
   price: z.number().openapi({ example: 25.00 }),
+  image: z.string().url().nullable().optional().openapi({ example: 'https://cdn.example.com/extra1.jpg' }),
   maxQuantity: z.number().int().openapi({ example: 2 }),
   active: z.boolean().openapi({ example: true }),
   createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
@@ -63,7 +81,9 @@ export const extraItemResponseSchema = z.object({
     id: '550e8400-e29b-41d4-a716-446655440000',
     serviceId: '550e8400-e29b-41d4-a716-446655440001',
     name: 'Hot Stones',
+    description: 'Massagem relaxante de 30 minutos',
     price: 25.00,
+    image: 'https://cdn.example.com/extra1.jpg',
     maxQuantity: 2,
     active: true,
     createdAt: '2025-01-15T10:30:00.000Z',
