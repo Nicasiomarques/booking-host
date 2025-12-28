@@ -11,7 +11,7 @@ import {
 } from './schemas.js'
 import { ErrorResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
 import { validate, authenticate, requireRole } from '#shared/adapters/http/middleware/index.js'
-import { idParamSchema } from '#shared/adapters/http/schemas/common.schema.js'
+import { registerGetByIdEndpoint } from '#shared/adapters/http/utils/endpoint-helpers.js'
 
 export default async function establishmentEndpoints(fastify: FastifyInstance) {
   const { establishment: service } = fastify.services
@@ -59,24 +59,13 @@ export default async function establishmentEndpoints(fastify: FastifyInstance) {
     }
   )
 
-  fastify.get<{ Params: { id: string } }>(
-    '/:id',
-    {
-      schema: buildRouteSchema({
-        tags: ['Establishments'],
-        summary: 'Get establishment by ID',
-        description: 'Retrieves public information about an establishment. No authentication required.',
-        params: idParamSchema,
-        responses: {
-          200: { description: 'Establishment details', schema: establishmentResponseSchema },
-          404: { description: 'Establishment not found', schema: ErrorResponseSchema },
-        },
-      }),
-    },
-    async (request: FastifyRequest<{ Params: { id: string } }>) => {
-      return service.findById(request.params.id)
-    }
-  )
+  registerGetByIdEndpoint(fastify, {
+    path: '/:id',
+    tags: ['Establishments'],
+    entityName: 'Establishment',
+    responseSchema: establishmentResponseSchema,
+    service: { findById: (id) => service.findById(id) },
+  })
 
   fastify.put<{ Params: { establishmentId: string }; Body: UpdateEstablishmentInput }>(
     '/:establishmentId',

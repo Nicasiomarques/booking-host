@@ -9,11 +9,12 @@ import {
   UpdateAvailabilityInput,
   QueryAvailabilityInput,
 } from './schemas.js'
-import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
+import { ErrorResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
 import { validate, validateQuery, authenticate } from '#shared/adapters/http/middleware/index.js'
 import { formatAvailabilityResponse } from '#shared/adapters/http/utils/response-formatters.js'
 import { serviceIdParamSchema } from '#features/service/adapters/schemas.js'
 import { idParamSchema } from '#shared/adapters/http/schemas/common.schema.js'
+import { registerDeleteEndpoint } from '#shared/adapters/http/utils/endpoint-helpers.js'
 
 export default async function availabilityEndpoints(fastify: FastifyInstance) {
   const { availability: service } = fastify.services
@@ -91,6 +92,27 @@ export default async function availabilityEndpoints(fastify: FastifyInstance) {
     }
   )
 
+  // Helper function to transform UpdateAvailabilityInput to UpdateAvailabilityData
+  const transformUpdateInput = (input: UpdateAvailabilityInput) => {
+    const fields: Array<keyof UpdateAvailabilityInput> = ['startTime', 'endTime', 'capacity', 'price', 'notes', 'isRecurring']
+
+    return fields.reduce<{
+      date?: Date
+      startTime?: string
+      endTime?: string
+      capacity?: number
+      price?: number
+      notes?: string
+      isRecurring?: boolean
+    }>((acc, field) => {
+      const value = input[field]
+      if (value !== undefined && (field !== 'price' || value !== null)) {
+        acc[field] = value as any
+      }
+      return acc
+    }, input.date ? { date: new Date(input.date) } : {})
+  }
+
   fastify.put<{ Params: { id: string }; Body: UpdateAvailabilityInput }>(
     '/availabilities/:id',
     {
@@ -115,63 +137,20 @@ export default async function availabilityEndpoints(fastify: FastifyInstance) {
     async (
       request: FastifyRequest<{ Params: { id: string }; Body: UpdateAvailabilityInput }>
     ) => {
-      const updateData: {
-        date?: Date;
-        startTime?: string; 
-        endTime?: string; 
-        capacity?: number;
-        price?: number;
-        notes?: string;
-        isRecurring?: boolean;
-      } = {}
-      if (request.body.date) {
-        updateData.date = new Date(request.body.date)
-      }
-      if (request.body.startTime) {
-        updateData.startTime = request.body.startTime
-      }
-      if (request.body.endTime) {
-        updateData.endTime = request.body.endTime
-      }
-      if (request.body.capacity !== undefined) {
-        updateData.capacity = request.body.capacity
-      }
-      if (request.body.price !== undefined && request.body.price !== null) {
-        updateData.price = request.body.price
-      }
-      if (request.body.notes !== undefined) {
-        updateData.notes = request.body.notes
-      }
-      if (request.body.isRecurring !== undefined) {
-        updateData.isRecurring = request.body.isRecurring
-      }
+      const updateData = transformUpdateInput(request.body)
       const result = await service.update(request.params.id, updateData, request.user.userId)
       return formatAvailabilityResponse(result)
     }
   )
 
-  fastify.delete<{ Params: { id: string } }>(
-    '/availabilities/:id',
-    {
-      schema: buildRouteSchema({
-        tags: ['Availabilities'],
-        summary: 'Delete availability slot',
-        description: 'Deletes an availability slot. Only the establishment owner can perform this action. Cannot delete if there are existing bookings.',
-        security: true,
-        params: idParamSchema,
-        responses: {
-          200: { description: 'Availability deleted successfully', schema: SuccessResponseSchema },
-          401: { description: 'Unauthorized', schema: ErrorResponseSchema },
-          403: { description: 'Insufficient permissions', schema: ErrorResponseSchema },
-          404: { description: 'Availability not found', schema: ErrorResponseSchema },
-          409: { description: 'Cannot delete availability with existing bookings', schema: ErrorResponseSchema },
-        },
-      }),
-      preHandler: [authenticate],
+  registerDeleteEndpoint(fastify, {
+    path: '/availabilities/:id',
+    tags: ['Availabilities'],
+    entityName: 'Availability',
+    service: { delete: (id, userId) => service.delete(id, userId) },
+    description: 'Deletes an availability slot. Only the establishment owner can perform this action. Cannot delete if there are existing bookings.',
+    additionalResponses: {
+      409: { description: 'Cannot delete availability with existing bookings', schema: ErrorResponseSchema },
     },
-    async (request: FastifyRequest<{ Params: { id: string } }>) => {
-      await service.delete(request.params.id, request.user.userId)
-      return { success: true }
-    }
-  )
+  })
 }
