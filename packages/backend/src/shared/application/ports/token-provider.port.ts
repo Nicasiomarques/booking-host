@@ -10,6 +10,9 @@ export interface TokenPayload {
   }>
 }
 
+import type { Either } from '#shared/domain/index.js'
+import type { UnauthorizedError } from '#shared/domain/index.js'
+
 /**
  * Port interface for JWT/token operations.
  * Abstracts the underlying token library (jsonwebtoken, jose, etc.)
@@ -27,14 +30,14 @@ export interface TokenProviderPort {
 
   /**
    * Verify and decode an access token
-   * @throws UnauthorizedError if token is invalid or expired
+   * Returns Either<UnauthorizedError, TokenPayload>
    */
-  verifyAccessToken(token: string): TokenPayload
+  verifyAccessToken(token: string): Either<UnauthorizedError, TokenPayload>
 
   /**
    * Verify and decode a refresh token
-   * @throws UnauthorizedError if token is invalid or expired
+   * Returns Either<UnauthorizedError, { userId: string }>
    */
-  verifyRefreshToken(token: string): { userId: string }
+  verifyRefreshToken(token: string): Either<UnauthorizedError, { userId: string }>
 }
 

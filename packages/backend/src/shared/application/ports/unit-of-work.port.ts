@@ -5,29 +5,29 @@ import type {
 } from '#features/booking/domain/index.js'
 import type { Availability } from '#features/availability/domain/index.js'
 import type { Room } from '#features/room/domain/index.js'
-import type { BookingStatus, RoomStatus } from '#shared/domain/index.js'
+import type { BookingStatus, RoomStatus, DomainError, Either } from '#shared/domain/index.js'
 
 /**
  * Transactional booking repository - operations that run within a transaction
  */
 export interface TransactionalBookingRepository {
-  create(data: CreateBookingData, extras: BookingExtraItemData[]): Promise<Booking>
-  updateStatus(id: string, status: BookingStatus, cancellationReason?: string | null): Promise<Booking>
+  create(data: CreateBookingData, extras: BookingExtraItemData[]): Promise<Either<DomainError, Booking>>
+  updateStatus(id: string, status: BookingStatus, cancellationReason?: string | null): Promise<Either<DomainError, Booking>>
 }
 
 /**
  * Transactional availability repository - operations that run within a transaction
  */
 export interface TransactionalAvailabilityRepository {
-  decrementCapacity(id: string, quantity: number): Promise<Availability>
-  incrementCapacity(id: string, quantity: number): Promise<Availability>
+  decrementCapacity(id: string, quantity: number): Promise<Either<DomainError, Availability>>
+  incrementCapacity(id: string, quantity: number): Promise<Either<DomainError, Availability>>
 }
 
 /**
  * Transactional room repository - operations that run within a transaction
  */
 export interface TransactionalRoomRepository {
-  updateStatus(id: string, status: RoomStatus): Promise<Room>
+  updateStatus(id: string, status: RoomStatus): Promise<Either<DomainError, Room>>
 }
 
 /**
