@@ -1,14 +1,15 @@
 import { PrismaClient } from '@prisma/client'
-import { AvailabilityService } from './application/availability.service.js'
-import { AvailabilityRepository } from './adapters/persistence/availability.repository.js'
+import { createAvailabilityService } from './application/availability.service.js'
+import { createAvailabilityRepository } from './adapters/persistence/availability.repository.js'
 import type {
   ServiceRepositoryPort,
   EstablishmentRepositoryPort,
+  AvailabilityRepositoryPort,
 } from '#shared/application/ports/index.js'
 
 export interface AvailabilityComposition {
-  repository: AvailabilityRepository
-  service: AvailabilityService
+  repository: AvailabilityRepositoryPort
+  service: ReturnType<typeof createAvailabilityService>
 }
 
 export function createAvailabilityComposition(
@@ -18,12 +19,12 @@ export function createAvailabilityComposition(
     establishmentRepository: EstablishmentRepositoryPort
   }
 ): AvailabilityComposition {
-  const repository = new AvailabilityRepository(prisma)
-  const service = new AvailabilityService(
+  const repository = createAvailabilityRepository(prisma)
+  const service = createAvailabilityService({
     repository,
-    dependencies.serviceRepository,
-    dependencies.establishmentRepository
-  )
+    serviceRepository: dependencies.serviceRepository,
+    establishmentRepository: dependencies.establishmentRepository,
+  })
 
   return { repository, service }
 }

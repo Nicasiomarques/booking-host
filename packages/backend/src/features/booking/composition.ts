@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
-import { BookingService } from './application/booking.service.js'
-import { BookingRepository } from './adapters/persistence/booking.repository.js'
+import { createBookingService } from './application/booking.service.js'
+import { createBookingRepository } from './adapters/persistence/booking.repository.js'
 import type {
   UnitOfWorkPort,
   ServiceRepositoryPort,
@@ -8,11 +8,12 @@ import type {
   ExtraItemRepositoryPort,
   EstablishmentRepositoryPort,
   RoomRepositoryPort,
+  BookingRepositoryPort,
 } from '#shared/application/ports/index.js'
 
 export interface BookingComposition {
-  repository: BookingRepository
-  service: BookingService
+  repository: BookingRepositoryPort
+  service: ReturnType<typeof createBookingService>
 }
 
 export function createBookingComposition(
@@ -26,16 +27,16 @@ export function createBookingComposition(
     roomRepository: RoomRepositoryPort
   }
 ): BookingComposition {
-  const repository = new BookingRepository(prisma)
-  const service = new BookingService(
-    dependencies.unitOfWork,
-    repository,
-    dependencies.serviceRepository,
-    dependencies.availabilityRepository,
-    dependencies.extraItemRepository,
-    dependencies.establishmentRepository,
-    dependencies.roomRepository
-  )
+  const repository = createBookingRepository(prisma)
+  const service = createBookingService({
+    unitOfWork: dependencies.unitOfWork,
+    bookingRepository: repository,
+    serviceRepository: dependencies.serviceRepository,
+    availabilityRepository: dependencies.availabilityRepository,
+    extraItemRepository: dependencies.extraItemRepository,
+    establishmentRepository: dependencies.establishmentRepository,
+    roomRepository: dependencies.roomRepository,
+  })
 
   return { repository, service }
 }

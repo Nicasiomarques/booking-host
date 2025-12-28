@@ -1,14 +1,15 @@
 import { PrismaClient } from '@prisma/client'
-import { RoomService } from './application/room.service.js'
-import { RoomRepository } from './adapters/persistence/room.repository.js'
+import { createRoomService } from './application/room.service.js'
+import { createRoomRepository } from './adapters/persistence/room.repository.js'
 import type {
   ServiceRepositoryPort,
   EstablishmentRepositoryPort,
+  RoomRepositoryPort,
 } from '#shared/application/ports/index.js'
 
 export interface RoomComposition {
-  repository: RoomRepository
-  service: RoomService
+  repository: RoomRepositoryPort
+  service: ReturnType<typeof createRoomService>
 }
 
 export function createRoomComposition(
@@ -18,12 +19,12 @@ export function createRoomComposition(
     establishmentRepository: EstablishmentRepositoryPort
   }
 ): RoomComposition {
-  const repository = new RoomRepository(prisma)
-  const service = new RoomService(
+  const repository = createRoomRepository(prisma)
+  const service = createRoomService({
     repository,
-    dependencies.serviceRepository,
-    dependencies.establishmentRepository
-  )
+    serviceRepository: dependencies.serviceRepository,
+    establishmentRepository: dependencies.establishmentRepository,
+  })
 
   return { repository, service }
 }
