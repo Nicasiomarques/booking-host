@@ -1,16 +1,18 @@
-import { NotFoundError } from '#shared/domain/index.js'
+import { NotFoundError, Either, left, right, isLeft } from '#shared/domain/index.js'
+
+export { isLeft }
 
 /**
- * Ensures an entity exists, throwing NotFoundError if null
- * Returns the entity if it exists
+ * Ensures an entity exists, returning Either<NotFoundError, T>
+ * Returns Left with NotFoundError if null, Right with entity if it exists
  */
 export function requireEntity<T>(
   entity: T | null,
   entityName: string
-): T {
+): Either<NotFoundError, T> {
   if (!entity) {
-    throw new NotFoundError(entityName)
+    return left(new NotFoundError(entityName))
   }
-  return entity
+  return right(entity)
 }
 
