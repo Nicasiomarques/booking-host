@@ -14,3 +14,17 @@ export {
   ValidationError,
 } from './errors.js'
 
+// Either
+export type { Either } from './either.js'
+export {
+  Left,
+  Right,
+  left,
+  right,
+  isLeft,
+  isRight,
+  fromPromise,
+  fromThrowable,
+  fromAsyncThrowable,
+} from './either.js'
+
