@@ -1,6 +1,7 @@
-import { PrismaClient, Room as PrismaRoom, Prisma } from '@prisma/client'
+import { PrismaClient, Room as PrismaRoom } from '@prisma/client'
 import type { Room, CreateRoomData, UpdateRoomData } from '../../domain/index.js'
 import type { RoomStatus, RoomType } from '#shared/domain/index.js'
+import { handleArrayFieldForCreate, handleArrayFieldForUpdate } from '#shared/adapters/outbound/prisma/base-repository.js'
 
 export type { Room, CreateRoomData, UpdateRoomData }
 
@@ -27,7 +28,7 @@ export class RoomRepository {
         capacity: data.capacity ?? null,
         roomType: data.roomType ?? null,
         bedType: data.bedType ?? null,
-        amenities: data.amenities && data.amenities.length > 0 ? data.amenities : Prisma.DbNull,
+        amenities: handleArrayFieldForCreate(data.amenities),
         maxOccupancy: data.maxOccupancy ?? null,
       },
     })
@@ -95,7 +96,7 @@ export class RoomRepository {
     if (data.roomType !== undefined) updateData.roomType = data.roomType ?? null
     if (data.bedType !== undefined) updateData.bedType = data.bedType ?? null
     if (data.amenities !== undefined) {
-      updateData.amenities = data.amenities.length > 0 ? data.amenities : Prisma.DbNull
+      updateData.amenities = handleArrayFieldForUpdate(data.amenities)
     }
     if (data.maxOccupancy !== undefined) updateData.maxOccupancy = data.maxOccupancy ?? null
     

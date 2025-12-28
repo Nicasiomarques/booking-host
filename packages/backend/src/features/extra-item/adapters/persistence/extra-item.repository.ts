@@ -1,5 +1,6 @@
-import { PrismaClient, ExtraItem as PrismaExtraItem, Prisma } from '@prisma/client'
+import { PrismaClient, ExtraItem as PrismaExtraItem } from '@prisma/client'
 import type { ExtraItem, CreateExtraItemData, UpdateExtraItemData } from '../../domain/index.js'
+import { toDecimal, createSoftDeleteData } from '#shared/adapters/outbound/prisma/base-repository.js'
 
 export type { ExtraItem, CreateExtraItemData, UpdateExtraItemData }
 
@@ -22,7 +23,7 @@ export class ExtraItemRepository {
       data: {
         serviceId: data.serviceId,
         name: data.name,
-        price: new Prisma.Decimal(data.price),
+        price: toDecimal(data.price)!,
         maxQuantity: data.maxQuantity ?? 1,
         description: data.description ?? null,
         image: data.image ?? null,
@@ -73,7 +74,7 @@ export class ExtraItemRepository {
       where: { id },
       data: {
         ...data,
-        price: data.price !== undefined ? new Prisma.Decimal(data.price) : undefined,
+        price: data.price !== undefined ? toDecimal(data.price) : undefined,
       },
     })
     return toExtraItem(result)
@@ -82,7 +83,7 @@ export class ExtraItemRepository {
   async softDelete(id: string): Promise<ExtraItem> {
     const result = await this.prisma.extraItem.update({
       where: { id },
-      data: { active: false },
+      data: createSoftDeleteData(),
     })
     return toExtraItem(result)
   }

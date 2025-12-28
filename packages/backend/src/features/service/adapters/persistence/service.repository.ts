@@ -1,6 +1,7 @@
 import { PrismaClient, Service as PrismaService, Prisma } from '@prisma/client'
 import type { Service, CreateServiceData, UpdateServiceData } from '../../domain/index.js'
 import type { ExtraItem } from '#features/extra-item/domain/index.js'
+import { toDecimal, handleArrayFieldForCreate, handleArrayFieldForUpdate, createSoftDeleteData } from '#shared/adapters/outbound/prisma/base-repository.js'
 
 export type { Service, CreateServiceData, UpdateServiceData }
 
@@ -33,11 +34,11 @@ export class ServiceRepository {
         establishmentId: data.establishmentId,
         name: data.name,
         description: data.description,
-        basePrice: new Prisma.Decimal(data.basePrice),
+        basePrice: toDecimal(data.basePrice)!,
         durationMinutes: data.durationMinutes,
         capacity: data.capacity ?? 1,
         type: data.type ?? 'SERVICE',
-        images: data.images && data.images.length > 0 ? data.images : Prisma.DbNull,
+        images: handleArrayFieldForCreate(data.images),
         cancellationPolicy: data.cancellationPolicy ?? null,
         minimumAdvanceBooking: data.minimumAdvanceBooking ?? null,
         maximumAdvanceBooking: data.maximumAdvanceBooking ?? null,
@@ -87,12 +88,12 @@ export class ServiceRepository {
   async update(id: string, data: UpdateServiceData): Promise<Service> {
     const updateData: any = {
       ...data,
-      basePrice: data.basePrice !== undefined ? new Prisma.Decimal(data.basePrice) : undefined,
+      basePrice: data.basePrice !== undefined ? toDecimal(data.basePrice) : undefined,
     }
     
     // Handle images array explicitly
     if (data.images !== undefined) {
-      updateData.images = data.images.length > 0 ? data.images : Prisma.DbNull
+      updateData.images = handleArrayFieldForUpdate(data.images)
     }
     
     const result = await this.prisma.service.update({
@@ -105,7 +106,7 @@ export class ServiceRepository {
   async softDelete(id: string): Promise<Service> {
     const result = await this.prisma.service.update({
       where: { id },
-      data: { active: false },
+      data: createSoftDeleteData(),
     })
     return toService(result)
   }
