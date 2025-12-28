@@ -1,8 +1,5 @@
-import fp from 'fastify-plugin'
-import { FastifyInstance } from 'fastify'
 import authEndpoints from '../endpoints.js'
+import { createFeaturePlugin } from '#shared/adapters/http/utils/plugin-factory.js'
 
-export default fp(async (fastify: FastifyInstance) => {
-  await fastify.register(authEndpoints, { prefix: '/v1/auth' })
-})
+export default createFeaturePlugin(authEndpoints, '/v1/auth')
 

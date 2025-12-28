@@ -1,8 +1,5 @@
-import fp from 'fastify-plugin'
-import { FastifyInstance } from 'fastify'
 import extraItemEndpoints from '../endpoints.js'
+import { createFeaturePlugin } from '#shared/adapters/http/utils/plugin-factory.js'
 
-export default fp(async (fastify: FastifyInstance) => {
-  await fastify.register(extraItemEndpoints, { prefix: '/v1' })
-})
+export default createFeaturePlugin(extraItemEndpoints, '/v1')
 

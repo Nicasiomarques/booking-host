@@ -1,8 +1,5 @@
-import fp from 'fastify-plugin'
-import { FastifyInstance } from 'fastify'
 import roomEndpoints from '../endpoints.js'
+import { createFeaturePlugin } from '#shared/adapters/http/utils/plugin-factory.js'
 
-export default fp(async (fastify: FastifyInstance) => {
-  await fastify.register(roomEndpoints, { prefix: '/v1' })
-})
+export default createFeaturePlugin(roomEndpoints, '/v1')
 
