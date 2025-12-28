@@ -12,6 +12,7 @@ import {
 import { ErrorResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
 import { validate, authenticate, requireRole } from '#shared/adapters/http/middleware/index.js'
 import { registerGetByIdEndpoint } from '#shared/adapters/http/utils/endpoint-helpers.js'
+import { handleEitherAsync } from '#shared/adapters/http/utils/either-handler.js'
 
 export default async function establishmentEndpoints(fastify: FastifyInstance) {
   const { establishment: service } = fastify.services
@@ -34,8 +35,12 @@ export default async function establishmentEndpoints(fastify: FastifyInstance) {
       preHandler: [authenticate, validate(createEstablishmentSchema)],
     },
     async (request: FastifyRequest<{ Body: CreateEstablishmentInput }>, reply: FastifyReply) => {
-      const establishment = await service.create(request.body, request.user.userId)
-      return reply.status(201).send(establishment)
+      return handleEitherAsync(
+        service.create(request.body, request.user.userId),
+        reply,
+        (establishment) => establishment,
+        201
+      )
     }
   )
 
@@ -54,8 +59,11 @@ export default async function establishmentEndpoints(fastify: FastifyInstance) {
       }),
       preHandler: [authenticate],
     },
-    async (request: FastifyRequest) => {
-      return service.findByUserId(request.user.userId)
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      return handleEitherAsync(
+        service.findByUserId(request.user.userId),
+        reply
+      )
     }
   )
 
@@ -88,12 +96,16 @@ export default async function establishmentEndpoints(fastify: FastifyInstance) {
       preHandler: [authenticate, validate(updateEstablishmentSchema), requireRole('OWNER')],
     },
     async (
-      request: FastifyRequest<{ Params: { establishmentId: string }; Body: UpdateEstablishmentInput }>
+      request: FastifyRequest<{ Params: { establishmentId: string }; Body: UpdateEstablishmentInput }>,
+      reply: FastifyReply
     ) => {
-      return service.update(
-        request.params.establishmentId,
-        request.body,
-        request.user.userId
+      return handleEitherAsync(
+        service.update(
+          request.params.establishmentId,
+          request.body,
+          request.user.userId
+        ),
+        reply
       )
     }
   )

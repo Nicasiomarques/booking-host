@@ -12,6 +12,7 @@ import { validate, validateQuery, authenticate } from '#shared/adapters/http/mid
 import type { BookingStatus } from '#shared/domain/index.js'
 import { formatBookingResponse, formatPaginatedBookings } from './http/mappers.js'
 import { idParamSchema } from '#shared/adapters/http/schemas/common.schema.js'
+import { handleEitherAsync } from '#shared/adapters/http/utils/either-handler.js'
 
 export default async function bookingEndpoints(fastify: FastifyInstance) {
   const { booking: service } = fastify.services
@@ -36,8 +37,12 @@ export default async function bookingEndpoints(fastify: FastifyInstance) {
       preHandler: [authenticate, validate(createBookingSchema)],
     },
     async (request: FastifyRequest<{ Body: CreateBookingInput }>, reply: FastifyReply) => {
-      const result = await service.create(request.body, request.user.userId)
-      return reply.status(201).send(formatBookingResponse(result))
+      return handleEitherAsync(
+        service.create(request.body, request.user.userId),
+        reply,
+        (result) => formatBookingResponse(result),
+        201
+      )
     }
   )
 
@@ -59,9 +64,12 @@ export default async function bookingEndpoints(fastify: FastifyInstance) {
       }),
       preHandler: [authenticate],
     },
-    async (request: FastifyRequest<{ Params: { id: string } }>) => {
-      const result = await service.findById(request.params.id, request.user.userId)
-      return formatBookingResponse(result)
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      return handleEitherAsync(
+        service.findById(request.params.id, request.user.userId),
+        reply,
+        (result) => formatBookingResponse(result)
+      )
     }
   )
 
@@ -82,15 +90,19 @@ export default async function bookingEndpoints(fastify: FastifyInstance) {
       preHandler: [authenticate, validateQuery(listBookingsQuerySchema)],
     },
     async (
-      request: FastifyRequest<{ Querystring: ListBookingsQueryInput }>
+      request: FastifyRequest<{ Querystring: ListBookingsQueryInput }>,
+      reply: FastifyReply
     ) => {
       const options = {
         page: request.query.page ?? 1,
         limit: request.query.limit ?? 10,
         status: request.query.status as BookingStatus | undefined,
       }
-      const result = await service.findByUser(request.user.userId, options)
-      return formatPaginatedBookings(result)
+      return handleEitherAsync(
+        service.findByUser(request.user.userId, options),
+        reply,
+        (result) => formatPaginatedBookings(result)
+      )
     }
   )
 
@@ -114,15 +126,19 @@ export default async function bookingEndpoints(fastify: FastifyInstance) {
       preHandler: [authenticate, validateQuery(listBookingsQuerySchema)],
     },
     async (
-      request: FastifyRequest<{ Params: { id: string }; Querystring: ListBookingsQueryInput }>
+      request: FastifyRequest<{ Params: { id: string }; Querystring: ListBookingsQueryInput }>,
+      reply: FastifyReply
     ) => {
       const options = {
         page: request.query.page ?? 1,
         limit: request.query.limit ?? 10,
         status: request.query.status as BookingStatus | undefined,
       }
-      const result = await service.findByEstablishment(request.params.id, request.user.userId, options)
-      return formatPaginatedBookings(result)
+      return handleEitherAsync(
+        service.findByEstablishment(request.params.id, request.user.userId, options),
+        reply,
+        (result) => formatPaginatedBookings(result)
+      )
     }
   )
 
@@ -145,9 +161,12 @@ export default async function bookingEndpoints(fastify: FastifyInstance) {
       }),
       preHandler: [authenticate],
     },
-    async (request: FastifyRequest<{ Params: { id: string } }>) => {
-      const result = await service.cancel(request.params.id, request.user.userId)
-      return formatBookingResponse(result)
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      return handleEitherAsync(
+        service.cancel(request.params.id, request.user.userId),
+        reply,
+        (result) => formatBookingResponse(result)
+      )
     }
   )
 
@@ -170,9 +189,12 @@ export default async function bookingEndpoints(fastify: FastifyInstance) {
       }),
       preHandler: [authenticate],
     },
-    async (request: FastifyRequest<{ Params: { id: string } }>) => {
-      const result = await service.confirm(request.params.id, request.user.userId)
-      return formatBookingResponse(result)
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      return handleEitherAsync(
+        service.confirm(request.params.id, request.user.userId),
+        reply,
+        (result) => formatBookingResponse(result)
+      )
     }
   )
 
@@ -195,9 +217,12 @@ export default async function bookingEndpoints(fastify: FastifyInstance) {
       }),
       preHandler: [authenticate],
     },
-    async (request: FastifyRequest<{ Params: { id: string } }>) => {
-      const result = await service.checkIn(request.params.id, request.user.userId)
-      return formatBookingResponse(result)
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      return handleEitherAsync(
+        service.checkIn(request.params.id, request.user.userId),
+        reply,
+        (result) => formatBookingResponse(result)
+      )
     }
   )
 
@@ -220,9 +245,12 @@ export default async function bookingEndpoints(fastify: FastifyInstance) {
       }),
       preHandler: [authenticate],
     },
-    async (request: FastifyRequest<{ Params: { id: string } }>) => {
-      const result = await service.checkOut(request.params.id, request.user.userId)
-      return formatBookingResponse(result)
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      return handleEitherAsync(
+        service.checkOut(request.params.id, request.user.userId),
+        reply,
+        (result) => formatBookingResponse(result)
+      )
     }
   )
 
@@ -245,9 +273,12 @@ export default async function bookingEndpoints(fastify: FastifyInstance) {
       }),
       preHandler: [authenticate],
     },
-    async (request: FastifyRequest<{ Params: { id: string } }>) => {
-      const result = await service.markNoShow(request.params.id, request.user.userId)
-      return formatBookingResponse(result)
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      return handleEitherAsync(
+        service.markNoShow(request.params.id, request.user.userId),
+        reply,
+        (result) => formatBookingResponse(result)
+      )
     }
   )
 }

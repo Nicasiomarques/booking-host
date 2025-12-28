@@ -9,6 +9,7 @@ import {
 import type { RegisterInput, LoginInput } from '../domain/auth.js'
 import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
 import { validate, authenticate } from '#shared/adapters/http/middleware/index.js'
+import { handleEitherAsync } from '#shared/adapters/http/utils/either-handler.js'
 import { isProduction } from '#config/index.js'
 
 export default async function authEndpoints(fastify: FastifyInstance) {
@@ -50,14 +51,17 @@ export default async function authEndpoints(fastify: FastifyInstance) {
       ...authRateLimit,
     },
     async (request: FastifyRequest<{ Body: RegisterInput }>, reply: FastifyReply) => {
-      const result = await authService.register(request.body)
-
-      reply.setCookie(REFRESH_TOKEN_COOKIE, result.refreshToken, COOKIE_OPTIONS)
-
-      return {
-        accessToken: result.accessToken,
-        user: result.user,
-      }
+      return handleEitherAsync(
+        authService.register(request.body),
+        reply,
+        (result) => {
+          reply.setCookie(REFRESH_TOKEN_COOKIE, result.refreshToken, COOKIE_OPTIONS)
+          return {
+            accessToken: result.accessToken,
+            user: result.user,
+          }
+        }
+      )
     }
   )
 
@@ -79,14 +83,17 @@ export default async function authEndpoints(fastify: FastifyInstance) {
       ...authRateLimit,
     },
     async (request: FastifyRequest<{ Body: LoginInput }>, reply: FastifyReply) => {
-      const result = await authService.login(request.body)
-
-      reply.setCookie(REFRESH_TOKEN_COOKIE, result.refreshToken, COOKIE_OPTIONS)
-
-      return {
-        accessToken: result.accessToken,
-        user: result.user,
-      }
+      return handleEitherAsync(
+        authService.login(request.body),
+        reply,
+        (result) => {
+          reply.setCookie(REFRESH_TOKEN_COOKIE, result.refreshToken, COOKIE_OPTIONS)
+          return {
+            accessToken: result.accessToken,
+            user: result.user,
+          }
+        }
+      )
     }
   )
 
@@ -116,11 +123,13 @@ export default async function authEndpoints(fastify: FastifyInstance) {
         })
       }
 
-      const result = await authService.refresh(refreshToken)
-
-      return {
-        accessToken: result.accessToken,
-      }
+      return handleEitherAsync(
+        authService.refresh(refreshToken),
+        reply,
+        (result) => ({
+          accessToken: result.accessToken,
+        })
+      )
     }
   )
 
@@ -160,6 +169,11 @@ export default async function authEndpoints(fastify: FastifyInstance) {
       }),
       preHandler: [authenticate],
     },
-    async (request: FastifyRequest) => authService.me(request.user.userId)
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      return handleEitherAsync(
+        authService.me(request.user.userId),
+        reply
+      )
+    }
   )
 }

@@ -15,6 +15,7 @@ import { formatAvailabilityResponse } from '#shared/adapters/http/utils/response
 import { serviceIdParamSchema } from '#features/service/adapters/schemas.js'
 import { idParamSchema } from '#shared/adapters/http/schemas/common.schema.js'
 import { registerDeleteEndpoint } from '#shared/adapters/http/utils/endpoint-helpers.js'
+import { handleEitherAsync } from '#shared/adapters/http/utils/either-handler.js'
 
 export default async function availabilityEndpoints(fastify: FastifyInstance) {
   const { availability: service } = fastify.services
@@ -44,20 +45,24 @@ export default async function availabilityEndpoints(fastify: FastifyInstance) {
       request: FastifyRequest<{ Params: { serviceId: string }; Body: CreateAvailabilityInput }>,
       reply: FastifyReply
     ) => {
-      const result = await service.create(
-        request.params.serviceId,
-        {
-          date: new Date(request.body.date),
-          startTime: request.body.startTime,
-          endTime: request.body.endTime,
-          capacity: request.body.capacity,
-          price: request.body.price,
-          notes: request.body.notes,
-          isRecurring: request.body.isRecurring,
-        },
-        request.user.userId
+      return handleEitherAsync(
+        service.create(
+          request.params.serviceId,
+          {
+            date: new Date(request.body.date),
+            startTime: request.body.startTime,
+            endTime: request.body.endTime,
+            capacity: request.body.capacity,
+            price: request.body.price,
+            notes: request.body.notes,
+            isRecurring: request.body.isRecurring,
+          },
+          request.user.userId
+        ),
+        reply,
+        (result) => formatAvailabilityResponse(result),
+        201
       )
-      return reply.status(201).send(formatAvailabilityResponse(result))
     }
   )
 
@@ -78,7 +83,8 @@ export default async function availabilityEndpoints(fastify: FastifyInstance) {
       preHandler: [validateQuery(queryAvailabilitySchema)],
     },
     async (
-      request: FastifyRequest<{ Params: { serviceId: string }; Querystring: QueryAvailabilityInput }>
+      request: FastifyRequest<{ Params: { serviceId: string }; Querystring: QueryAvailabilityInput }>,
+      reply: FastifyReply
     ) => {
       const options: { startDate?: Date; endDate?: Date } = {}
       if (request.query.startDate) {
@@ -87,8 +93,11 @@ export default async function availabilityEndpoints(fastify: FastifyInstance) {
       if (request.query.endDate) {
         options.endDate = new Date(request.query.endDate)
       }
-      const results = await service.findByService(request.params.serviceId, options)
-      return results.map(formatAvailabilityResponse)
+      return handleEitherAsync(
+        service.findByService(request.params.serviceId, options),
+        reply,
+        (results) => results.map(formatAvailabilityResponse)
+      )
     }
   )
 
@@ -135,11 +144,15 @@ export default async function availabilityEndpoints(fastify: FastifyInstance) {
       preHandler: [authenticate, validate(updateAvailabilitySchema)],
     },
     async (
-      request: FastifyRequest<{ Params: { id: string }; Body: UpdateAvailabilityInput }>
+      request: FastifyRequest<{ Params: { id: string }; Body: UpdateAvailabilityInput }>,
+      reply: FastifyReply
     ) => {
       const updateData = transformUpdateInput(request.body)
-      const result = await service.update(request.params.id, updateData, request.user.userId)
-      return formatAvailabilityResponse(result)
+      return handleEitherAsync(
+        service.update(request.params.id, updateData, request.user.userId),
+        reply,
+        (result) => formatAvailabilityResponse(result)
+      )
     }
   )
 
