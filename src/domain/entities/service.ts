@@ -8,6 +8,11 @@ export interface CreateServiceData {
   durationMinutes: number
   capacity?: number
   type?: ServiceType
+  images?: string[]
+  cancellationPolicy?: string
+  minimumAdvanceBooking?: number
+  maximumAdvanceBooking?: number
+  requiresConfirmation?: boolean
 }
 
 export interface UpdateServiceData {
@@ -17,6 +22,11 @@ export interface UpdateServiceData {
   durationMinutes?: number
   capacity?: number
   active?: boolean
+  images?: string[]
+  cancellationPolicy?: string
+  minimumAdvanceBooking?: number
+  maximumAdvanceBooking?: number
+  requiresConfirmation?: boolean
 }
 
 export interface Service {
@@ -29,6 +39,11 @@ export interface Service {
   capacity: number
   type: ServiceType
   active: boolean
+  images: string[] | null
+  cancellationPolicy: string | null
+  minimumAdvanceBooking: number | null
+  maximumAdvanceBooking: number | null
+  requiresConfirmation: boolean
   createdAt: Date
   updatedAt: Date
 }

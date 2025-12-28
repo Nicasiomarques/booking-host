@@ -4,6 +4,9 @@ export interface CreateAvailabilityData {
   startTime: string
   endTime: string
   capacity: number
+  price?: number
+  notes?: string
+  isRecurring?: boolean
 }
 
 export interface UpdateAvailabilityData {
@@ -11,6 +14,9 @@ export interface UpdateAvailabilityData {
   startTime?: string
   endTime?: string
   capacity?: number
+  price?: number
+  notes?: string
+  isRecurring?: boolean
 }
 
 export interface Availability {
@@ -20,6 +26,9 @@ export interface Availability {
   startTime: string
   endTime: string
   capacity: number
+  price: string | null
+  notes: string | null
+  isRecurring: boolean
   createdAt: Date
   updatedAt: Date
 }

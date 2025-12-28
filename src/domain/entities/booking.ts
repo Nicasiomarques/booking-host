@@ -13,9 +13,12 @@ export interface CreateBookingData {
   checkOutDate?: Date
   roomId?: string
   numberOfNights?: number
+  numberOfGuests?: number
   guestName?: string
   guestEmail?: string
+  guestPhone?: string
   guestDocument?: string
+  notes?: string
 }
 
 export interface BookingExtraItemData {
@@ -38,9 +41,17 @@ export interface Booking {
   checkOutDate: Date | null
   roomId: string | null
   numberOfNights: number | null
+  numberOfGuests: number | null
   guestName: string | null
   guestEmail: string | null
+  guestPhone: string | null
   guestDocument: string | null
+  notes: string | null
+  confirmedAt: Date | null
+  cancelledAt: Date | null
+  cancellationReason: string | null
+  checkedInAt: Date | null
+  checkedOutAt: Date | null
   createdAt: Date
   updatedAt: Date
 }

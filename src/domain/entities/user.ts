@@ -4,6 +4,9 @@ export interface CreateUserData {
   email: string
   passwordHash: string
   name: string
+  phone?: string
+  birthDate?: Date
+  address?: string
 }
 
 export interface UserWithRoles {
@@ -11,6 +14,9 @@ export interface UserWithRoles {
   email: string
   passwordHash: string
   name: string
+  phone: string | null
+  birthDate: Date | null
+  address: string | null
   createdAt: Date
   updatedAt: Date
   establishmentRoles: Array<{
