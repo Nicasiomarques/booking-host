@@ -1,0 +1,63 @@
+import dotenv from 'dotenv'
+import { execSync } from 'child_process'
+import { resolve } from 'path'
+import { readdirSync } from 'fs'
+
+// Try to load .env.test first, fallback to .env
+const envTestPath = resolve(process.cwd(), '.env.test')
+const envPath = resolve(process.cwd(), '.env')
+
+try {
+  dotenv.config({ path: envTestPath })
+} catch {
+  try {
+    dotenv.config({ path: envPath })
+  } catch {
+    dotenv.config()
+  }
+}
+
+// Fallback if still not loaded
+if (!process.env.DATABASE_URL) {
+  dotenv.config()
+}
+
+if (!process.env.DATABASE_URL) {
+  console.error('ERROR: DATABASE_URL is required but not found in environment variables')
+  console.error('Please create a .env.test or .env file with DATABASE_URL')
+  process.exit(1)
+}
+
+try {
+  const prismaDir = resolve(process.cwd(), 'src/adapters/outbound/prisma')
+  const migrationsDir = resolve(prismaDir, 'migrations')
+  
+  // Get the latest migration directory
+  const migrations = readdirSync(migrationsDir)
+    .filter(name => !name.includes('lock') && !name.endsWith('.toml'))
+    .sort()
+    .reverse()
+  
+  if (migrations.length === 0) {
+    console.error('❌ No migrations found')
+    process.exit(1)
+  }
+  
+  const latestMigration = migrations[0]
+  console.log(`📝 Marking migration as applied: ${latestMigration}...`)
+  
+  execSync(`npx prisma migrate resolve --applied ${latestMigration} --config=${prismaDir}/prisma.config.ts`, {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      DATABASE_URL: process.env.DATABASE_URL,
+    },
+    cwd: prismaDir,
+  })
+  
+  console.log('✅ Migration marked as applied!')
+} catch (error) {
+  console.error('❌ Failed to resolve migration')
+  process.exit(1)
+}
+
