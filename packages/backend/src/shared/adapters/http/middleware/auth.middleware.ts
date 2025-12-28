@@ -1,6 +1,7 @@
 import { FastifyRequest } from 'fastify'
 import type { TokenPayload } from '#shared/application/ports/index.js'
 import { UnauthorizedError } from '#shared/domain/index.js'
+import { isLeft } from '#shared/domain/index.js'
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -21,6 +22,11 @@ export async function authenticate(request: FastifyRequest): Promise<void> {
     throw new UnauthorizedError('Invalid authorization header format')
   }
 
-  const payload = request.server.services.adapters.tokenProvider.verifyAccessToken(token)
-  request.user = payload
+  const tokenResult = request.server.services.adapters.tokenProvider.verifyAccessToken(token)
+  
+  if (isLeft(tokenResult)) {
+    throw tokenResult.value
+  }
+
+  request.user = tokenResult.value
 }

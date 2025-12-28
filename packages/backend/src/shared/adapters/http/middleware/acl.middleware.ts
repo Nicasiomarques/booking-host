@@ -1,6 +1,7 @@
 import { FastifyRequest } from 'fastify'
 import { ForbiddenError } from '#shared/domain/index.js'
 import type { Role } from '#shared/domain/index.js'
+import { isLeft } from '#shared/domain/index.js'
 
 export function requireRole(...roles: Role[]) {
   return async (request: FastifyRequest) => {
@@ -13,10 +14,11 @@ export function requireRole(...roles: Role[]) {
 
     // If serviceId is provided, fetch establishmentId from service
     if (!targetEstablishmentId && serviceId) {
-      const service = await request.server.services.service.findById(serviceId)
-      if (!service) {
-        throw new ForbiddenError('Service not found')
+      const serviceResult = await request.server.services.service.findById(serviceId)
+      if (isLeft(serviceResult)) {
+        throw serviceResult.value
       }
+      const service = serviceResult.value
       targetEstablishmentId = service.establishmentId
     }
 
@@ -43,8 +45,17 @@ export function requireRoleViaRoom(...roles: Role[]) {
       throw new Error('roomId required in route params for ACL middleware')
     }
 
-    const room = await request.server.services.room.findById(roomId)
-    const service = await request.server.services.service.findById(room.serviceId)
+    const roomResult = await request.server.services.room.findById(roomId)
+    if (isLeft(roomResult)) {
+      throw roomResult.value
+    }
+    const room = roomResult.value
+
+    const serviceResult = await request.server.services.service.findById(room.serviceId)
+    if (isLeft(serviceResult)) {
+      throw serviceResult.value
+    }
+    const service = serviceResult.value
 
     const userRole = request.user.establishmentRoles.find(
       (r) => r.establishmentId === service.establishmentId
