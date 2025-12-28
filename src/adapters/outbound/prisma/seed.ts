@@ -10,10 +10,19 @@ interface MockService {
   basePrice: number
   durationMinutes: number
   capacity?: number
+  type?: 'SERVICE' | 'HOTEL'
   extraItems?: Array<{
     name: string
     price: number
     maxQuantity?: number
+  }>
+  rooms?: Array<{
+    number: string
+    floor?: number
+    description?: string
+    roomType?: 'SINGLE' | 'DOUBLE' | 'TWIN' | 'SUITE' | 'FAMILY' | 'OTHER'
+    capacity?: number
+    maxOccupancy?: number
   }>
 }
 
@@ -399,6 +408,120 @@ const mockEstablishments: MockEstablishment[] = [
       },
     ],
   },
+  {
+    name: 'Grand Hotel & Resort',
+    description: 'Luxury hotel with ocean views, spa, and fine dining',
+    address: '888 Beach Boulevard, Miami, FL 33139',
+    timezone: 'America/New_York',
+    owner: {
+      name: 'Maria Garcia',
+      email: 'maria@grandhotel.com',
+      password: 'Password123!',
+    },
+    services: [
+      {
+        name: 'Deluxe Ocean View Room',
+        description: 'Spacious room with private balcony and ocean view',
+        basePrice: 250,
+        durationMinutes: 1440, // 24 hours
+        capacity: 2,
+        type: 'HOTEL',
+        extraItems: [
+          { name: 'Breakfast Buffet', price: 25, maxQuantity: 2 },
+          { name: 'Room Service', price: 15, maxQuantity: 1 },
+          { name: 'Late Checkout', price: 50, maxQuantity: 1 },
+        ],
+        rooms: [
+          { number: '201', floor: 2, description: 'Ocean view, king bed', roomType: 'DOUBLE', capacity: 2, maxOccupancy: 2 },
+          { number: '202', floor: 2, description: 'Ocean view, king bed', roomType: 'DOUBLE', capacity: 2, maxOccupancy: 2 },
+          { number: '203', floor: 2, description: 'Ocean view, two queens', roomType: 'DOUBLE', capacity: 2, maxOccupancy: 4 },
+          { number: '204', floor: 2, description: 'Ocean view, king bed', roomType: 'DOUBLE', capacity: 2, maxOccupancy: 2 },
+        ],
+      },
+      {
+        name: 'Executive Suite',
+        description: 'Luxury suite with separate living area and premium amenities',
+        basePrice: 450,
+        durationMinutes: 1440,
+        capacity: 4,
+        type: 'HOTEL',
+        extraItems: [
+          { name: 'Champagne Welcome', price: 75, maxQuantity: 1 },
+          { name: 'Spa Access', price: 100, maxQuantity: 2 },
+        ],
+        rooms: [
+          { number: '301', floor: 3, description: 'Executive suite with living room', roomType: 'SUITE', capacity: 4, maxOccupancy: 4 },
+          { number: '302', floor: 3, description: 'Executive suite with living room', roomType: 'SUITE', capacity: 4, maxOccupancy: 4 },
+        ],
+      },
+      {
+        name: 'Presidential Suite',
+        description: 'Ultra-luxury suite with panoramic views and butler service',
+        basePrice: 800,
+        durationMinutes: 1440,
+        capacity: 6,
+        type: 'HOTEL',
+        rooms: [
+          { number: '401', floor: 4, description: 'Presidential suite with full amenities', roomType: 'SUITE', capacity: 6, maxOccupancy: 6 },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Mountain View Lodge',
+    description: 'Cozy mountain retreat with rustic charm and modern amenities',
+    address: '555 Mountain Road, Aspen, CO 81611',
+    timezone: 'America/Denver',
+    owner: {
+      name: 'Robert Anderson',
+      email: 'robert@mountainview.com',
+      password: 'Password123!',
+    },
+    services: [
+      {
+        name: 'Standard Room',
+        description: 'Comfortable room with mountain views',
+        basePrice: 120,
+        durationMinutes: 1440,
+        capacity: 2,
+        type: 'HOTEL',
+        extraItems: [
+          { name: 'Fireplace Logs', price: 15, maxQuantity: 3 },
+          { name: 'Ski Storage', price: 10, maxQuantity: 1 },
+        ],
+        rooms: [
+          { number: '101', floor: 1, description: 'Mountain view, queen bed', roomType: 'SINGLE', capacity: 2, maxOccupancy: 2 },
+          { number: '102', floor: 1, description: 'Mountain view, queen bed', roomType: 'SINGLE', capacity: 2, maxOccupancy: 2 },
+          { number: '103', floor: 1, description: 'Mountain view, two queens', roomType: 'DOUBLE', capacity: 2, maxOccupancy: 4 },
+          { number: '104', floor: 1, description: 'Mountain view, queen bed', roomType: 'SINGLE', capacity: 2, maxOccupancy: 2 },
+        ],
+      },
+      {
+        name: 'Family Room',
+        description: 'Spacious room perfect for families',
+        basePrice: 180,
+        durationMinutes: 1440,
+        capacity: 4,
+        type: 'HOTEL',
+        rooms: [
+          { number: '201', floor: 2, description: 'Family room with bunk beds', roomType: 'FAMILY', capacity: 4, maxOccupancy: 4 },
+          { number: '202', floor: 2, description: 'Family room with bunk beds', roomType: 'FAMILY', capacity: 4, maxOccupancy: 4 },
+        ],
+      },
+      {
+        name: 'Cabin Suite',
+        description: 'Private cabin with full kitchen and hot tub',
+        basePrice: 300,
+        durationMinutes: 1440,
+        capacity: 6,
+        type: 'HOTEL',
+        rooms: [
+          { number: 'CABIN-1', floor: 0, description: 'Private cabin with hot tub', roomType: 'SUITE', capacity: 6, maxOccupancy: 6 },
+          { number: 'CABIN-2', floor: 0, description: 'Private cabin with hot tub', roomType: 'SUITE', capacity: 6, maxOccupancy: 6 },
+        ],
+      },
+    ],
+  },
 ]
 
 // Mock customer users for bookings
@@ -427,6 +550,7 @@ async function main() {
   await prisma.booking.deleteMany()
   await prisma.availability.deleteMany()
   await prisma.extraItem.deleteMany()
+  await prisma.room.deleteMany()
   await prisma.service.deleteMany()
   await prisma.establishmentUser.deleteMany()
   await prisma.establishment.deleteMany()
@@ -492,9 +616,29 @@ async function main() {
           basePrice: new Prisma.Decimal(serviceData.basePrice),
           durationMinutes: serviceData.durationMinutes,
           capacity: serviceData.capacity ?? 1,
+          type: serviceData.type ?? 'SERVICE',
           active: true,
         },
       })
+
+      // Create rooms for hotel services
+      if (serviceData.type === 'HOTEL' && serviceData.rooms && serviceData.rooms.length > 0) {
+        for (const roomData of serviceData.rooms) {
+          await prisma.room.create({
+            data: {
+              serviceId: service.id,
+              number: roomData.number,
+              floor: roomData.floor,
+              description: roomData.description,
+              roomType: roomData.roomType,
+              capacity: roomData.capacity,
+              maxOccupancy: roomData.maxOccupancy,
+              status: 'AVAILABLE',
+            },
+          })
+        }
+        console.log(`      🏨 Created ${serviceData.rooms.length} rooms for ${service.name}`)
+      }
 
       // Create extra items for this service
       const extraItemsData: Array<{ id: string; price: number }> = []
@@ -532,15 +676,24 @@ async function main() {
 
   for (const est of establishmentData) {
     for (const service of est.services) {
+      // Get service to check type
+      const serviceRecord = await prisma.service.findUnique({
+        where: { id: service.id },
+        select: { type: true },
+      })
+
+      const isHotel = serviceRecord?.type === 'HOTEL'
+
       // Create 5-7 availability slots for each service over the next 14 days
       const slotsPerService = 5 + Math.floor(Math.random() * 3)
       for (let i = 0; i < slotsPerService; i++) {
         const date = getFutureDate(i * 2 + Math.floor(Math.random() * 2))
-        const startHour = 9 + Math.floor(Math.random() * 8) // Between 9 AM and 5 PM
-        const startTime = `${startHour.toString().padStart(2, '0')}:00`
-        const endHour = startHour + 1
-        const endTime = `${endHour.toString().padStart(2, '0')}:00`
-        const capacity = 5 + Math.floor(Math.random() * 10) // Capacity between 5-15
+        
+        // For hotels, use check-in/check-out times (14:00 check-in, 11:00 check-out)
+        // For regular services, use business hours
+        const startTime = isHotel ? '14:00' : `${(9 + Math.floor(Math.random() * 8)).toString().padStart(2, '0')}:00`
+        const endTime = isHotel ? '11:00' : `${(parseInt(startTime.split(':')[0]) + 1).toString().padStart(2, '0')}:00`
+        const capacity = isHotel ? 10 : (5 + Math.floor(Math.random() * 10)) // Hotels have more capacity
 
         await prisma.availability.create({
           data: {
