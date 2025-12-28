@@ -14,11 +14,9 @@ export interface AvailabilityWithEstablishment extends Availability {
   service: { establishmentId: string }
 }
 
-export class AvailabilityRepository {
-  constructor(private readonly prisma: PrismaClient) {}
-
+export const createAvailabilityRepository = (prisma: PrismaClient) => ({
   async create(data: CreateAvailabilityData): Promise<Availability> {
-    const result = await this.prisma.availability.create({
+    const result = await prisma.availability.create({
       data: {
         serviceId: data.serviceId,
         date: data.date,
@@ -31,17 +29,17 @@ export class AvailabilityRepository {
       },
     })
     return toAvailability(result)
-  }
+  },
 
   async findById(id: string): Promise<Availability | null> {
-    const result = await this.prisma.availability.findUnique({
+    const result = await prisma.availability.findUnique({
       where: { id },
     })
     return result ? toAvailability(result) : null
-  }
+  },
 
   async findByIdWithService(id: string): Promise<AvailabilityWithEstablishment | null> {
-    const result = await this.prisma.availability.findUnique({
+    const result = await prisma.availability.findUnique({
       where: { id },
       include: {
         service: {
@@ -54,13 +52,13 @@ export class AvailabilityRepository {
       ...toAvailability(result),
       service: result.service,
     }
-  }
+  },
 
   async findByService(
     serviceId: string,
     options: { startDate?: Date; endDate?: Date } = {}
   ): Promise<Availability[]> {
-    const results = await this.prisma.availability.findMany({
+    const results = await prisma.availability.findMany({
       where: {
         serviceId,
         ...(options.startDate || options.endDate
@@ -75,14 +73,14 @@ export class AvailabilityRepository {
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
     })
     return results.map(toAvailability)
-  }
+  },
 
   async findByDateRange(
     serviceId: string,
     startDate: Date,
     endDate: Date
   ): Promise<Availability[]> {
-    const results = await this.prisma.availability.findMany({
+    const results = await prisma.availability.findMany({
       where: {
         serviceId,
         date: {
@@ -93,7 +91,7 @@ export class AvailabilityRepository {
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
     })
     return results.map(toAvailability)
-  }
+  },
 
   async update(id: string, data: UpdateAvailabilityData): Promise<Availability> {
     const updateData: any = { ...data }
@@ -103,19 +101,19 @@ export class AvailabilityRepository {
       updateData.price = data.price !== null ? new Prisma.Decimal(data.price) : null
     }
     
-    const result = await this.prisma.availability.update({
+    const result = await prisma.availability.update({
       where: { id },
       data: updateData,
     })
     return toAvailability(result)
-  }
+  },
 
   async delete(id: string): Promise<Availability> {
-    const result = await this.prisma.availability.delete({
+    const result = await prisma.availability.delete({
       where: { id },
     })
     return toAvailability(result)
-  }
+  },
 
   async checkOverlap(
     serviceId: string,
@@ -124,7 +122,7 @@ export class AvailabilityRepository {
     endTime: string,
     excludeId?: string
   ): Promise<boolean> {
-    const overlapping = await this.prisma.availability.findFirst({
+    const overlapping = await prisma.availability.findFirst({
       where: {
         serviceId,
         date,
@@ -146,44 +144,44 @@ export class AvailabilityRepository {
       },
     })
     return overlapping !== null
-  }
+  },
 
   async hasActiveBookings(availabilityId: string): Promise<boolean> {
-    const count = await this.prisma.booking.count({
+    const count = await prisma.booking.count({
       where: {
         availabilityId,
         status: { in: ['PENDING', 'CONFIRMED'] },
       },
     })
     return count > 0
-  }
+  },
 
   async getServiceId(availabilityId: string): Promise<string | null> {
-    const availability = await this.prisma.availability.findUnique({
+    const availability = await prisma.availability.findUnique({
       where: { id: availabilityId },
       select: { serviceId: true },
     })
     return availability?.serviceId ?? null
-  }
+  },
 
   async decrementCapacity(id: string, quantity: number): Promise<Availability> {
-    const result = await this.prisma.availability.update({
+    const result = await prisma.availability.update({
       where: { id },
       data: {
         capacity: { decrement: quantity },
       },
     })
     return toAvailability(result)
-  }
+  },
 
   async incrementCapacity(id: string, quantity: number): Promise<Availability> {
-    const result = await this.prisma.availability.update({
+    const result = await prisma.availability.update({
       where: { id },
       data: {
         capacity: { increment: quantity },
       },
     })
     return toAvailability(result)
-  }
-}
+  },
+})
 

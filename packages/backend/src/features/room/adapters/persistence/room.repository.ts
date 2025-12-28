@@ -14,11 +14,9 @@ function toRoom(prismaRoom: PrismaRoom): Room {
   }
 }
 
-export class RoomRepository {
-  constructor(private readonly prisma: PrismaClient) {}
-
+export const createRoomRepository = (prisma: PrismaClient) => ({
   async create(data: CreateRoomData): Promise<Room> {
-    const result = await this.prisma.room.create({
+    const result = await prisma.room.create({
       data: {
         serviceId: data.serviceId,
         number: data.number,
@@ -33,22 +31,22 @@ export class RoomRepository {
       },
     })
     return toRoom(result)
-  }
+  },
 
   async findById(id: string): Promise<Room | null> {
-    const result = await this.prisma.room.findUnique({
+    const result = await prisma.room.findUnique({
       where: { id },
     })
     return result ? toRoom(result) : null
-  }
+  },
 
   async findByService(serviceId: string): Promise<Room[]> {
-    const results = await this.prisma.room.findMany({
+    const results = await prisma.room.findMany({
       where: { serviceId },
       orderBy: [{ floor: 'asc' }, { number: 'asc' }],
     })
     return results.map(toRoom)
-  }
+  },
 
   async findAvailableRooms(
     serviceId: string,
@@ -59,7 +57,7 @@ export class RoomRepository {
     // Only AVAILABLE rooms can be booked (exclude OCCUPIED, CLEANING, MAINTENANCE, BLOCKED)
     // OCCUPIED rooms are excluded because they have active bookings
     // We exclude bookings with status CHECKED_OUT, CANCELLED, NO_SHOW from the overlap check
-    const results = await this.prisma.room.findMany({
+    const results = await prisma.room.findMany({
       where: {
         serviceId,
         status: 'AVAILABLE', // Only available rooms can be booked
@@ -83,7 +81,7 @@ export class RoomRepository {
     })
 
     return results.map(toRoom)
-  }
+  },
 
   async update(id: string, data: UpdateRoomData): Promise<Room> {
     const updateData: any = {}
@@ -102,22 +100,22 @@ export class RoomRepository {
       arrayFields: ['amenities'],
     })
     
-    const result = await this.prisma.room.update({
+    const result = await prisma.room.update({
       where: { id },
       data: processedData,
     })
     return toRoom(result)
-  }
+  },
 
   async delete(id: string): Promise<Room> {
-    const result = await this.prisma.room.delete({
+    const result = await prisma.room.delete({
       where: { id },
     })
     return toRoom(result)
-  }
+  },
 
   async hasActiveBookings(id: string): Promise<boolean> {
-    const count = await this.prisma.booking.count({
+    const count = await prisma.booking.count({
       where: {
         roomId: id,
         status: {
@@ -126,6 +124,6 @@ export class RoomRepository {
       },
     })
     return count > 0
-  }
-}
+  },
+})
 

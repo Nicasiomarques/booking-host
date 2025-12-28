@@ -17,14 +17,12 @@ function toEstablishmentWithRole(prismaEstablishment: PrismaEstablishment, role:
   return { ...prismaEstablishment, role }
 }
 
-export class EstablishmentRepository {
-  constructor(private readonly prisma: PrismaClient) {}
-
+export const createEstablishmentRepository = (prisma: PrismaClient) => ({
   async create(
     data: CreateEstablishmentData,
     ownerId: string
   ): Promise<Establishment> {
-    const result = await this.prisma.establishment.create({
+    const result = await prisma.establishment.create({
       data: {
         name: data.name,
         description: data.description,
@@ -45,17 +43,17 @@ export class EstablishmentRepository {
       },
     })
     return toEstablishment(result)
-  }
+  },
 
   async findById(id: string): Promise<Establishment | null> {
-    const result = await this.prisma.establishment.findUnique({
+    const result = await prisma.establishment.findUnique({
       where: { id },
     })
     return result ? toEstablishment(result) : null
-  }
+  },
 
   async findByUserId(userId: string): Promise<EstablishmentWithRole[]> {
-    const establishmentUsers = await this.prisma.establishmentUser.findMany({
+    const establishmentUsers = await prisma.establishmentUser.findMany({
       where: { userId },
       include: {
         establishment: true,
@@ -65,24 +63,24 @@ export class EstablishmentRepository {
     return establishmentUsers.map((eu) =>
       toEstablishmentWithRole(eu.establishment, eu.role as Role)
     )
-  }
+  },
 
   async update(
     id: string,
     data: UpdateEstablishmentData
   ): Promise<Establishment> {
-    const result = await this.prisma.establishment.update({
+    const result = await prisma.establishment.update({
       where: { id },
       data,
     })
     return toEstablishment(result)
-  }
+  },
 
   async getUserRole(
     userId: string,
     establishmentId: string
   ): Promise<Role | null> {
-    const establishmentUser = await this.prisma.establishmentUser.findUnique({
+    const establishmentUser = await prisma.establishmentUser.findUnique({
       where: {
         userId_establishmentId: {
           userId,
@@ -92,6 +90,6 @@ export class EstablishmentRepository {
     })
 
     return (establishmentUser?.role as Role) ?? null
-  }
-}
+  },
+})
 

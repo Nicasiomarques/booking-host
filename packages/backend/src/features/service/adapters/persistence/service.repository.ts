@@ -25,11 +25,9 @@ export interface ServiceWithExtras extends Service {
   extraItems: ExtraItem[]
 }
 
-export class ServiceRepository {
-  constructor(private readonly prisma: PrismaClient) {}
-
+export const createServiceRepository = (prisma: PrismaClient) => ({
   async create(data: CreateServiceData): Promise<Service> {
-    const result = await this.prisma.service.create({
+    const result = await prisma.service.create({
       data: {
         establishmentId: data.establishmentId,
         name: data.name,
@@ -46,17 +44,17 @@ export class ServiceRepository {
       },
     })
     return toService(result)
-  }
+  },
 
   async findById(id: string): Promise<Service | null> {
-    const result = await this.prisma.service.findUnique({
+    const result = await prisma.service.findUnique({
       where: { id },
     })
     return result ? toService(result) : null
-  }
+  },
 
   async findByIdWithExtras(id: string): Promise<ServiceWithExtras | null> {
-    const result = await this.prisma.service.findUnique({
+    const result = await prisma.service.findUnique({
       where: { id },
       include: {
         extraItems: {
@@ -69,13 +67,13 @@ export class ServiceRepository {
       ...toService(result),
       extraItems: result.extraItems.map(toExtraItem),
     }
-  }
+  },
 
   async findByEstablishment(
     establishmentId: string,
     options: { activeOnly?: boolean } = {}
   ): Promise<Service[]> {
-    const results = await this.prisma.service.findMany({
+    const results = await prisma.service.findMany({
       where: {
         establishmentId,
         ...(options.activeOnly ? { active: true } : {}),
@@ -83,7 +81,7 @@ export class ServiceRepository {
       orderBy: { createdAt: 'desc' },
     })
     return results.map(toService)
-  }
+  },
 
   async update(id: string, data: UpdateServiceData): Promise<Service> {
     const updateData = processUpdateData(data, {
@@ -91,37 +89,37 @@ export class ServiceRepository {
       arrayFields: ['images'],
     })
     
-    const result = await this.prisma.service.update({
+    const result = await prisma.service.update({
       where: { id },
       data: updateData,
     })
     return toService(result)
-  }
+  },
 
   async softDelete(id: string): Promise<Service> {
-    const result = await this.prisma.service.update({
+    const result = await prisma.service.update({
       where: { id },
       data: createSoftDeleteData(),
     })
     return toService(result)
-  }
+  },
 
   async hasActiveBookings(serviceId: string): Promise<boolean> {
-    const count = await this.prisma.booking.count({
+    const count = await prisma.booking.count({
       where: {
         serviceId,
         status: { in: ['PENDING', 'CONFIRMED'] },
       },
     })
     return count > 0
-  }
+  },
 
   async getEstablishmentId(serviceId: string): Promise<string | null> {
-    const service = await this.prisma.service.findUnique({
+    const service = await prisma.service.findUnique({
       where: { id: serviceId },
       select: { establishmentId: true },
     })
     return service?.establishmentId ?? null
-  }
-}
+  },
+})
 

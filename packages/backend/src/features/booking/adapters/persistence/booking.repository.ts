@@ -65,15 +65,13 @@ function toBookingWithDetails(prismaBooking: PrismaBooking & {
   }
 }
 
-export class BookingRepository {
-  constructor(private readonly prisma: PrismaClient) {}
-
+export const createBookingRepository = (prisma: PrismaClient) => ({
   async create(
     data: CreateBookingData,
     extras: BookingExtraItemData[],
     tx?: Prisma.TransactionClient
   ): Promise<Booking> {
-    const client = tx ?? this.prisma
+    const client = tx ?? prisma
     const result = await client.booking.create({
       data: {
         userId: data.userId,
@@ -105,10 +103,10 @@ export class BookingRepository {
       },
     })
     return toBooking(result)
-  }
+  },
 
   async findById(id: string): Promise<BookingWithDetails | null> {
-    const result = await this.prisma.booking.findUnique({
+    const result = await prisma.booking.findUnique({
       where: { id },
       include: {
         user: {
@@ -147,7 +145,7 @@ export class BookingRepository {
       },
     })
     return result ? toBookingWithDetails(result) : null
-  }
+  },
 
   async findByUser(
     userId: string,
@@ -162,7 +160,7 @@ export class BookingRepository {
     }
 
     const [data, total] = await Promise.all([
-      this.prisma.booking.findMany({
+      prisma.booking.findMany({
         where,
         skip,
         take: limit,
@@ -203,7 +201,7 @@ export class BookingRepository {
           },
         },
       }),
-      this.prisma.booking.count({ where }),
+      prisma.booking.count({ where }),
     ])
 
     return {
@@ -212,7 +210,7 @@ export class BookingRepository {
       page,
       limit,
     }
-  }
+  },
 
   async findByEstablishment(
     establishmentId: string,
@@ -227,7 +225,7 @@ export class BookingRepository {
     }
 
     const [data, total] = await Promise.all([
-      this.prisma.booking.findMany({
+      prisma.booking.findMany({
         where,
         skip,
         take: limit,
@@ -268,7 +266,7 @@ export class BookingRepository {
           },
         },
       }),
-      this.prisma.booking.count({ where }),
+      prisma.booking.count({ where }),
     ])
 
     return {
@@ -277,7 +275,7 @@ export class BookingRepository {
       page,
       limit,
     }
-  }
+  },
 
   async updateStatus(
     id: string,
@@ -285,7 +283,7 @@ export class BookingRepository {
     cancellationReason?: string | null,
     tx?: Prisma.TransactionClient
   ): Promise<Booking> {
-    const client = tx ?? this.prisma
+    const client = tx ?? prisma
     const updateData: any = { status }
     
     // Automatically set confirmedAt when status changes to CONFIRMED
@@ -316,7 +314,7 @@ export class BookingRepository {
       data: updateData,
     })
     return toBooking(result)
-  }
+  },
 
   async getBookingOwnership(id: string): Promise<{
     userId: string
@@ -327,7 +325,7 @@ export class BookingRepository {
     roomId: string | null
     serviceType: string | null
   } | null> {
-    const booking = await this.prisma.booking.findUnique({
+    const booking = await prisma.booking.findUnique({
       where: { id },
       select: {
         userId: true,
@@ -355,6 +353,6 @@ export class BookingRepository {
       roomId: booking.roomId,
       serviceType: booking.service.type,
     }
-  }
-}
+  },
+})
 

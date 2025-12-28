@@ -3,11 +3,9 @@ import type { CreateUserData, UserWithRoles } from '#shared/domain/index.js'
 
 export type { CreateUserData, UserWithRoles }
 
-export class UserRepository {
-  constructor(private readonly prisma: PrismaClient) {}
-
+export const createUserRepository = (prisma: PrismaClient) => ({
   async findById(id: string): Promise<UserWithRoles | null> {
-    const user = await this.prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id },
       include: {
         establishmentUsers: {
@@ -28,10 +26,10 @@ export class UserRepository {
         role: eu.role,
       })),
     }
-  }
+  },
 
   async findByEmail(email: string): Promise<UserWithRoles | null> {
-    const user = await this.prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
       include: {
         establishmentUsers: {
@@ -52,10 +50,10 @@ export class UserRepository {
         role: eu.role,
       })),
     }
-  }
+  },
 
   async create(data: CreateUserData): Promise<UserWithRoles> {
-    const user = await this.prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         email: data.email.toLowerCase(),
         passwordHash: data.passwordHash,
@@ -81,10 +79,10 @@ export class UserRepository {
         role: eu.role,
       })),
     }
-  }
+  },
 
   async update(id: string, data: Partial<{ name: string; passwordHash: string }>): Promise<UserWithRoles | null> {
-    const user = await this.prisma.user.update({
+    const user = await prisma.user.update({
       where: { id },
       data,
       include: {
@@ -104,6 +102,6 @@ export class UserRepository {
         role: eu.role,
       })),
     }
-  }
-}
+  },
+})
 
