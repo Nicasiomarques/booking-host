@@ -11,10 +11,7 @@ import {
 } from './schemas.js'
 import { ErrorResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
 import { validate, authenticate, requireRole } from '#shared/adapters/http/middleware/index.js'
-
-const idParamSchema = z.object({
-  id: z.string().uuid(),
-})
+import { idParamSchema } from '#shared/adapters/http/schemas/common.schema.js'
 
 export default async function establishmentEndpoints(fastify: FastifyInstance) {
   const { establishment: service } = fastify.services

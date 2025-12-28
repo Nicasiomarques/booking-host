@@ -41,6 +41,16 @@ export const dateRangeSchema = z.object({
   { message: 'startDate must be before endDate' }
 )
 
+export const idParamSchema = z.object({
+  id: z.string().uuid(),
+}).openapi('IdParam')
+
+export const activeQuerySchema = z.object({
+  active: z.enum(['true', 'false']).optional().openapi({
+    description: 'Filter by active status',
+  }),
+}).openapi('ActiveQuery')
+
 export type Pagination = z.infer<typeof paginationSchema>
 export type DateRange = z.infer<typeof dateRangeSchema>
 

@@ -1,5 +1,4 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { z } from 'zod'
 import {
   createBookingSchema,
   listBookingsQuerySchema,
@@ -12,10 +11,7 @@ import { ErrorResponseSchema, buildRouteSchema } from '#shared/adapters/http/ope
 import { validate, validateQuery, authenticate } from '#shared/adapters/http/middleware/index.js'
 import type { BookingStatus } from '#shared/domain/index.js'
 import { formatBookingResponse, formatPaginatedBookings } from './http/mappers.js'
-
-const idParamSchema = z.object({
-  id: z.string().uuid(),
-})
+import { idParamSchema } from '#shared/adapters/http/schemas/common.schema.js'
 
 export default async function bookingEndpoints(fastify: FastifyInstance) {
   const { booking: service } = fastify.services

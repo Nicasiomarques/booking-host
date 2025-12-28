@@ -7,20 +7,12 @@ import {
   CreateExtraItemInput,
   UpdateExtraItemInput,
 } from './schemas.js'
-import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
+import { ErrorResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
 import { validate, authenticate } from '#shared/adapters/http/middleware/index.js'
 import { serviceIdParamSchema } from '#features/service/adapters/schemas.js'
 import { formatExtraItemResponse } from './http/mappers.js'
-
-const idParamSchema = z.object({
-  id: z.string().uuid(),
-})
-
-const listExtrasQuerySchema = z.object({
-  active: z.enum(['true', 'false']).optional().openapi({
-    description: 'Filter by active status',
-  }),
-})
+import { idParamSchema, activeQuerySchema } from '#shared/adapters/http/schemas/common.schema.js'
+import { updateResponses, deleteResponses } from '#shared/adapters/http/utils/crud-helpers.js'
 
 export default async function extraItemEndpoints(fastify: FastifyInstance) {
   const { extraItem: service } = fastify.services
@@ -66,7 +58,7 @@ export default async function extraItemEndpoints(fastify: FastifyInstance) {
         summary: 'List extra items',
         description: 'Retrieves all extra items available for a service. Can filter by active status. No authentication required.',
         params: serviceIdParamSchema,
-        querystring: listExtrasQuerySchema,
+        querystring: activeQuerySchema,
         responses: {
           200: { description: 'List of extra items', schema: z.array(extraItemResponseSchema) },
           404: { description: 'Service not found', schema: ErrorResponseSchema },
@@ -92,13 +84,7 @@ export default async function extraItemEndpoints(fastify: FastifyInstance) {
         security: true,
         params: idParamSchema,
         body: updateExtraItemSchema,
-        responses: {
-          200: { description: 'Extra item updated successfully', schema: extraItemResponseSchema },
-          401: { description: 'Unauthorized', schema: ErrorResponseSchema },
-          403: { description: 'Insufficient permissions', schema: ErrorResponseSchema },
-          404: { description: 'Extra item not found', schema: ErrorResponseSchema },
-          422: { description: 'Validation error', schema: ErrorResponseSchema },
-        },
+        responses: updateResponses('Extra item', extraItemResponseSchema),
       }),
       preHandler: [authenticate, validate(updateExtraItemSchema)],
     },
@@ -119,12 +105,7 @@ export default async function extraItemEndpoints(fastify: FastifyInstance) {
         description: 'Soft deletes an extra item (sets active to false). Only the establishment owner can perform this action.',
         security: true,
         params: idParamSchema,
-        responses: {
-          200: { description: 'Extra item deleted successfully', schema: SuccessResponseSchema },
-          401: { description: 'Unauthorized', schema: ErrorResponseSchema },
-          403: { description: 'Insufficient permissions', schema: ErrorResponseSchema },
-          404: { description: 'Extra item not found', schema: ErrorResponseSchema },
-        },
+        responses: deleteResponses('Extra item'),
       }),
       preHandler: [authenticate],
     },

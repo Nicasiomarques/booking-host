@@ -7,14 +7,12 @@ import {
   CreateRoomInput,
   UpdateRoomInput,
 } from './schemas.js'
-import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
+import { ErrorResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
 import { validate, authenticate, requireRole, requireRoleViaRoom } from '#shared/adapters/http/middleware/index.js'
 import { serviceIdParamSchema } from '#features/service/adapters/schemas.js'
 import { formatRoomResponse } from './http/mappers.js'
-
-const idParamSchema = z.object({
-  id: z.string().uuid(),
-})
+import { idParamSchema } from '#shared/adapters/http/schemas/common.schema.js'
+import { getByIdResponses, updateResponses, deleteResponses } from '#shared/adapters/http/utils/crud-helpers.js'
 
 export default async function roomEndpoints(fastify: FastifyInstance) {
   const { room: service } = fastify.services
@@ -77,10 +75,7 @@ export default async function roomEndpoints(fastify: FastifyInstance) {
         summary: 'Get room by ID',
         description: 'Retrieves detailed information about a specific room. No authentication required.',
         params: idParamSchema,
-        responses: {
-          200: { description: 'Room details', schema: roomResponseSchema },
-          404: { description: 'Room not found', schema: ErrorResponseSchema },
-        },
+        responses: getByIdResponses('Room', roomResponseSchema),
       }),
     },
     async (request: FastifyRequest<{ Params: { id: string } }>) => {
@@ -99,14 +94,9 @@ export default async function roomEndpoints(fastify: FastifyInstance) {
         security: true,
         params: idParamSchema,
         body: updateRoomSchema,
-        responses: {
-          200: { description: 'Room updated successfully', schema: roomResponseSchema },
-          401: { description: 'Unauthorized', schema: ErrorResponseSchema },
-          403: { description: 'Insufficient permissions (OWNER required)', schema: ErrorResponseSchema },
-          404: { description: 'Room not found', schema: ErrorResponseSchema },
+        responses: updateResponses('Room', roomResponseSchema, {
           409: { description: 'Room number already exists or room has active bookings', schema: ErrorResponseSchema },
-          422: { description: 'Validation error', schema: ErrorResponseSchema },
-        },
+        }),
       }),
       preHandler: [authenticate, validate(updateRoomSchema), requireRoleViaRoom('OWNER')],
     },
@@ -125,13 +115,9 @@ export default async function roomEndpoints(fastify: FastifyInstance) {
         description: 'Deletes a room. Only the establishment owner can perform this action. Room must not have active bookings.',
         security: true,
         params: idParamSchema,
-        responses: {
-          200: { description: 'Room deleted successfully', schema: SuccessResponseSchema },
-          401: { description: 'Unauthorized', schema: ErrorResponseSchema },
-          403: { description: 'Insufficient permissions (OWNER required)', schema: ErrorResponseSchema },
-          404: { description: 'Room not found', schema: ErrorResponseSchema },
+        responses: deleteResponses('Room', {
           409: { description: 'Room has active bookings', schema: ErrorResponseSchema },
-        },
+        }),
       }),
       preHandler: [authenticate, requireRoleViaRoom('OWNER')],
     },

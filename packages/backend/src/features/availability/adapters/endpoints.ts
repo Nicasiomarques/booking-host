@@ -13,10 +13,7 @@ import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '#s
 import { validate, validateQuery, authenticate } from '#shared/adapters/http/middleware/index.js'
 import { formatAvailabilityResponse } from '#shared/adapters/http/utils/response-formatters.js'
 import { serviceIdParamSchema } from '#features/service/adapters/schemas.js'
-
-const idParamSchema = z.object({
-  id: z.string().uuid(),
-})
+import { idParamSchema } from '#shared/adapters/http/schemas/common.schema.js'
 
 export default async function availabilityEndpoints(fastify: FastifyInstance) {
   const { availability: service } = fastify.services

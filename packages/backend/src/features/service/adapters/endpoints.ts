@@ -7,20 +7,12 @@ import {
   CreateServiceInput,
   UpdateServiceInput,
 } from './schemas.js'
-import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
+import { ErrorResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
 import { validate, authenticate, requireRole } from '#shared/adapters/http/middleware/index.js'
 import { formatServiceResponse } from '#shared/adapters/http/utils/response-formatters.js'
 import { establishmentIdParamSchema } from '#features/establishment/adapters/schemas.js'
-
-const idParamSchema = z.object({
-  id: z.string().uuid(),
-})
-
-const listServicesQuerySchema = z.object({
-  active: z.enum(['true', 'false']).optional().openapi({
-    description: 'Filter by active status',
-  }),
-})
+import { idParamSchema, activeQuerySchema } from '#shared/adapters/http/schemas/common.schema.js'
+import { getByIdResponses, updateResponses, deleteResponses } from '#shared/adapters/http/utils/crud-helpers.js'
 
 export default async function serviceEndpoints(fastify: FastifyInstance) {
   const { service } = fastify.services
@@ -66,7 +58,7 @@ export default async function serviceEndpoints(fastify: FastifyInstance) {
         summary: 'List establishment services',
         description: 'Retrieves all services for an establishment. Can filter by active status. No authentication required.',
         params: establishmentIdParamSchema,
-        querystring: listServicesQuerySchema,
+        querystring: activeQuerySchema,
         responses: {
           200: { description: 'List of services', schema: z.array(serviceResponseSchema) },
           404: { description: 'Establishment not found', schema: ErrorResponseSchema },
@@ -90,10 +82,7 @@ export default async function serviceEndpoints(fastify: FastifyInstance) {
         summary: 'Get service by ID',
         description: 'Retrieves detailed information about a specific service. No authentication required.',
         params: idParamSchema,
-        responses: {
-          200: { description: 'Service details', schema: serviceResponseSchema },
-          404: { description: 'Service not found', schema: ErrorResponseSchema },
-        },
+        responses: getByIdResponses('Service', serviceResponseSchema),
       }),
     },
     async (request: FastifyRequest<{ Params: { id: string } }>) => {
@@ -112,13 +101,7 @@ export default async function serviceEndpoints(fastify: FastifyInstance) {
         security: true,
         params: idParamSchema,
         body: updateServiceSchema,
-        responses: {
-          200: { description: 'Service updated successfully', schema: serviceResponseSchema },
-          401: { description: 'Unauthorized', schema: ErrorResponseSchema },
-          403: { description: 'Insufficient permissions', schema: ErrorResponseSchema },
-          404: { description: 'Service not found', schema: ErrorResponseSchema },
-          422: { description: 'Validation error', schema: ErrorResponseSchema },
-        },
+        responses: updateResponses('Service', serviceResponseSchema),
       }),
       preHandler: [authenticate, validate(updateServiceSchema)],
     },
@@ -139,12 +122,7 @@ export default async function serviceEndpoints(fastify: FastifyInstance) {
         description: 'Soft deletes a service (sets active to false). Only the establishment owner can perform this action.',
         security: true,
         params: idParamSchema,
-        responses: {
-          200: { description: 'Service deleted successfully', schema: SuccessResponseSchema },
-          401: { description: 'Unauthorized', schema: ErrorResponseSchema },
-          403: { description: 'Insufficient permissions', schema: ErrorResponseSchema },
-          404: { description: 'Service not found', schema: ErrorResponseSchema },
-        },
+        responses: deleteResponses('Service'),
       }),
       preHandler: [authenticate],
     },
