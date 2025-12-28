@@ -1,5 +1,4 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { z } from 'zod'
+import { FastifyInstance } from 'fastify'
 import {
   createRoomSchema,
   updateRoomSchema,
@@ -7,124 +6,83 @@ import {
   CreateRoomInput,
   UpdateRoomInput,
 } from './schemas.js'
-import { ErrorResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
-import { validate, authenticate, requireRole, requireRoleViaRoom } from '#shared/adapters/http/middleware/index.js'
+import type { Room } from '../domain/index.js'
+import { ErrorResponseSchema } from '#shared/adapters/http/openapi/index.js'
+import { requireRole, requireRoleViaRoom } from '#shared/adapters/http/middleware/index.js'
 import { serviceIdParamSchema } from '#features/service/adapters/schemas.js'
 import { formatRoomResponse } from './http/mappers.js'
-import { idParamSchema } from '#shared/adapters/http/schemas/common.schema.js'
-import { getByIdResponses, updateResponses, deleteResponses } from '#shared/adapters/http/utils/crud-helpers.js'
+import { registerGetByIdEndpoint, registerUpdateEndpoint, registerDeleteEndpoint, registerCreateEndpoint, registerListEndpoint } from '#shared/adapters/http/utils/endpoint-helpers.js'
 
 export default async function roomEndpoints(fastify: FastifyInstance) {
   const { room: service } = fastify.services
 
-  fastify.post<{ Params: { serviceId: string }; Body: CreateRoomInput }>(
-    '/services/:serviceId/rooms',
-    {
-      schema: buildRouteSchema({
-        tags: ['Rooms'],
-        summary: 'Create a new room',
-        description: 'Creates a new room for a hotel service. Only the establishment owner can perform this action.',
-        security: true,
-        params: serviceIdParamSchema,
-        body: createRoomSchema,
-        responses: {
-          201: { description: 'Room created successfully', schema: roomResponseSchema },
-          401: { description: 'Unauthorized', schema: ErrorResponseSchema },
-          403: { description: 'Insufficient permissions (OWNER required)', schema: ErrorResponseSchema },
-          404: { description: 'Service not found', schema: ErrorResponseSchema },
-          409: { description: 'Room number already exists', schema: ErrorResponseSchema },
-          422: { description: 'Validation error', schema: ErrorResponseSchema },
-        },
-      }),
-      preHandler: [authenticate, validate(createRoomSchema), requireRole('OWNER')],
+  registerCreateEndpoint<Room, CreateRoomInput, { serviceId: string }>(fastify, {
+    path: '/services/:serviceId/rooms',
+    tags: ['Rooms'],
+    entityName: 'Room',
+    createSchema: createRoomSchema,
+    responseSchema: roomResponseSchema,
+    paramsSchema: serviceIdParamSchema,
+    service: {
+      create: (params, data, userId) => service.create(params.serviceId, data as CreateRoomInput, userId),
     },
-    async (
-      request: FastifyRequest<{ Params: { serviceId: string }; Body: CreateRoomInput }>,
-      reply: FastifyReply
-    ) => {
-      const result = await service.create(request.params.serviceId, request.body, request.user.userId)
-      return reply.status(201).send(formatRoomResponse(result))
-    }
-  )
+    formatter: formatRoomResponse,
+    description: 'Creates a new room for a hotel service. Only the establishment owner can perform this action.',
+    additionalResponses: {
+      403: { description: 'Insufficient permissions (OWNER required)', schema: ErrorResponseSchema },
+      409: { description: 'Room number already exists', schema: ErrorResponseSchema },
+    },
+    preHandler: [requireRole('OWNER')],
+    extractParams: (request) => ({ serviceId: request.params.serviceId }),
+  })
 
-  fastify.get<{ Params: { serviceId: string } }>(
-    '/services/:serviceId/rooms',
-    {
-      schema: buildRouteSchema({
-        tags: ['Rooms'],
-        summary: 'List rooms for a service',
-        description: 'Retrieves all rooms for a hotel service. No authentication required.',
-        params: serviceIdParamSchema,
-        responses: {
-          200: { description: 'List of rooms', schema: z.array(roomResponseSchema) },
-          404: { description: 'Service not found', schema: ErrorResponseSchema },
-        },
-      }),
+  registerListEndpoint(fastify, {
+    path: '/services/:serviceId/rooms',
+    tags: ['Rooms'],
+    entityName: 'Room',
+    responseSchema: roomResponseSchema,
+    paramsSchema: serviceIdParamSchema,
+    service: {
+      findByX: (params) => service.findByService(params.serviceId),
     },
-    async (request: FastifyRequest<{ Params: { serviceId: string } }>) => {
-      const results = await service.findByService(request.params.serviceId)
-      return results.map(formatRoomResponse)
-    }
-  )
+    formatter: formatRoomResponse,
+    description: 'Retrieves all rooms for a hotel service. No authentication required.',
+    extractParams: (request) => ({ serviceId: request.params.serviceId }),
+  })
 
-  fastify.get<{ Params: { id: string } }>(
-    '/rooms/:id',
-    {
-      schema: buildRouteSchema({
-        tags: ['Rooms'],
-        summary: 'Get room by ID',
-        description: 'Retrieves detailed information about a specific room. No authentication required.',
-        params: idParamSchema,
-        responses: getByIdResponses('Room', roomResponseSchema),
-      }),
-    },
-    async (request: FastifyRequest<{ Params: { id: string } }>) => {
-      const result = await service.findById(request.params.id)
-      return formatRoomResponse(result)
-    }
-  )
+  registerGetByIdEndpoint(fastify, {
+    path: '/rooms/:id',
+    tags: ['Rooms'],
+    entityName: 'Room',
+    responseSchema: roomResponseSchema,
+    service: { findById: (id) => service.findById(id) },
+    formatter: formatRoomResponse,
+  })
 
-  fastify.put<{ Params: { id: string }; Body: UpdateRoomInput }>(
-    '/rooms/:id',
-    {
-      schema: buildRouteSchema({
-        tags: ['Rooms'],
-        summary: 'Update a room',
-        description: 'Updates room information. Only the establishment owner can perform this action.',
-        security: true,
-        params: idParamSchema,
-        body: updateRoomSchema,
-        responses: updateResponses('Room', roomResponseSchema, {
-          409: { description: 'Room number already exists or room has active bookings', schema: ErrorResponseSchema },
-        }),
-      }),
-      preHandler: [authenticate, validate(updateRoomSchema), requireRoleViaRoom('OWNER')],
+  registerUpdateEndpoint<Room, UpdateRoomInput>(fastify, {
+    path: '/rooms/:id',
+    tags: ['Rooms'],
+    entityName: 'Room',
+    updateSchema: updateRoomSchema,
+    responseSchema: roomResponseSchema,
+    service: { update: (id, data, userId) => service.update(id, data as UpdateRoomInput, userId) },
+    formatter: formatRoomResponse,
+    additionalResponses: {
+      409: { description: 'Room number already exists or room has active bookings', schema: ErrorResponseSchema },
     },
-    async (request: FastifyRequest<{ Params: { id: string }; Body: UpdateRoomInput }>, reply: FastifyReply) => {
-      const result = await service.update(request.params.id, request.body, request.user.userId)
-      return reply.status(200).send(formatRoomResponse(result))
-    }
-  )
+    preHandler: [requireRoleViaRoom('OWNER')],
+  })
 
-  fastify.delete<{ Params: { id: string } }>(
-    '/rooms/:id',
-    {
-      schema: buildRouteSchema({
-        tags: ['Rooms'],
-        summary: 'Delete a room',
-        description: 'Deletes a room. Only the establishment owner can perform this action. Room must not have active bookings.',
-        security: true,
-        params: idParamSchema,
-        responses: deleteResponses('Room', {
-          409: { description: 'Room has active bookings', schema: ErrorResponseSchema },
-        }),
-      }),
-      preHandler: [authenticate, requireRoleViaRoom('OWNER')],
+  registerDeleteEndpoint(fastify, {
+    path: '/rooms/:id',
+    tags: ['Rooms'],
+    entityName: 'Room',
+    service: { delete: (id, userId) => service.delete(id, userId) },
+    description: 'Deletes a room. Only the establishment owner can perform this action. Room must not have active bookings.',
+    additionalResponses: {
+      409: { description: 'Room has active bookings', schema: ErrorResponseSchema },
     },
-    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-      await service.delete(request.params.id, request.user.userId)
-      return reply.status(200).send({ success: true })
-    }
-  )
+    preHandler: [requireRoleViaRoom('OWNER')],
+  })
 }
 
