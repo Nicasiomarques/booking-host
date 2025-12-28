@@ -1,2 +1,2 @@
-export { BookingService, type CreateBookingInput } from './booking.service.js'
+export { createBookingService, type CreateBookingInput } from './booking.service.js'
 

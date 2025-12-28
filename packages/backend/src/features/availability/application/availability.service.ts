@@ -1,5 +1,7 @@
 import type { Availability, CreateAvailabilityData, UpdateAvailabilityData } from '../domain/index.js'
 import { ConflictError } from '#shared/domain/index.js'
+import type { DomainError, Either } from '#shared/domain/index.js'
+import { left, right, isLeft } from '#shared/domain/index.js'
 import type {
   AvailabilityRepositoryPort,
   ServiceRepositoryPort,
@@ -17,7 +19,7 @@ export const createAvailabilityService = (deps: {
     serviceId: string,
     data: Omit<CreateAvailabilityData, 'serviceId'>,
     userId: string
-  ): Promise<Availability> {
+  ): Promise<Either<DomainError, Availability>> {
     return createWithServiceAuthorization(serviceId, data, userId, {
       serviceRepository: {
         findById: (id) => deps.serviceRepository.findById(id),
@@ -30,31 +32,35 @@ export const createAvailabilityService = (deps: {
       entityName: 'Availability',
       action: 'create availability slots',
       validateBeforeCreate: async (_service, data) => {
-        // Check for overlapping time slots
-        const hasOverlap = await deps.repository.checkOverlap(
+        const overlapResult = await deps.repository.checkOverlap(
           serviceId,
           data.date,
           data.startTime,
           data.endTime
         )
-        if (hasOverlap) {
-          throw new ConflictError('Time slot overlaps with an existing availability')
+        if (isLeft(overlapResult)) {
+          return overlapResult
         }
+        if (overlapResult.value) {
+          return left(new ConflictError('Time slot overlaps with an existing availability'))
+        }
+        return right(undefined)
       },
     })
   },
 
-  async findById(id: string): Promise<Availability> {
-    return requireEntity(
-      await deps.repository.findById(id),
-      'Availability'
-    )
+  async findById(id: string): Promise<Either<DomainError, Availability>> {
+    const result = await deps.repository.findById(id)
+    if (isLeft(result)) {
+      return result
+    }
+    return requireEntity(result.value, 'Availability')
   },
 
   async findByService(
     serviceId: string,
     options: { startDate?: Date; endDate?: Date } = {}
-  ): Promise<Availability[]> {
+  ): Promise<Either<DomainError, Availability[]>> {
     return deps.repository.findByService(serviceId, options)
   },
 
@@ -62,29 +68,34 @@ export const createAvailabilityService = (deps: {
     id: string,
     data: UpdateAvailabilityData,
     userId: string
-  ): Promise<Availability> {
-    // We need to get the availability first to validate business rules
-    const availability = requireEntity(
-      await deps.repository.findByIdWithService(id),
-      'Availability'
-    )
+  ): Promise<Either<DomainError, Availability>> {
+    const availabilityResult = await deps.repository.findByIdWithService(id)
+    if (isLeft(availabilityResult)) {
+      return availabilityResult
+    }
+    const availabilityEither = requireEntity(availabilityResult.value, 'Availability')
+    if (isLeft(availabilityEither)) {
+      return availabilityEither
+    }
+    const availability = availabilityEither.value
 
-    // If date or time is being changed, check for overlaps
     if (data.date || data.startTime || data.endTime) {
       const newDate = data.date ?? availability.date
       const newStartTime = data.startTime ?? availability.startTime
       const newEndTime = data.endTime ?? availability.endTime
 
-      const hasOverlap = await deps.repository.checkOverlap(
+      const overlapResult = await deps.repository.checkOverlap(
         availability.serviceId,
         newDate,
         newStartTime,
         newEndTime,
-        id // Exclude current availability from check
+        id
       )
-
-      if (hasOverlap) {
-        throw new ConflictError('Time slot overlaps with an existing availability')
+      if (isLeft(overlapResult)) {
+        return overlapResult
+      }
+      if (overlapResult.value) {
+        return left(new ConflictError('Time slot overlaps with an existing availability'))
       }
     }
 
@@ -100,7 +111,7 @@ export const createAvailabilityService = (deps: {
     })
   },
 
-  async delete(id: string, userId: string): Promise<Availability> {
+  async delete(id: string, userId: string): Promise<Either<DomainError, Availability>> {
     return deleteWithAuthorization(id, userId, {
       repository: {
         findByIdWithService: (id) => deps.repository.findByIdWithService(id),

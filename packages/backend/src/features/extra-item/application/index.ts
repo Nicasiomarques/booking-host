@@ -1,2 +1,2 @@
-export { ExtraItemService } from './extra-item.service.js'
+export { createExtraItemService } from './extra-item.service.js'
 

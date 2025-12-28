@@ -1,2 +1,2 @@
-export { EstablishmentService } from './establishment.service.js'
+export { createEstablishmentService } from './establishment.service.js'
 

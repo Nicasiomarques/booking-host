@@ -1,10 +1,11 @@
 import type { ExtraItem, CreateExtraItemData, UpdateExtraItemData } from '../domain/index.js'
+import type { DomainError, Either } from '#shared/domain/index.js'
 import type {
   ExtraItemRepositoryPort,
   ServiceRepositoryPort,
   EstablishmentRepositoryPort,
 } from '#shared/application/ports/index.js'
-import { requireEntity } from '#shared/application/utils/validation.helper.js'
+import { requireEntity, isLeft } from '#shared/application/utils/validation.helper.js'
 import { updateWithAuthorization, deleteWithAuthorization, createWithServiceAuthorization } from '#shared/application/services/crud-helpers.js'
 
 export const createExtraItemService = (deps: {
@@ -16,7 +17,7 @@ export const createExtraItemService = (deps: {
     serviceId: string,
     data: Omit<CreateExtraItemData, 'serviceId'>,
     userId: string
-  ): Promise<ExtraItem> {
+  ): Promise<Either<DomainError, ExtraItem>> {
     return createWithServiceAuthorization(serviceId, data, userId, {
       serviceRepository: {
         findById: (id) => deps.serviceRepository.findById(id),
@@ -31,17 +32,18 @@ export const createExtraItemService = (deps: {
     })
   },
 
-  async findById(id: string): Promise<ExtraItem> {
-    return requireEntity(
-      await deps.repository.findById(id),
-      'ExtraItem'
-    )
+  async findById(id: string): Promise<Either<DomainError, ExtraItem>> {
+    const result = await deps.repository.findById(id)
+    if (isLeft(result)) {
+      return result
+    }
+    return requireEntity(result.value, 'ExtraItem')
   },
 
   async findByService(
     serviceId: string,
     options: { activeOnly?: boolean } = {}
-  ): Promise<ExtraItem[]> {
+  ): Promise<Either<DomainError, ExtraItem[]>> {
     return deps.repository.findByService(serviceId, options)
   },
 
@@ -49,7 +51,7 @@ export const createExtraItemService = (deps: {
     id: string,
     data: UpdateExtraItemData,
     userId: string
-  ): Promise<ExtraItem> {
+  ): Promise<Either<DomainError, ExtraItem>> {
     return updateWithAuthorization(id, data, userId, {
       repository: {
         findByIdWithService: (id) => deps.repository.findByIdWithService(id),
@@ -62,7 +64,7 @@ export const createExtraItemService = (deps: {
     })
   },
 
-  async delete(id: string, userId: string): Promise<ExtraItem> {
+  async delete(id: string, userId: string): Promise<Either<DomainError, ExtraItem>> {
     return deleteWithAuthorization(id, userId, {
       repository: {
         findByIdWithService: (id) => deps.repository.findByIdWithService(id),

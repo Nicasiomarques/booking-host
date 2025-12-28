@@ -1,2 +1,2 @@
-export { RoomService } from './room.service.js'
+export { createRoomService } from './room.service.js'
 

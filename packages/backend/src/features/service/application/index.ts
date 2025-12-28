@@ -1,2 +1,2 @@
-export { ServiceService } from './service.service.js'
+export { createServiceService } from './service.service.js'
 

@@ -4,8 +4,9 @@ import type {
   BookingExtraItemData,
   ListBookingsOptions,
 } from '../domain/index.js'
-import type { PaginatedResult } from '#shared/domain/index.js'
+import type { PaginatedResult, DomainError, Either } from '#shared/domain/index.js'
 import { NotFoundError, ForbiddenError, ConflictError } from '#shared/domain/index.js'
+import { left, right, isLeft } from '#shared/domain/index.js'
 import { requireEntity } from '#shared/application/utils/validation.helper.js'
 import type {
   UnitOfWorkPort,
@@ -47,23 +48,32 @@ export const createBookingService = (deps: {
   roomRepository: RoomRepositoryPort
 }) => ({
 
-  async create(input: CreateBookingInput, userId: string): Promise<Booking> {
-    // Validate service exists and is active
-    const service = requireEntity(
-      await deps.serviceRepository.findById(input.serviceId),
-      'Service'
-    )
-    if (!service.active) throw new ConflictError('Service is not active')
+  async create(input: CreateBookingInput, userId: string): Promise<Either<DomainError, Booking>> {
+    const serviceResult = await deps.serviceRepository.findById(input.serviceId)
+    if (isLeft(serviceResult)) {
+      return serviceResult
+    }
+    const serviceEither = requireEntity(serviceResult.value, 'Service')
+    if (isLeft(serviceEither)) {
+      return serviceEither
+    }
+    const service = serviceEither.value
+    if (!service.active) {
+      return left(new ConflictError('Service is not active'))
+    }
 
-    // Validate availability exists
-    const availability = requireEntity(
-      await deps.availabilityRepository.findById(input.availabilityId),
-      'Availability'
-    )
+    const availabilityResult = await deps.availabilityRepository.findById(input.availabilityId)
+    if (isLeft(availabilityResult)) {
+      return availabilityResult
+    }
+    const availabilityEither = requireEntity(availabilityResult.value, 'Availability')
+    if (isLeft(availabilityEither)) {
+      return availabilityEither
+    }
+    const availability = availabilityEither.value
 
-    // Ensure availability belongs to service
     if (availability.serviceId !== input.serviceId) {
-      throw new ConflictError('Availability does not belong to the specified service')
+      return left(new ConflictError('Availability does not belong to the specified service'))
     }
 
     // Hotel-specific validations
@@ -75,80 +85,82 @@ export const createBookingService = (deps: {
 
     if (isHotelBooking) {
       if (!input.checkInDate || !input.checkOutDate) {
-        throw new ConflictError('checkInDate and checkOutDate are required for hotel bookings')
+        return left(new ConflictError('checkInDate and checkOutDate are required for hotel bookings'))
       }
 
-      // Normalize dates to start of day (UTC) to avoid timezone issues
       checkInDate = new Date(input.checkInDate + 'T00:00:00.000Z')
       checkOutDate = new Date(input.checkOutDate + 'T00:00:00.000Z')
 
-      // Validate dates are not in the past (check first before other validations)
       const today = new Date()
       today.setUTCHours(0, 0, 0, 0)
 
       if (checkInDate < today) {
-        throw new ConflictError('checkInDate cannot be in the past')
+        return left(new ConflictError('checkInDate cannot be in the past'))
       }
 
-      // Validate dates
       if (checkInDate >= checkOutDate) {
-        throw new ConflictError('checkOutDate must be after checkInDate')
+        return left(new ConflictError('checkOutDate must be after checkInDate'))
       }
 
-      // Calculate number of nights
       const diffTime = checkOutDate.getTime() - checkInDate.getTime()
       numberOfNights = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
       if (numberOfNights < 1) {
-        throw new ConflictError('Minimum stay is 1 night')
+        return left(new ConflictError('Minimum stay is 1 night'))
       }
 
-      // Validate room if provided
       if (input.roomId) {
-        const room = requireEntity(
-          await deps.roomRepository.findById(input.roomId),
-          'Room'
-        )
+        const roomResult = await deps.roomRepository.findById(input.roomId)
+        if (isLeft(roomResult)) {
+          return roomResult
+        }
+        const roomEither = requireEntity(roomResult.value, 'Room')
+        if (isLeft(roomEither)) {
+          return roomEither
+        }
+        const room = roomEither.value
+
         if (room.serviceId !== input.serviceId) {
-          throw new ConflictError('Room does not belong to the specified service')
+          return left(new ConflictError('Room does not belong to the specified service'))
         }
 
-        // Check room status - only AVAILABLE rooms can be booked
         if (room.status !== 'AVAILABLE') {
-          throw new ConflictError(`Room is ${room.status} and cannot be booked`)
+          return left(new ConflictError(`Room is ${room.status} and cannot be booked`))
         }
 
-        // Check if room is available for the period (no conflicting bookings)
-        const availableRooms = await deps.roomRepository.findAvailableRooms(
+        const availableRoomsResult = await deps.roomRepository.findAvailableRooms(
           input.serviceId,
           checkInDate,
           checkOutDate
         )
+        if (isLeft(availableRoomsResult)) {
+          return availableRoomsResult
+        }
 
-        if (!availableRooms.find((r) => r.id === input.roomId)) {
-          throw new ConflictError('Room is not available for the selected dates')
+        if (!availableRoomsResult.value.find((r) => r.id === input.roomId)) {
+          return left(new ConflictError('Room is not available for the selected dates'))
         }
 
         roomId = input.roomId
       } else {
-        // Find available room automatically
-        const availableRooms = await deps.roomRepository.findAvailableRooms(
+        const availableRoomsResult = await deps.roomRepository.findAvailableRooms(
           input.serviceId,
           checkInDate,
           checkOutDate
         )
-
-        if (availableRooms.length === 0) {
-          throw new ConflictError('No rooms available for the selected dates')
+        if (isLeft(availableRoomsResult)) {
+          return availableRoomsResult
         }
-        // Use first available room
-        roomId = availableRooms[0].id
+
+        if (availableRoomsResult.value.length === 0) {
+          return left(new ConflictError('No rooms available for the selected dates'))
+        }
+        roomId = availableRoomsResult.value[0].id
       }
     }
 
-    // Check capacity (for non-hotel bookings)
     if (!isHotelBooking && availability.capacity < input.quantity) {
-      throw new ConflictError('No available capacity for the requested quantity')
+      return left(new ConflictError('No available capacity for the requested quantity'))
     }
 
     // Calculate total price
@@ -164,25 +176,26 @@ export const createBookingService = (deps: {
       totalPrice = unitPrice * input.quantity
     }
 
-    // Process extras
     const extrasData: BookingExtraItemData[] = []
     if (input.extras && input.extras.length > 0) {
       for (const extra of input.extras) {
-        const extraItem = await deps.extraItemRepository.findById(extra.extraItemId)
+        const extraItemResult = await deps.extraItemRepository.findById(extra.extraItemId)
+        if (isLeft(extraItemResult)) {
+          return extraItemResult
+        }
+        const extraItem = extraItemResult.value
         if (!extraItem || !extraItem.active) {
-          throw new NotFoundError(`ExtraItem ${extra.extraItemId}`)
+          return left(new NotFoundError(`ExtraItem ${extra.extraItemId}`))
         }
 
-        // Ensure extra belongs to the service
         if (extraItem.serviceId !== input.serviceId) {
-          throw new ConflictError(`Extra item ${extra.extraItemId} does not belong to the service`)
+          return left(new ConflictError(`Extra item ${extra.extraItemId} does not belong to the service`))
         }
 
-        // Validate quantity doesn't exceed max
         if (extra.quantity > extraItem.maxQuantity) {
-          throw new ConflictError(
+          return left(new ConflictError(
             `Extra item ${extraItem.name} quantity exceeds maximum of ${extraItem.maxQuantity}`
-          )
+          ))
         }
 
         const priceAtBooking = Number(extraItem.price)
@@ -196,17 +209,19 @@ export const createBookingService = (deps: {
       }
     }
 
-    // Execute transaction using Unit of Work
-    return deps.unitOfWork.execute(async (ctx) => {
-      // Decrement capacity
-      await ctx.availabilityRepository.decrementCapacity(input.availabilityId, input.quantity)
-
-      // For hotel bookings, mark room as OCCUPIED
-      if (isHotelBooking && roomId) {
-        await ctx.roomRepository.updateStatus(roomId, 'OCCUPIED')
+    const bookingResult = await deps.unitOfWork.execute(async (ctx) => {
+      const capacityResult = await ctx.availabilityRepository.decrementCapacity(input.availabilityId, input.quantity)
+      if (isLeft(capacityResult)) {
+        return capacityResult
       }
 
-      // Create booking
+      if (isHotelBooking && roomId) {
+        const roomStatusResult = await ctx.roomRepository.updateStatus(roomId, 'OCCUPIED')
+        if (isLeft(roomStatusResult)) {
+          return roomStatusResult
+        }
+      }
+
       return ctx.bookingRepository.create(
         {
           userId,
@@ -216,7 +231,6 @@ export const createBookingService = (deps: {
           quantity: input.quantity,
           totalPrice,
           status: 'CONFIRMED',
-          // Hotel-specific fields
           checkInDate,
           checkOutDate,
           roomId,
@@ -231,27 +245,35 @@ export const createBookingService = (deps: {
         extrasData
       )
     })
+
+    return bookingResult
   },
 
-  async findById(id: string, userId: string): Promise<BookingWithDetails> {
-    const booking = requireEntity(
-      await deps.bookingRepository.findById(id),
-      'Booking'
-    )
+  async findById(id: string, userId: string): Promise<Either<DomainError, BookingWithDetails>> {
+    const bookingResult = await deps.bookingRepository.findById(id)
+    if (isLeft(bookingResult)) {
+      return bookingResult
+    }
+    const bookingEither = requireEntity(bookingResult.value, 'Booking')
+    if (isLeft(bookingEither)) {
+      return bookingEither
+    }
+    const booking = bookingEither.value
 
-    // Check if user is the owner or has role in establishment
     if (booking.userId !== userId) {
-      const role = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
-      if (!role) throw new ForbiddenError('You do not have access to this booking')
+      const roleResult = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
+      if (isLeft(roleResult) || !roleResult.value) {
+        return left(new ForbiddenError('You do not have access to this booking'))
+      }
     }
 
-    return booking
+    return right(booking)
   },
 
   async findByUser(
     userId: string,
     options: ListBookingsOptions = {}
-  ): Promise<PaginatedResult<BookingWithDetails>> {
+  ): Promise<Either<DomainError, PaginatedResult<BookingWithDetails>>> {
     return deps.bookingRepository.findByUser(userId, options)
   },
 
@@ -259,213 +281,288 @@ export const createBookingService = (deps: {
     establishmentId: string,
     userId: string,
     options: ListBookingsOptions = {}
-  ): Promise<PaginatedResult<BookingWithDetails>> {
-    // Check if user has role in establishment
-    const role = await deps.establishmentRepository.getUserRole(userId, establishmentId)
-    if (!role) {
-      throw new ForbiddenError('You do not have access to this establishment bookings')
+  ): Promise<Either<DomainError, PaginatedResult<BookingWithDetails>>> {
+    const roleResult = await deps.establishmentRepository.getUserRole(userId, establishmentId)
+    if (isLeft(roleResult) || !roleResult.value) {
+      return left(new ForbiddenError('You do not have access to this establishment bookings'))
     }
 
     return deps.bookingRepository.findByEstablishment(establishmentId, options)
   },
 
-  async cancel(id: string, userId: string): Promise<BookingWithDetails> {
-    const ownership = requireEntity(
-      await deps.bookingRepository.getBookingOwnership(id),
-      'Booking'
-    )
+  async cancel(id: string, userId: string): Promise<Either<DomainError, BookingWithDetails>> {
+    const ownershipResult = await deps.bookingRepository.getBookingOwnership(id)
+    if (isLeft(ownershipResult)) {
+      return ownershipResult
+    }
+    const ownershipEither = requireEntity(ownershipResult.value, 'Booking')
+    if (isLeft(ownershipEither)) {
+      return ownershipEither
+    }
+    const ownership = ownershipEither.value
 
-    // Check if user is the owner or has role in establishment
     if (ownership.userId !== userId) {
-      const role = await deps.establishmentRepository.getUserRole(userId, ownership.establishmentId)
-      if (!role) throw new ForbiddenError('You do not have permission to cancel this booking')
+      const roleResult = await deps.establishmentRepository.getUserRole(userId, ownership.establishmentId)
+      if (isLeft(roleResult) || !roleResult.value) {
+        return left(new ForbiddenError('You do not have permission to cancel this booking'))
+      }
     }
 
-    // Check if booking can be cancelled
     if (ownership.status === 'CANCELLED') {
-      throw new ConflictError('Booking is already cancelled')
+      return left(new ConflictError('Booking is already cancelled'))
     }
 
-    // Execute transaction using Unit of Work
-    await deps.unitOfWork.execute(async (ctx) => {
-      // Restore capacity
-      await ctx.availabilityRepository.incrementCapacity(
+    const transactionResult = await deps.unitOfWork.execute(async (ctx) => {
+      const capacityResult = await ctx.availabilityRepository.incrementCapacity(
         ownership.availabilityId,
         ownership.quantity
       )
-
-      // For hotel bookings, free the room
-      if (ownership.serviceType === 'HOTEL' && ownership.roomId) {
-        await ctx.roomRepository.updateStatus(ownership.roomId, 'AVAILABLE')
+      if (isLeft(capacityResult)) {
+        return capacityResult
       }
 
-      // Update booking status
-      await ctx.bookingRepository.updateStatus(id, 'CANCELLED')
+      if (ownership.serviceType === 'HOTEL' && ownership.roomId) {
+        const roomStatusResult = await ctx.roomRepository.updateStatus(ownership.roomId, 'AVAILABLE')
+        if (isLeft(roomStatusResult)) {
+          return roomStatusResult
+        }
+      }
+
+      return ctx.bookingRepository.updateStatus(id, 'CANCELLED')
     })
 
-    return deps.bookingRepository.findById(id) as Promise<BookingWithDetails>
-  },
-
-  async confirm(id: string, userId: string): Promise<BookingWithDetails> {
-    const ownership = requireEntity(
-      await deps.bookingRepository.getBookingOwnership(id),
-      'Booking'
-    )
-
-    // Check if user has role in establishment (only staff/owner can confirm)
-    const role = await deps.establishmentRepository.getUserRole(userId, ownership.establishmentId)
-    if (!role) {
-      throw new ForbiddenError('You do not have permission to confirm this booking')
+    if (isLeft(transactionResult)) {
+      return transactionResult
     }
 
-    // Check if booking can be confirmed
+    return deps.bookingRepository.findById(id).then((result) => {
+      if (isLeft(result) || !result.value) {
+        return left(new NotFoundError('Booking'))
+      }
+      return right(result.value)
+    })
+  },
+
+  async confirm(id: string, userId: string): Promise<Either<DomainError, BookingWithDetails>> {
+    const ownershipResult = await deps.bookingRepository.getBookingOwnership(id)
+    if (isLeft(ownershipResult)) {
+      return ownershipResult
+    }
+    const ownershipEither = requireEntity(ownershipResult.value, 'Booking')
+    if (isLeft(ownershipEither)) {
+      return ownershipEither
+    }
+    const ownership = ownershipEither.value
+
+    const roleResult = await deps.establishmentRepository.getUserRole(userId, ownership.establishmentId)
+    if (isLeft(roleResult) || !roleResult.value) {
+      return left(new ForbiddenError('You do not have permission to confirm this booking'))
+    }
+
     if (ownership.status === 'CONFIRMED') {
-      throw new ConflictError('Booking is already confirmed')
+      return left(new ConflictError('Booking is already confirmed'))
     }
 
     if (ownership.status === 'CANCELLED') {
-      throw new ConflictError('Cannot confirm a cancelled booking')
+      return left(new ConflictError('Cannot confirm a cancelled booking'))
     }
 
-    // Update booking status
-    await deps.bookingRepository.updateStatus(id, 'CONFIRMED')
-
-    return deps.bookingRepository.findById(id) as Promise<BookingWithDetails>
-  },
-
-  async checkIn(id: string, userId: string): Promise<BookingWithDetails> {
-    const booking = requireEntity(
-      await deps.bookingRepository.findById(id),
-      'Booking'
-    )
-
-    // Check if user has role in establishment (only staff/owner can check in)
-    const role = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
-    if (!role) {
-      throw new ForbiddenError('You do not have permission to check in this booking')
+    const updateResult = await deps.bookingRepository.updateStatus(id, 'CONFIRMED')
+    if (isLeft(updateResult)) {
+      return updateResult
     }
 
-    // Validate booking is for hotel service
-    const service = await deps.serviceRepository.findById(booking.serviceId)
-    if (service?.type !== 'HOTEL') {
-      throw new ConflictError('Check-in is only available for hotel bookings')
-    }
-
-    // Check if booking can be checked in
-    if (booking.status === 'CHECKED_IN') {
-      throw new ConflictError('Booking is already checked in')
-    }
-
-    if (booking.status === 'CHECKED_OUT') {
-      throw new ConflictError('Cannot check in a booking that has already been checked out')
-    }
-
-    if (booking.status === 'CANCELLED') {
-      throw new ConflictError('Cannot check in a cancelled booking')
-    }
-
-    if (booking.status === 'NO_SHOW') {
-      throw new ConflictError('Cannot check in a no-show booking')
-    }
-
-    // Update booking status to CHECKED_IN
-    await deps.bookingRepository.updateStatus(id, 'CHECKED_IN')
-
-    return deps.bookingRepository.findById(id) as Promise<BookingWithDetails>
-  },
-
-  async checkOut(id: string, userId: string): Promise<BookingWithDetails> {
-    const booking = requireEntity(
-      await deps.bookingRepository.findById(id),
-      'Booking'
-    )
-
-    // Check if user has role in establishment (only staff/owner can check out)
-    const role = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
-    if (!role) {
-      throw new ForbiddenError('You do not have permission to check out this booking')
-    }
-
-    // Validate booking is for hotel service
-    const service = await deps.serviceRepository.findById(booking.serviceId)
-    if (service?.type !== 'HOTEL') {
-      throw new ConflictError('Check-out is only available for hotel bookings')
-    }
-
-    // Check if booking can be checked out
-    if (booking.status === 'CHECKED_OUT') {
-      throw new ConflictError('Booking is already checked out')
-    }
-
-    if (booking.status === 'CANCELLED') {
-      throw new ConflictError('Cannot check out a cancelled booking')
-    }
-
-    if (booking.status === 'NO_SHOW') {
-      throw new ConflictError('Cannot check out a no-show booking')
-    }
-
-    // Execute transaction to update booking status and free the room
-    await deps.unitOfWork.execute(async (ctx) => {
-      // Update booking status to CHECKED_OUT
-      await ctx.bookingRepository.updateStatus(id, 'CHECKED_OUT')
-
-      // Free the room (set to AVAILABLE)
-      if (booking.roomId) {
-        await ctx.roomRepository.updateStatus(booking.roomId, 'AVAILABLE')
+    return deps.bookingRepository.findById(id).then((result) => {
+      if (isLeft(result) || !result.value) {
+        return left(new NotFoundError('Booking'))
       }
+      return right(result.value)
+    })
+  },
+
+  async checkIn(id: string, userId: string): Promise<Either<DomainError, BookingWithDetails>> {
+    const bookingResult = await deps.bookingRepository.findById(id)
+    if (isLeft(bookingResult)) {
+      return bookingResult
+    }
+    const bookingEither = requireEntity(bookingResult.value, 'Booking')
+    if (isLeft(bookingEither)) {
+      return bookingEither
+    }
+    const booking = bookingEither.value
+
+    const roleResult = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
+    if (isLeft(roleResult) || !roleResult.value) {
+      return left(new ForbiddenError('You do not have permission to check in this booking'))
+    }
+
+    const serviceResult = await deps.serviceRepository.findById(booking.serviceId)
+    if (isLeft(serviceResult) || !serviceResult.value) {
+      return left(new NotFoundError('Service'))
+    }
+    if (serviceResult.value.type !== 'HOTEL') {
+      return left(new ConflictError('Check-in is only available for hotel bookings'))
+    }
+
+    if (booking.status === 'CHECKED_IN') {
+      return left(new ConflictError('Booking is already checked in'))
+    }
+
+    if (booking.status === 'CHECKED_OUT') {
+      return left(new ConflictError('Cannot check in a booking that has already been checked out'))
+    }
+
+    if (booking.status === 'CANCELLED') {
+      return left(new ConflictError('Cannot check in a cancelled booking'))
+    }
+
+    if (booking.status === 'NO_SHOW') {
+      return left(new ConflictError('Cannot check in a no-show booking'))
+    }
+
+    const updateResult = await deps.bookingRepository.updateStatus(id, 'CHECKED_IN')
+    if (isLeft(updateResult)) {
+      return updateResult
+    }
+
+    return deps.bookingRepository.findById(id).then((result) => {
+      if (isLeft(result) || !result.value) {
+        return left(new NotFoundError('Booking'))
+      }
+      return right(result.value)
+    })
+  },
+
+  async checkOut(id: string, userId: string): Promise<Either<DomainError, BookingWithDetails>> {
+    const bookingResult = await deps.bookingRepository.findById(id)
+    if (isLeft(bookingResult)) {
+      return bookingResult
+    }
+    const bookingEither = requireEntity(bookingResult.value, 'Booking')
+    if (isLeft(bookingEither)) {
+      return bookingEither
+    }
+    const booking = bookingEither.value
+
+    const roleResult = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
+    if (isLeft(roleResult) || !roleResult.value) {
+      return left(new ForbiddenError('You do not have permission to check out this booking'))
+    }
+
+    const serviceResult = await deps.serviceRepository.findById(booking.serviceId)
+    if (isLeft(serviceResult) || !serviceResult.value) {
+      return left(new NotFoundError('Service'))
+    }
+    if (serviceResult.value.type !== 'HOTEL') {
+      return left(new ConflictError('Check-out is only available for hotel bookings'))
+    }
+
+    if (booking.status === 'CHECKED_OUT') {
+      return left(new ConflictError('Booking is already checked out'))
+    }
+
+    if (booking.status === 'CANCELLED') {
+      return left(new ConflictError('Cannot check out a cancelled booking'))
+    }
+
+    if (booking.status === 'NO_SHOW') {
+      return left(new ConflictError('Cannot check out a no-show booking'))
+    }
+
+    const transactionResult = await deps.unitOfWork.execute(async (ctx) => {
+      const updateResult = await ctx.bookingRepository.updateStatus(id, 'CHECKED_OUT')
+      if (isLeft(updateResult)) {
+        return updateResult
+      }
+
+      if (booking.roomId) {
+        const roomStatusResult = await ctx.roomRepository.updateStatus(booking.roomId, 'AVAILABLE')
+        if (isLeft(roomStatusResult)) {
+          return roomStatusResult
+        }
+      }
+
+      return right(undefined)
     })
 
-    return deps.bookingRepository.findById(id) as Promise<BookingWithDetails>
+    if (isLeft(transactionResult)) {
+      return transactionResult
+    }
+
+    return deps.bookingRepository.findById(id).then((result) => {
+      if (isLeft(result) || !result.value) {
+        return left(new NotFoundError('Booking'))
+      }
+      return right(result.value)
+    })
   },
 
-  async markNoShow(id: string, userId: string): Promise<BookingWithDetails> {
-    const booking = requireEntity(
-      await deps.bookingRepository.findById(id),
-      'Booking'
-    )
+  async markNoShow(id: string, userId: string): Promise<Either<DomainError, BookingWithDetails>> {
+    const bookingResult = await deps.bookingRepository.findById(id)
+    if (isLeft(bookingResult)) {
+      return bookingResult
+    }
+    const bookingEither = requireEntity(bookingResult.value, 'Booking')
+    if (isLeft(bookingEither)) {
+      return bookingEither
+    }
+    const booking = bookingEither.value
 
-    // Check if user has role in establishment (only staff/owner can mark no-show)
-    const role = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
-    if (!role) {
-      throw new ForbiddenError('You do not have permission to mark this booking as no-show')
+    const roleResult = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
+    if (isLeft(roleResult) || !roleResult.value) {
+      return left(new ForbiddenError('You do not have permission to mark this booking as no-show'))
     }
 
-    // Validate booking is for hotel service
-    const service = await deps.serviceRepository.findById(booking.serviceId)
-    if (service?.type !== 'HOTEL') {
-      throw new ConflictError('No-show is only available for hotel bookings')
+    const serviceResult = await deps.serviceRepository.findById(booking.serviceId)
+    if (isLeft(serviceResult) || !serviceResult.value) {
+      return left(new NotFoundError('Service'))
+    }
+    if (serviceResult.value.type !== 'HOTEL') {
+      return left(new ConflictError('No-show is only available for hotel bookings'))
     }
 
-    // Check if booking can be marked as no-show
     if (booking.status === 'CHECKED_IN') {
-      throw new ConflictError('Cannot mark a checked-in booking as no-show')
+      return left(new ConflictError('Cannot mark a checked-in booking as no-show'))
     }
 
     if (booking.status === 'CHECKED_OUT') {
-      throw new ConflictError('Cannot mark a checked-out booking as no-show')
+      return left(new ConflictError('Cannot mark a checked-out booking as no-show'))
     }
 
     if (booking.status === 'NO_SHOW') {
-      throw new ConflictError('Booking is already marked as no-show')
+      return left(new ConflictError('Booking is already marked as no-show'))
     }
 
     if (booking.status === 'CANCELLED') {
-      throw new ConflictError('Cannot mark a cancelled booking as no-show')
+      return left(new ConflictError('Cannot mark a cancelled booking as no-show'))
     }
 
-    // Execute transaction to update booking status and free the room
-    await deps.unitOfWork.execute(async (ctx) => {
-      // Update booking status to NO_SHOW
-      await ctx.bookingRepository.updateStatus(id, 'NO_SHOW')
-
-      // Free the room (set to AVAILABLE)
-      if (booking.roomId) {
-        await ctx.roomRepository.updateStatus(booking.roomId, 'AVAILABLE')
+    const transactionResult = await deps.unitOfWork.execute(async (ctx) => {
+      const updateResult = await ctx.bookingRepository.updateStatus(id, 'NO_SHOW')
+      if (isLeft(updateResult)) {
+        return updateResult
       }
+
+      if (booking.roomId) {
+        const roomStatusResult = await ctx.roomRepository.updateStatus(booking.roomId, 'AVAILABLE')
+        if (isLeft(roomStatusResult)) {
+          return roomStatusResult
+        }
+      }
+
+      return right(undefined)
     })
 
-    return deps.bookingRepository.findById(id) as Promise<BookingWithDetails>
+    if (isLeft(transactionResult)) {
+      return transactionResult
+    }
+
+    return deps.bookingRepository.findById(id).then((result) => {
+      if (isLeft(result) || !result.value) {
+        return left(new NotFoundError('Booking'))
+      }
+      return right(result.value)
+    })
   },
 })
 

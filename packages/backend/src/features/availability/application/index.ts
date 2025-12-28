@@ -1,2 +1,2 @@
-export { AvailabilityService } from './availability.service.js'
+export { createAvailabilityService } from './availability.service.js'
 

@@ -1,5 +1,6 @@
-import type { UserWithRoles } from '#shared/domain/index.js'
+import type { UserWithRoles, DomainError, Either } from '#shared/domain/index.js'
 import { ConflictError, UnauthorizedError } from '#shared/domain/index.js'
+import { left, right, isLeft } from '#shared/domain/index.js'
 import type {
   PasswordHasherPort,
   TokenProviderPort,
@@ -39,52 +40,72 @@ export const createAuthService = (deps: {
   }
 
   return {
-    async register(input: RegisterInput): Promise<AuthResult> {
+    async register(input: RegisterInput): Promise<Either<DomainError, AuthResult>> {
       const passwordHash = await deps.passwordHasher.hash(input.password)
 
-      try {
-        const user = await deps.userRepository.create({
-          email: input.email,
-          passwordHash,
-          name: input.name,
-          phone: input.phone,
-          birthDate: input.birthDate ? new Date(input.birthDate) : undefined,
-          address: input.address,
-        })
+      const userResult = await deps.userRepository.create({
+        email: input.email,
+        passwordHash,
+        name: input.name,
+        phone: input.phone,
+        birthDate: input.birthDate ? new Date(input.birthDate) : undefined,
+        address: input.address,
+      })
 
-        return generateAuthResult(user)
-      } catch (error) {
-        const dbError = deps.errorHandler.analyze(error)
+      if (isLeft(userResult)) {
+        const dbError = deps.errorHandler.analyze(userResult.value)
         if (dbError?.type === DatabaseErrorType.UNIQUE_CONSTRAINT_VIOLATION) {
-          throw new ConflictError('Email already exists')
+          return left(new ConflictError('Email already exists'))
         }
-        throw error
+        return userResult
       }
+
+      return right(generateAuthResult(userResult.value))
     },
 
-    async login(input: LoginInput): Promise<AuthResult> {
-      const user = await deps.userRepository.findByEmail(input.email)
+    async login(input: LoginInput): Promise<Either<DomainError, AuthResult>> {
+      const userResult = await deps.userRepository.findByEmail(input.email)
 
-      if (!user) throw new UnauthorizedError('Invalid credentials')
+      if (isLeft(userResult)) {
+        return left(new UnauthorizedError('Invalid credentials'))
+      }
+
+      const user = userResult.value
+      if (!user) {
+        return left(new UnauthorizedError('Invalid credentials'))
+      }
 
       const isValid = await deps.passwordHasher.verify(user.passwordHash, input.password)
 
-      if (!isValid) throw new UnauthorizedError('Invalid credentials')
+      if (!isValid) {
+        return left(new UnauthorizedError('Invalid credentials'))
+      }
 
       if (await deps.passwordHasher.needsRehash(user.passwordHash)) {
         const newHash = await deps.passwordHasher.hash(input.password)
         await deps.userRepository.update(user.id, { passwordHash: newHash })
       }
 
-      return generateAuthResult(user)
+      return right(generateAuthResult(user))
     },
 
-    async refresh(refreshToken: string): Promise<{ accessToken: string }> {
-      const { userId } = deps.tokenProvider.verifyRefreshToken(refreshToken)
+    async refresh(refreshToken: string): Promise<Either<DomainError, { accessToken: string }>> {
+      const tokenResult = deps.tokenProvider.verifyRefreshToken(refreshToken)
+      if (isLeft(tokenResult)) {
+        return tokenResult
+      }
 
-      const user = await deps.userRepository.findById(userId)
+      const { userId } = tokenResult.value
+      const userResult = await deps.userRepository.findById(userId)
 
-      if (!user) throw new UnauthorizedError('User not found')
+      if (isLeft(userResult)) {
+        return left(new UnauthorizedError('User not found'))
+      }
+
+      const user = userResult.value
+      if (!user) {
+        return left(new UnauthorizedError('User not found'))
+      }
 
       const payload: TokenPayload = {
         userId: user.id,
@@ -92,22 +113,29 @@ export const createAuthService = (deps: {
         establishmentRoles: user.establishmentRoles,
       }
 
-      return {
+      return right({
         accessToken: deps.tokenProvider.generateAccessToken(payload),
-      }
+      })
     },
 
-    async me(userId: string): Promise<{ id: string; email: string; name: string; establishmentRoles: Array<{ establishmentId: string; role: string }> }> {
-      const user = await deps.userRepository.findById(userId)
+    async me(userId: string): Promise<Either<DomainError, { id: string; email: string; name: string; establishmentRoles: Array<{ establishmentId: string; role: string }> }>> {
+      const userResult = await deps.userRepository.findById(userId)
 
-      if (!user) throw new UnauthorizedError('User not found')
+      if (isLeft(userResult)) {
+        return left(new UnauthorizedError('User not found'))
+      }
 
-      return {
+      const user = userResult.value
+      if (!user) {
+        return left(new UnauthorizedError('User not found'))
+      }
+
+      return right({
         id: user.id,
         email: user.email,
         name: user.name,
         establishmentRoles: user.establishmentRoles,
-      }
+      })
     },
   }
 }

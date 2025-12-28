@@ -4,9 +4,9 @@ import type {
   UpdateEstablishmentData,
   EstablishmentWithRole,
 } from '../domain/index.js'
-import type { Role } from '#shared/domain/index.js'
+import type { Role, DomainError, Either } from '#shared/domain/index.js'
 import type { EstablishmentRepositoryPort } from '#shared/application/ports/index.js'
-import { requireEntity } from '#shared/application/utils/validation.helper.js'
+import { requireEntity, isLeft } from '#shared/application/utils/validation.helper.js'
 import { updateWithAuthorization } from '#shared/application/services/crud-helpers.js'
 
 export const createEstablishmentService = (deps: {
@@ -15,18 +15,19 @@ export const createEstablishmentService = (deps: {
   async create(
     data: CreateEstablishmentData,
     userId: string
-  ): Promise<Establishment> {
+  ): Promise<Either<DomainError, Establishment>> {
     return deps.repository.create(data, userId)
   },
 
-  async findById(id: string): Promise<Establishment> {
-    return requireEntity(
-      await deps.repository.findById(id),
-      'Establishment'
-    )
+  async findById(id: string): Promise<Either<DomainError, Establishment>> {
+    const result = await deps.repository.findById(id)
+    if (isLeft(result)) {
+      return result
+    }
+    return requireEntity(result.value, 'Establishment')
   },
 
-  async findByUserId(userId: string): Promise<EstablishmentWithRole[]> {
+  async findByUserId(userId: string): Promise<Either<DomainError, EstablishmentWithRole[]>> {
     return deps.repository.findByUserId(userId)
   },
 
@@ -34,7 +35,7 @@ export const createEstablishmentService = (deps: {
     id: string,
     data: UpdateEstablishmentData,
     userId: string
-  ): Promise<Establishment> {
+  ): Promise<Either<DomainError, Establishment>> {
     return updateWithAuthorization(id, data, userId, {
       repository: {
         findById: (id) => deps.repository.findById(id),
@@ -47,7 +48,7 @@ export const createEstablishmentService = (deps: {
     })
   },
 
-  async getUserRole(userId: string, establishmentId: string): Promise<Role | null> {
+  async getUserRole(userId: string, establishmentId: string): Promise<Either<DomainError, Role | null>> {
     return deps.repository.getUserRole(userId, establishmentId)
   },
 })
