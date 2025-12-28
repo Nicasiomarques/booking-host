@@ -6,7 +6,11 @@ import type {
   BookingWithDetails,
   ListBookingsOptions,
 } from '../../domain/index.js'
-import type { PaginatedResult, BookingStatus } from '#shared/domain/index.js'
+import type { PaginatedResult, BookingStatus, DomainError, Either } from '#shared/domain/index.js'
+import { right, left, fromPromise } from '#shared/domain/index.js'
+import { ConflictError, NotFoundError } from '#shared/domain/index.js'
+import type { RepositoryErrorHandlerPort } from '#shared/application/ports/index.js'
+import { DatabaseErrorType } from '#shared/application/ports/index.js'
 
 export type {
   Booking,
@@ -65,106 +69,14 @@ function toBookingWithDetails(prismaBooking: PrismaBooking & {
   }
 }
 
-export const createBookingRepository = (prisma: PrismaClient) => ({
-  async create(
-    data: CreateBookingData,
-    extras: BookingExtraItemData[],
-    tx?: Prisma.TransactionClient
-  ): Promise<Booking> {
-    const client = tx ?? prisma
-    const result = await client.booking.create({
-      data: {
-        userId: data.userId,
-        establishmentId: data.establishmentId,
-        serviceId: data.serviceId,
-        availabilityId: data.availabilityId,
-        quantity: data.quantity,
-        totalPrice: new Prisma.Decimal(data.totalPrice),
-        status: data.status ?? 'CONFIRMED',
-        // Hotel-specific fields
-        checkInDate: data.checkInDate ?? null,
-        checkOutDate: data.checkOutDate ?? null,
-        roomId: data.roomId ?? null,
-        numberOfNights: data.numberOfNights ?? null,
-        numberOfGuests: data.numberOfGuests ?? null,
-        guestName: data.guestName ?? null,
-        guestEmail: data.guestEmail ?? null,
-        guestPhone: data.guestPhone ?? null,
-        guestDocument: data.guestDocument ?? null,
-        notes: data.notes ?? null,
-        confirmedAt: data.status === 'CONFIRMED' ? new Date() : null,
-        extraItems: {
-          create: extras.map((e) => ({
-            extraItemId: e.extraItemId,
-            quantity: e.quantity,
-            priceAtBooking: new Prisma.Decimal(e.priceAtBooking),
-          })),
-        },
-      },
-    })
-    return toBooking(result)
-  },
-
-  async findById(id: string): Promise<BookingWithDetails | null> {
-    const result = await prisma.booking.findUnique({
-      where: { id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        service: {
-          select: {
-            id: true,
-            name: true,
-            basePrice: true,
-            durationMinutes: true,
-          },
-        },
-        availability: {
-          select: {
-            id: true,
-            date: true,
-            startTime: true,
-            endTime: true,
-          },
-        },
-        extraItems: {
-          include: {
-            extraItem: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
-    })
-    return result ? toBookingWithDetails(result) : null
-  },
-
-  async findByUser(
-    userId: string,
-    options: ListBookingsOptions = {}
-  ): Promise<PaginatedResult<BookingWithDetails>> {
-    const { page = 1, limit = 10, status } = options
-    const skip = (page - 1) * limit
-
-    const where: Prisma.BookingWhereInput = {
-      userId,
-      ...(status ? { status } : {}),
-    }
-
-    const [data, total] = await Promise.all([
-      prisma.booking.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
+export const createBookingRepository = (
+  prisma: PrismaClient,
+  errorHandler: RepositoryErrorHandlerPort
+) => ({
+  async findById(id: string): Promise<Either<DomainError, BookingWithDetails | null>> {
+    try {
+      const result = await prisma.booking.findUnique({
+        where: { id },
         include: {
           user: {
             select: {
@@ -200,98 +112,162 @@ export const createBookingRepository = (prisma: PrismaClient) => ({
             },
           },
         },
-      }),
-      prisma.booking.count({ where }),
-    ])
+      })
+      return right(result ? toBookingWithDetails(result) : null)
+    } catch (error) {
+      return left(new ConflictError('Failed to find booking'))
+    }
+  },
 
-    return {
-      data: data.map(toBookingWithDetails),
-      total,
-      page,
-      limit,
+  async findByUser(
+    userId: string,
+    options: ListBookingsOptions = {}
+  ): Promise<Either<DomainError, PaginatedResult<BookingWithDetails>>> {
+    try {
+      const { page = 1, limit = 10, status } = options
+      const skip = (page - 1) * limit
+
+      const where: Prisma.BookingWhereInput = {
+        userId,
+        ...(status ? { status } : {}),
+      }
+
+      const [data, total] = await Promise.all([
+        prisma.booking.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            service: {
+              select: {
+                id: true,
+                name: true,
+                basePrice: true,
+                durationMinutes: true,
+              },
+            },
+            availability: {
+              select: {
+                id: true,
+                date: true,
+                startTime: true,
+                endTime: true,
+              },
+            },
+            extraItems: {
+              include: {
+                extraItem: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        }),
+        prisma.booking.count({ where }),
+      ])
+
+      return right({
+        data: data.map(toBookingWithDetails),
+        total,
+        page,
+        limit,
+      })
+    } catch (error) {
+      return left(new ConflictError('Failed to find bookings'))
     }
   },
 
   async findByEstablishment(
     establishmentId: string,
     options: ListBookingsOptions = {}
-  ): Promise<PaginatedResult<BookingWithDetails>> {
-    const { page = 1, limit = 10, status } = options
-    const skip = (page - 1) * limit
+  ): Promise<Either<DomainError, PaginatedResult<BookingWithDetails>>> {
+    try {
+      const { page = 1, limit = 10, status } = options
+      const skip = (page - 1) * limit
 
-    const where: Prisma.BookingWhereInput = {
-      establishmentId,
-      ...(status ? { status } : {}),
-    }
+      const where: Prisma.BookingWhereInput = {
+        establishmentId,
+        ...(status ? { status } : {}),
+      }
 
-    const [data, total] = await Promise.all([
-      prisma.booking.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+      const [data, total] = await Promise.all([
+        prisma.booking.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
             },
-          },
-          service: {
-            select: {
-              id: true,
-              name: true,
-              basePrice: true,
-              durationMinutes: true,
+            service: {
+              select: {
+                id: true,
+                name: true,
+                basePrice: true,
+                durationMinutes: true,
+              },
             },
-          },
-          availability: {
-            select: {
-              id: true,
-              date: true,
-              startTime: true,
-              endTime: true,
+            availability: {
+              select: {
+                id: true,
+                date: true,
+                startTime: true,
+                endTime: true,
+              },
             },
-          },
-          extraItems: {
-            include: {
-              extraItem: {
-                select: {
-                  id: true,
-                  name: true,
+            extraItems: {
+              include: {
+                extraItem: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
                 },
               },
             },
           },
-        },
-      }),
-      prisma.booking.count({ where }),
-    ])
+        }),
+        prisma.booking.count({ where }),
+      ])
 
-    return {
-      data: data.map(toBookingWithDetails),
-      total,
-      page,
-      limit,
+      return right({
+        data: data.map(toBookingWithDetails),
+        total,
+        page,
+        limit,
+      })
+    } catch (error) {
+      return left(new ConflictError('Failed to find bookings'))
     }
   },
 
   async updateStatus(
     id: string,
     status: BookingStatus,
-    cancellationReason?: string | null,
-    tx?: Prisma.TransactionClient
-  ): Promise<Booking> {
-    const client = tx ?? prisma
+    cancellationReason?: string | null
+  ): Promise<Either<DomainError, Booking>> {
     const updateData: any = { status }
     
-    // Automatically set confirmedAt when status changes to CONFIRMED
     if (status === 'CONFIRMED') {
       updateData.confirmedAt = new Date()
     }
     
-    // Automatically set cancelledAt when status changes to CANCELLED
     if (status === 'CANCELLED') {
       updateData.cancelledAt = new Date()
       if (cancellationReason !== undefined) {
@@ -299,24 +275,30 @@ export const createBookingRepository = (prisma: PrismaClient) => ({
       }
     }
     
-    // Automatically set checkedInAt when status changes to CHECKED_IN
     if (status === 'CHECKED_IN') {
       updateData.checkedInAt = new Date()
     }
     
-    // Automatically set checkedOutAt when status changes to CHECKED_OUT
     if (status === 'CHECKED_OUT') {
       updateData.checkedOutAt = new Date()
     }
     
-    const result = await client.booking.update({
-      where: { id },
-      data: updateData,
-    })
-    return toBooking(result)
+    return fromPromise(
+      prisma.booking.update({
+        where: { id },
+        data: updateData,
+      }),
+      (error) => {
+        const dbError = errorHandler.analyze(error)
+        if (dbError?.type === DatabaseErrorType.NOT_FOUND) {
+          return new NotFoundError('Booking')
+        }
+        return new ConflictError('Failed to update booking status')
+      }
+    ).then((either) => either.map(toBooking))
   },
 
-  async getBookingOwnership(id: string): Promise<{
+  async getBookingOwnership(id: string): Promise<Either<DomainError, {
     userId: string
     establishmentId: string
     quantity: number
@@ -324,34 +306,38 @@ export const createBookingRepository = (prisma: PrismaClient) => ({
     status: BookingStatus
     roomId: string | null
     serviceType: string | null
-  } | null> {
-    const booking = await prisma.booking.findUnique({
-      where: { id },
-      select: {
-        userId: true,
-        establishmentId: true,
-        quantity: true,
-        availabilityId: true,
-        status: true,
-        roomId: true,
-        service: {
-          select: {
-            type: true,
+  } | null>> {
+    try {
+      const booking = await prisma.booking.findUnique({
+        where: { id },
+        select: {
+          userId: true,
+          establishmentId: true,
+          quantity: true,
+          availabilityId: true,
+          status: true,
+          roomId: true,
+          service: {
+            select: {
+              type: true,
+            },
           },
         },
-      },
-    })
+      })
 
-    if (!booking) return null
+      if (!booking) return right(null)
 
-    return {
-      userId: booking.userId,
-      establishmentId: booking.establishmentId,
-      quantity: booking.quantity,
-      availabilityId: booking.availabilityId,
-      status: booking.status,
-      roomId: booking.roomId,
-      serviceType: booking.service.type,
+      return right({
+        userId: booking.userId,
+        establishmentId: booking.establishmentId,
+        quantity: booking.quantity,
+        availabilityId: booking.availabilityId,
+        status: booking.status,
+        roomId: booking.roomId,
+        serviceType: booking.service.type,
+      })
+    } catch (error) {
+      return left(new ConflictError('Failed to get booking ownership'))
     }
   },
 })
