@@ -1,4 +1,4 @@
-export { ExtraItemRepository } from './extra-item.repository.js'
+export { createExtraItemRepository } from './extra-item.repository.js'
 export type {
   ExtraItem,
   CreateExtraItemData,

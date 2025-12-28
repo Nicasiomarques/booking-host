@@ -1,4 +1,4 @@
-export { BookingRepository } from './booking.repository.js'
+export { createBookingRepository } from './booking.repository.js'
 export type {
   Booking,
   CreateBookingData,

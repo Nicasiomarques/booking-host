@@ -1,4 +1,4 @@
-export { AvailabilityRepository } from './availability.repository.js'
+export { createAvailabilityRepository } from './availability.repository.js'
 export type {
   Availability,
   CreateAvailabilityData,

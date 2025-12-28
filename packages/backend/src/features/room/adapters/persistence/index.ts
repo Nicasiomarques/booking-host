@@ -1,4 +1,4 @@
-export { RoomRepository } from './room.repository.js'
+export { createRoomRepository } from './room.repository.js'
 export type {
   Room,
   CreateRoomData,
