@@ -2,6 +2,7 @@ import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken'
 import type { TokenProviderPort, TokenPayload } from '#shared/application/ports/index.js'
 import { jwtConfig } from '#config/index.js'
 import { UnauthorizedError } from '#shared/domain/index.js'
+import { left, right } from '#shared/domain/index.js'
 
 /**
  * JWT implementation of the TokenProviderPort.
@@ -26,7 +27,7 @@ export const createTokenProvider = (): TokenProviderPort => ({
     return jwt.sign({ userId, type: 'refresh' }, jwtConfig.refreshSecret, options)
   },
 
-  verifyAccessToken(token: string): TokenPayload {
+  verifyAccessToken(token: string) {
     try {
       const decoded = jwt.verify(token, jwtConfig.accessSecret, {
         issuer: jwtConfig.issuer,
@@ -34,20 +35,20 @@ export const createTokenProvider = (): TokenProviderPort => ({
         algorithms: ['HS256'],
       }) as JwtPayload & TokenPayload
 
-      return {
+      return right({
         userId: decoded.userId,
         email: decoded.email,
         establishmentRoles: decoded.establishmentRoles,
-      }
+      })
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        throw new UnauthorizedError('Token expired')
+        return left(new UnauthorizedError('Token expired'))
       }
-      throw new UnauthorizedError('Invalid token')
+      return left(new UnauthorizedError('Invalid token'))
     }
   },
 
-  verifyRefreshToken(token: string): { userId: string } {
+  verifyRefreshToken(token: string) {
     try {
       const decoded = jwt.verify(token, jwtConfig.refreshSecret, {
         issuer: jwtConfig.issuer,
@@ -56,15 +57,15 @@ export const createTokenProvider = (): TokenProviderPort => ({
       }) as JwtPayload & { userId: string; type: string }
 
       if (decoded.type !== 'refresh') {
-        throw new UnauthorizedError('Invalid token type')
+        return left(new UnauthorizedError('Invalid token type'))
       }
 
-      return { userId: decoded.userId }
+      return right({ userId: decoded.userId })
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        throw new UnauthorizedError('Refresh token expired')
+        return left(new UnauthorizedError('Refresh token expired'))
       }
-      throw new UnauthorizedError('Invalid refresh token')
+      return left(new UnauthorizedError('Invalid refresh token'))
     }
   },
 })
