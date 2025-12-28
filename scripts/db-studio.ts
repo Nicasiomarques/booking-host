@@ -28,7 +28,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 // For Prisma 7.x, use --config flag
-const prismaDir = resolve(process.cwd(), 'src/adapters/outbound/prisma')
+const prismaDir = resolve(process.cwd(), 'src/shared/adapters/outbound/prisma')
 
 try {
   execSync(`npx prisma studio --config=${prismaDir}/prisma.config.ts`, {

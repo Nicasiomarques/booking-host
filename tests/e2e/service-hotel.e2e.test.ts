@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { FastifyInstance } from 'fastify'
 import * as T from './helpers/test-client.js'
-import { prisma } from '../../src/adapters/outbound/prisma/prisma.client.js'
+import { prisma } from '../../src/shared/adapters/outbound/prisma/prisma.client.js'
 
 interface Service {
   id: string

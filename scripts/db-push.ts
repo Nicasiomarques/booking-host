@@ -31,7 +31,7 @@ if (!process.env.DATABASE_URL) {
 // which contains the DATABASE_URL from environment
 try {
   // Change to the prisma directory to resolve relative paths correctly
-  const prismaDir = resolve(process.cwd(), 'src/adapters/outbound/prisma')
+  const prismaDir = resolve(process.cwd(), 'src/shared/adapters/outbound/prisma')
   
   execSync(`npx prisma db push --config=${prismaDir}/prisma.config.ts`, {
     stdio: 'inherit',

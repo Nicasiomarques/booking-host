@@ -76,7 +76,7 @@ describe('Auth E2E @smoke @critical', () => {
       })
 
       // Verify optional fields were saved by checking database directly
-      const { prisma } = await import('../../src/adapters/outbound/prisma/prisma.client.js')
+      const { prisma } = await import('../../src/shared/adapters/outbound/prisma/prisma.client.js')
       const savedUser = await prisma.user.findUnique({
         where: { id: body.user.id },
         select: { phone: true, birthDate: true, address: true },

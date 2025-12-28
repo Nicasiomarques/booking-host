@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { dateRangeSchema } from '../../src/adapters/inbound/http/schemas/common.schema.js'
+import { dateRangeSchema } from '../../src/shared/adapters/http/schemas/common.schema.js'
 
 describe('Date Range Schema', () => {
   describe('dateRangeSchema validation', () => {

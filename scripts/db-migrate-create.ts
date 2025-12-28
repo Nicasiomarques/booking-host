@@ -28,7 +28,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 try {
-  const prismaDir = resolve(process.cwd(), 'src/adapters/outbound/prisma')
+  const prismaDir = resolve(process.cwd(), 'src/shared/adapters/outbound/prisma')
   
   const migrationName = process.argv[2] || 'init'
   

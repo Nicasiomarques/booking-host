@@ -24,7 +24,9 @@
       "#adapters/*": ["./src/adapters/*"],
       "#application/*": ["./src/application/*"],
       "#config/*": ["./src/config/*"],
-      "#domain/*": ["./src/domain/*"]
+      "#domain/*": ["./src/domain/*"],
+      "#features/*": ["./src/features/*"],
+      "#shared/*": ["./src/shared/*"]
     },
     "baseUrl": "."
   },

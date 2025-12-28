@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { buildApp } from '../../../src/adapters/inbound/http/http.adapter.js'
+import { buildApp } from '../../../src/shared/adapters/http/http.adapter.js'
 import { uniqueEmail } from './factories.js'
 
 let app: FastifyInstance | null = null

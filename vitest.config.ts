@@ -24,7 +24,7 @@ export default defineConfig({
         'src/**/*.d.ts',
         'src/server.ts',
         'src/**/index.ts',
-        'src/adapters/outbound/prisma/**',
+        'src/shared/adapters/outbound/prisma/**',
       ],
       thresholds: {
         lines: 0,

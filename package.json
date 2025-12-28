@@ -15,12 +15,12 @@
     "test:e2e:security": "vitest run --config vitest.config.ts --reporter=verbose -t @security",
     "test:e2e:watch": "vitest --config vitest.config.ts --reporter=verbose",
     "test:coverage": "vitest run --config vitest.config.ts --coverage",
-    "db:generate": "prisma generate --schema=src/adapters/outbound/prisma/schema.prisma",
-    "db:migrate": "prisma migrate dev --config=src/adapters/outbound/prisma/prisma.config.ts",
+    "db:generate": "prisma generate --schema=src/shared/adapters/outbound/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --config=src/shared/adapters/outbound/prisma/prisma.config.ts",
     "db:push": "tsx -r dotenv/config scripts/db-push.ts",
     "db:reset": "tsx -r dotenv/config scripts/db-reset.ts",
     "db:studio": "tsx -r dotenv/config scripts/db-studio.ts",
-    "db:seed": "tsx src/adapters/outbound/prisma/seed.ts"
+    "db:seed": "tsx src/shared/adapters/outbound/prisma/seed.ts"
   },
   "keywords": [
     "booking",
@@ -34,7 +34,9 @@
     "#adapters/*": "./src/adapters/*",
     "#application/*": "./src/application/*",
     "#config/*": "./src/config/*",
-    "#domain/*": "./src/domain/*"
+    "#domain/*": "./src/domain/*",
+    "#features/*": "./src/features/*",
+    "#shared/*": "./src/shared/*"
   },
   "engines": {
     "node": ">=22.0.0"

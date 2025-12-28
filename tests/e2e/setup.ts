@@ -11,7 +11,7 @@ let prisma: PrismaClient
 
 beforeAll(async () => {
   // Dynamic import after env is loaded
-  const { prisma: prismaClient } = await import('../../src/adapters/outbound/prisma/prisma.client.js')
+  const { prisma: prismaClient } = await import('../../src/shared/adapters/outbound/prisma/prisma.client.js')
   prisma = prismaClient
 
   // Clean up in order (respecting foreign keys)
