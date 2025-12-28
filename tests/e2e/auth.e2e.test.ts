@@ -48,6 +48,46 @@ describe('Auth E2E @smoke @critical', () => {
       })
     })
 
+    it('register user - with optional fields - returns 200 and saves optional fields', async () => {
+      // Arrange
+      const userData = {
+        email: T.uniqueEmail('register-with-fields'),
+        password: 'Test1234!',
+        name: 'Complete User',
+        phone: '+55 11 98765-4321',
+        birthDate: '1990-01-15',
+        address: 'Rua das Flores, 123',
+      }
+
+      // Act
+      const response = await T.post<AuthResponse>(sut, '/v1/auth/register', {
+        payload: userData,
+      })
+
+      // Assert
+      const body = T.expectStatus(response, 200)
+      expect(body).toMatchObject({
+        accessToken: expect.any(String),
+        user: {
+          id: expect.any(String),
+          email: userData.email,
+          name: userData.name,
+        },
+      })
+
+      // Verify optional fields were saved by checking database directly
+      const { prisma } = await import('../../src/adapters/outbound/prisma/prisma.client.js')
+      const savedUser = await prisma.user.findUnique({
+        where: { id: body.user.id },
+        select: { phone: true, birthDate: true, address: true },
+      })
+      expect(savedUser).toMatchObject({
+        phone: '+55 11 98765-4321',
+        birthDate: new Date('1990-01-15'),
+        address: 'Rua das Flores, 123',
+      })
+    })
+
     it('register user - invalid email format - returns 422 validation error', async () => {
       // Arrange
       const invalidData = {

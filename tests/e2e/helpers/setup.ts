@@ -92,7 +92,7 @@ export async function createTestService(
     basePrice: number
     durationMinutes: number
     capacity?: number
-    type?: 'SERVICE' | 'HOTEL' | 'CINEMA'
+    type?: 'SERVICE' | 'HOTEL'
   }
 ): Promise<{ id: string; name: string; establishmentId: string }> {
   const response = await app.inject({

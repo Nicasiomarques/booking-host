@@ -15,6 +15,8 @@ interface HotelBooking {
   roomId?: string | null
   numberOfNights?: number | null
   guestName?: string | null
+  checkedInAt?: string | null
+  checkedOutAt?: string | null
 }
 
 describe('Hotel Booking E2E @critical', () => {
@@ -700,6 +702,8 @@ describe('Hotel Booking E2E @critical', () => {
         id: booking.id,
         status: 'CHECKED_IN',
       })
+      expect(body.checkedInAt).toBeTruthy()
+      expect(new Date(body.checkedInAt!).getTime()).toBeLessThanOrEqual(Date.now())
     })
 
     it('check-in hotel booking - already checked in - returns 409 conflict', async () => {
@@ -841,6 +845,8 @@ describe('Hotel Booking E2E @critical', () => {
         id: booking.id,
         status: 'CHECKED_OUT',
       })
+      expect(body.checkedOutAt).toBeTruthy()
+      expect(new Date(body.checkedOutAt!).getTime()).toBeLessThanOrEqual(Date.now())
 
       // Verify room is AVAILABLE again
       const roomAfter = await prisma.room.findUnique({ where: { id: testRoom.id } })

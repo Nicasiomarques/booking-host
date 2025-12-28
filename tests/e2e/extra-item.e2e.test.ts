@@ -10,6 +10,7 @@ interface ExtraItem {
   price: number
   maxQuantity: number
   active: boolean
+  image?: string | null
 }
 
 describe('Extra Item E2E', () => {
@@ -84,6 +85,7 @@ describe('Extra Item E2E', () => {
         description: 'A premium extra item',
         price: 25,
         maxQuantity: 3,
+        image: 'https://example.com/extra-image.jpg',
       }
 
       // Act
@@ -98,6 +100,7 @@ describe('Extra Item E2E', () => {
         id: expect.any(String),
         serviceId: setup.serviceId,
         name: 'Premium Extra',
+        image: 'https://example.com/extra-image.jpg',
         price: 25,
         maxQuantity: 3,
         active: true,

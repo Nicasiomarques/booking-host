@@ -10,6 +10,11 @@ interface Room {
   floor: number | null
   description: string | null
   status: string
+  capacity?: number | null
+  roomType?: string | null
+  bedType?: string | null
+  amenities?: string[] | null
+  maxOccupancy?: number | null
   createdAt: string
   updatedAt: string
 }
@@ -82,6 +87,42 @@ describe('Room E2E @critical', () => {
         number: '201',
         floor: 2,
         description: 'Deluxe room with view',
+        status: 'AVAILABLE',
+      })
+    })
+
+    it('create room - with optional fields - returns 201 with all fields', async () => {
+      // Arrange
+      const roomData = {
+        number: '301',
+        floor: 3,
+        description: 'Suite with balcony',
+        capacity: 2,
+        roomType: 'SUITE',
+        bedType: 'QUEEN',
+        amenities: ['wifi', 'minibar', 'balcony', 'tv'],
+        maxOccupancy: 3,
+      }
+
+      // Act
+      const response = await T.post<Room>(sut, `/v1/services/${hotelServiceId}/rooms`, {
+        token: owner.accessToken,
+        payload: roomData,
+      })
+
+      // Assert
+      const body = T.expectStatus(response, 201)
+      expect(body).toMatchObject({
+        id: expect.any(String),
+        serviceId: hotelServiceId,
+        number: '301',
+        floor: 3,
+        description: 'Suite with balcony',
+        capacity: 2,
+        roomType: 'SUITE',
+        bedType: 'QUEEN',
+        amenities: ['wifi', 'minibar', 'balcony', 'tv'],
+        maxOccupancy: 3,
         status: 'AVAILABLE',
       })
     })

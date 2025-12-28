@@ -10,6 +10,14 @@ interface Booking {
   status: string
   totalPrice: number
   quantity: number
+  notes?: string | null
+  guestPhone?: string | null
+  numberOfGuests?: number | null
+  confirmedAt?: string | null
+  cancelledAt?: string | null
+  cancellationReason?: string | null
+  checkedInAt?: string | null
+  checkedOutAt?: string | null
   service?: {
     id: string
     name: string
@@ -93,6 +101,41 @@ describe('Booking E2E @critical', () => {
       const body = T.expectStatus(response, 201)
       expect(body.totalPrice).toBe(65) // 50 (base) + 15 (extra)
       expect(body.status).toBe('CONFIRMED')
+    })
+
+    it('create booking - with optional fields - returns 201 with all fields', async () => {
+      // Arrange
+      const bookingData = {
+        serviceId: setup.serviceId,
+        availabilityId: setup.availabilityId,
+        quantity: 1,
+        notes: 'Customer prefers morning appointment',
+        guestPhone: '+55 11 98765-4321',
+        numberOfGuests: 2,
+      }
+
+      // Act
+      const response = await T.post<Booking>(sut, '/v1/bookings', {
+        token: customer.accessToken,
+        payload: bookingData,
+      })
+
+      // Assert
+      const body = T.expectStatus(response, 201)
+      expect(body).toMatchObject({
+        id: expect.any(String),
+        userId: customer.id,
+        serviceId: setup.serviceId,
+        availabilityId: setup.availabilityId,
+        status: 'CONFIRMED',
+        totalPrice: 50,
+        quantity: 1,
+        notes: 'Customer prefers morning appointment',
+        guestPhone: '+55 11 98765-4321',
+        numberOfGuests: 2,
+      })
+      expect(body.confirmedAt).toBeTruthy()
+      expect(new Date(body.confirmedAt!).getTime()).toBeLessThanOrEqual(Date.now())
     })
 
     it('create booking - quantity exceeds capacity - returns 409 conflict', async () => {
@@ -300,6 +343,8 @@ describe('Booking E2E @critical', () => {
         id: booking.id,
         status: 'CANCELLED',
       })
+      expect(body.cancelledAt).toBeTruthy()
+      expect(new Date(body.cancelledAt!).getTime()).toBeLessThanOrEqual(Date.now())
 
       // Verify capacity was restored
       const afterResponse = await T.get<{ capacity: number }[]>(

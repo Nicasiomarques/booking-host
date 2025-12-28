@@ -8,6 +8,12 @@ interface Establishment {
   address: string
   timezone: string
   active: boolean
+  phone?: string | null
+  email?: string | null
+  city?: string | null
+  state?: string | null
+  website?: string | null
+  taxId?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -160,6 +166,48 @@ describe('Establishment E2E', () => {
       })
     })
 
+    it('create establishment - with optional fields - returns 201 with all fields', async () => {
+      // Arrange
+      const owner = await T.createTestUser(sut, {
+        email: T.uniqueEmail('create-with-fields'),
+        password: 'Test1234!',
+        name: 'Owner',
+      })
+      const establishmentData = {
+        name: 'Complete Establishment',
+        address: '789 Complete St',
+        timezone: 'America/Sao_Paulo',
+        phone: '+55 11 98765-4321',
+        email: 'contact@establishment.com',
+        city: 'São Paulo',
+        state: 'SP',
+        website: 'https://establishment.com',
+        taxId: '12.345.678/0001-90',
+      }
+
+      // Act
+      const response = await T.post<Establishment>(sut, '/v1/establishments', {
+        token: owner.accessToken,
+        payload: establishmentData,
+      })
+
+      // Assert
+      const body = T.expectStatus(response, 201)
+      expect(body).toMatchObject({
+        id: expect.any(String),
+        name: 'Complete Establishment',
+        address: '789 Complete St',
+        timezone: 'America/Sao_Paulo',
+        phone: '+55 11 98765-4321',
+        email: 'contact@establishment.com',
+        city: 'São Paulo',
+        state: 'SP',
+        website: 'https://establishment.com',
+        taxId: '12.345.678/0001-90',
+        active: true,
+      })
+    })
+
     it('create establishment - missing required fields - returns 422 validation error', async () => {
       // Arrange
       const owner = await T.createTestUser(sut, {
@@ -231,6 +279,47 @@ describe('Establishment E2E', () => {
         id: establishment.id,
         name: 'Updated Name',
         address: '456 Updated St',
+      })
+    })
+
+    it('update establishment - with optional fields - returns 200 with updated optional fields', async () => {
+      // Arrange
+      const email = T.uniqueEmail('update-optional-fields')
+      const owner = await T.createTestUser(sut, {
+        email,
+        password: 'Test1234!',
+        name: 'Owner',
+      })
+      const establishment = await T.createTestEstablishment(sut, owner.accessToken, {
+        name: 'Test Establishment',
+        address: '123 Test St',
+      })
+      const login = await T.loginTestUser(sut, { email, password: 'Test1234!' })
+      const updateData = {
+        phone: '+55 11 98765-4321',
+        email: 'newemail@establishment.com',
+        city: 'Rio de Janeiro',
+        state: 'RJ',
+        website: 'https://newwebsite.com',
+        taxId: '98.765.432/0001-10',
+      }
+
+      // Act
+      const response = await T.put<Establishment>(sut, `/v1/establishments/${establishment.id}`, {
+        token: login.accessToken,
+        payload: updateData,
+      })
+
+      // Assert
+      const body = T.expectStatus(response, 200)
+      expect(body).toMatchObject({
+        id: establishment.id,
+        phone: '+55 11 98765-4321',
+        email: 'newemail@establishment.com',
+        city: 'Rio de Janeiro',
+        state: 'RJ',
+        website: 'https://newwebsite.com',
+        taxId: '98.765.432/0001-10',
       })
     })
 

@@ -9,6 +9,9 @@ interface Availability {
   startTime: string
   endTime: string
   capacity: number
+  price?: number | null
+  notes?: string | null
+  isRecurring?: boolean | null
 }
 
 describe('Availability E2E', () => {
@@ -88,6 +91,44 @@ describe('Availability E2E', () => {
         startTime: '14:00',
         endTime: '15:00',
         capacity: 5,
+      })
+    })
+
+    it('create availability - with optional fields - returns 201 with all fields', async () => {
+      // Arrange
+      const setup = await T.setupTestEstablishment(sut, 'create-avail-optional')
+      const availabilityData = {
+        date: '2025-09-15',
+        startTime: '16:00',
+        endTime: '17:00',
+        capacity: 10,
+        price: 75.50,
+        notes: 'Special availability with discount',
+        isRecurring: true,
+      }
+
+      // Act
+      const response = await T.post<Availability>(
+        sut,
+        `/v1/services/${setup.serviceId}/availabilities`,
+        {
+          token: setup.owner.accessToken,
+          payload: availabilityData,
+        }
+      )
+
+      // Assert
+      const body = T.expectStatus(response, 201)
+      expect(body).toMatchObject({
+        id: expect.any(String),
+        serviceId: setup.serviceId,
+        date: '2025-09-15',
+        startTime: '16:00',
+        endTime: '17:00',
+        capacity: 10,
+        price: 75.50,
+        notes: 'Special availability with discount',
+        isRecurring: true,
       })
     })
 

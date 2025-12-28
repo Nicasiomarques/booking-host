@@ -11,6 +11,11 @@ interface Service {
   capacity: number
   active: boolean
   establishmentId: string
+  images?: string[] | null
+  cancellationPolicy?: string | null
+  minimumAdvanceBooking?: number | null
+  maximumAdvanceBooking?: number | null
+  requiresConfirmation?: boolean | null
   createdAt: string
   updatedAt: string
 }
@@ -140,6 +145,61 @@ describe('Service E2E', () => {
       })
     })
 
+    it('create service - with optional fields - returns 201 with all fields', async () => {
+      // Arrange
+      const email = T.uniqueEmail('create-service-optional')
+      const owner = await T.createTestUser(sut, {
+        email,
+        password: 'Test1234!',
+        name: 'Service Owner',
+      })
+      const establishment = await T.createTestEstablishment(sut, owner.accessToken, {
+        name: 'Test Establishment',
+        address: '123 Test St',
+      })
+      const login = await T.loginTestUser(sut, { email, password: 'Test1234!' })
+      const serviceData = {
+        name: 'Complete Service',
+        description: 'Service with all optional fields',
+        basePrice: 150,
+        durationMinutes: 120,
+        capacity: 3,
+        images: ['https://example.com/image1.jpg', 'https://example.com/image2.jpg'],
+        cancellationPolicy: 'Free cancellation up to 24h before',
+        minimumAdvanceBooking: 2,
+        maximumAdvanceBooking: 90,
+        requiresConfirmation: true,
+      }
+
+      // Act
+      const response = await T.post<Service>(
+        sut,
+        `/v1/establishments/${establishment.id}/services`,
+        {
+          token: login.accessToken,
+          payload: serviceData,
+        }
+      )
+
+      // Assert
+      const body = T.expectStatus(response, 201)
+      expect(body).toMatchObject({
+        id: expect.any(String),
+        name: 'Complete Service',
+        description: 'Service with all optional fields',
+        basePrice: 150,
+        durationMinutes: 120,
+        capacity: 3,
+        images: ['https://example.com/image1.jpg', 'https://example.com/image2.jpg'],
+        cancellationPolicy: 'Free cancellation up to 24h before',
+        minimumAdvanceBooking: 2,
+        maximumAdvanceBooking: 90,
+        requiresConfirmation: true,
+        active: true,
+        establishmentId: establishment.id,
+      })
+    })
+
     it('create service - by non-owner - returns 403 forbidden', async () => {
       // Arrange
       const owner = await T.createTestUser(sut, {
@@ -199,6 +259,45 @@ describe('Service E2E', () => {
         id: serviceToUpdate.id,
         name: 'Updated Service Name',
         basePrice: 150,
+      })
+    })
+
+    it('update service - with optional fields - returns 200 with updated optional fields', async () => {
+      // Arrange
+      const setup = await T.setupTestEstablishment(sut, 'update-service-optional')
+      const serviceToUpdate = await T.createTestService(
+        sut,
+        setup.owner.accessToken,
+        setup.establishmentId,
+        {
+          name: 'Original Service',
+          basePrice: 100,
+          durationMinutes: 30,
+        }
+      )
+      const updateData = {
+        images: ['https://example.com/new-image.jpg'],
+        cancellationPolicy: 'No cancellation allowed',
+        minimumAdvanceBooking: 1,
+        maximumAdvanceBooking: 60,
+        requiresConfirmation: false,
+      }
+
+      // Act
+      const response = await T.put<Service>(sut, `/v1/services/${serviceToUpdate.id}`, {
+        token: setup.owner.accessToken,
+        payload: updateData,
+      })
+
+      // Assert
+      const body = T.expectStatus(response, 200)
+      expect(body).toMatchObject({
+        id: serviceToUpdate.id,
+        images: ['https://example.com/new-image.jpg'],
+        cancellationPolicy: 'No cancellation allowed',
+        minimumAdvanceBooking: 1,
+        maximumAdvanceBooking: 60,
+        requiresConfirmation: false,
       })
     })
 

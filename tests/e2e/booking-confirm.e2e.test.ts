@@ -72,6 +72,13 @@ describe('Booking Confirm E2E', () => {
       // Verify initial status is CONFIRMED
       expect(booking.status).toBe('CONFIRMED')
 
+      // Get booking details to verify confirmedAt
+      const getResponse = await T.get(sut, `/v1/bookings/${booking.id}`, {
+        token: owner.accessToken,
+      })
+      const bookingDetails = T.expectStatus(getResponse, 200)
+      expect(bookingDetails.confirmedAt).toBeTruthy()
+
       // Act - try to confirm an already confirmed booking
       const response = await T.put(sut, `/v1/bookings/${booking.id}/confirm`, {
         token: owner.accessToken,

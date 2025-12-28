@@ -9,7 +9,7 @@ interface Service {
   basePrice: number
   durationMinutes: number
   capacity: number
-  type: 'SERVICE' | 'HOTEL' | 'CINEMA'
+  type: 'SERVICE' | 'HOTEL'
   active: boolean
   establishmentId: string
 }
@@ -82,31 +82,6 @@ describe('Service Hotel E2E', () => {
         active: true,
         establishmentId,
       })
-    })
-
-    it('create service with type CINEMA - returns 201 with CINEMA type', async () => {
-      // Arrange
-      const serviceData = {
-        name: 'Movie Theater',
-        basePrice: 15,
-        durationMinutes: 120,
-        capacity: 50,
-        type: 'CINEMA' as const,
-      }
-
-      // Act
-      const response = await T.post<Service>(
-        sut,
-        `/v1/establishments/${establishmentId}/services`,
-        {
-          token: owner.accessToken,
-          payload: serviceData,
-        }
-      )
-
-      // Assert
-      const body = T.expectStatus(response, 201)
-      expect(body.type).toBe('CINEMA')
     })
 
     it('create service without type - defaults to SERVICE', async () => {
@@ -184,7 +159,7 @@ describe('Service Hotel E2E', () => {
       expect(body.length).toBeGreaterThanOrEqual(2)
       body.forEach((service) => {
         expect(service).toHaveProperty('type')
-        expect(['SERVICE', 'HOTEL', 'CINEMA']).toContain(service.type)
+        expect(['SERVICE', 'HOTEL']).toContain(service.type)
       })
     })
   })
