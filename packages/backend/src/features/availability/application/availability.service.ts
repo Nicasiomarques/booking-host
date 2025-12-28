@@ -8,13 +8,11 @@ import type {
 import { requireEntity } from '#shared/application/utils/validation.helper.js'
 import { updateWithAuthorization, deleteWithAuthorization, createWithServiceAuthorization } from '#shared/application/services/crud-helpers.js'
 
-export class AvailabilityService {
-  constructor(
-    private readonly repository: AvailabilityRepositoryPort,
-    private readonly serviceRepository: ServiceRepositoryPort,
-    private readonly establishmentRepository: EstablishmentRepositoryPort
-  ) {}
-
+export const createAvailabilityService = (deps: {
+  repository: AvailabilityRepositoryPort
+  serviceRepository: ServiceRepositoryPort
+  establishmentRepository: EstablishmentRepositoryPort
+}) => ({
   async create(
     serviceId: string,
     data: Omit<CreateAvailabilityData, 'serviceId'>,
@@ -22,18 +20,18 @@ export class AvailabilityService {
   ): Promise<Availability> {
     return createWithServiceAuthorization(serviceId, data, userId, {
       serviceRepository: {
-        findById: (id) => this.serviceRepository.findById(id),
+        findById: (id) => deps.serviceRepository.findById(id),
       },
       entityRepository: {
-        create: (data) => this.repository.create(data),
+        create: (data) => deps.repository.create(data),
       },
-      getUserRole: (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      getUserRole: (uid, eid) => deps.establishmentRepository.getUserRole(uid, eid),
       getEstablishmentId: (service) => service.establishmentId,
       entityName: 'Availability',
       action: 'create availability slots',
       validateBeforeCreate: async (_service, data) => {
         // Check for overlapping time slots
-        const hasOverlap = await this.repository.checkOverlap(
+        const hasOverlap = await deps.repository.checkOverlap(
           serviceId,
           data.date,
           data.startTime,
@@ -44,21 +42,21 @@ export class AvailabilityService {
         }
       },
     })
-  }
+  },
 
   async findById(id: string): Promise<Availability> {
     return requireEntity(
-      await this.repository.findById(id),
+      await deps.repository.findById(id),
       'Availability'
     )
-  }
+  },
 
   async findByService(
     serviceId: string,
     options: { startDate?: Date; endDate?: Date } = {}
   ): Promise<Availability[]> {
-    return this.repository.findByService(serviceId, options)
-  }
+    return deps.repository.findByService(serviceId, options)
+  },
 
   async update(
     id: string,
@@ -67,7 +65,7 @@ export class AvailabilityService {
   ): Promise<Availability> {
     // We need to get the availability first to validate business rules
     const availability = requireEntity(
-      await this.repository.findByIdWithService(id),
+      await deps.repository.findByIdWithService(id),
       'Availability'
     )
 
@@ -77,7 +75,7 @@ export class AvailabilityService {
       const newStartTime = data.startTime ?? availability.startTime
       const newEndTime = data.endTime ?? availability.endTime
 
-      const hasOverlap = await this.repository.checkOverlap(
+      const hasOverlap = await deps.repository.checkOverlap(
         availability.serviceId,
         newDate,
         newStartTime,
@@ -92,30 +90,30 @@ export class AvailabilityService {
 
     return updateWithAuthorization(id, data, userId, {
       repository: {
-        findByIdWithService: (id) => this.repository.findByIdWithService(id),
-        update: (id, data) => this.repository.update(id, data),
+        findByIdWithService: (id) => deps.repository.findByIdWithService(id),
+        update: (id, data) => deps.repository.update(id, data),
       },
       entityName: 'Availability',
       getEstablishmentId: (availability: any) => availability.service.establishmentId,
-      getUserRole: (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      getUserRole: (uid, eid) => deps.establishmentRepository.getUserRole(uid, eid),
       action: 'update availability slots',
     })
-  }
+  },
 
   async delete(id: string, userId: string): Promise<Availability> {
     return deleteWithAuthorization(id, userId, {
       repository: {
-        findByIdWithService: (id) => this.repository.findByIdWithService(id),
-        delete: (id) => this.repository.delete(id),
-        hasActiveBookings: (id) => this.repository.hasActiveBookings(id),
+        findByIdWithService: (id) => deps.repository.findByIdWithService(id),
+        delete: (id) => deps.repository.delete(id),
+        hasActiveBookings: (id) => deps.repository.hasActiveBookings(id),
       },
       entityName: 'Availability',
       getEstablishmentId: (availability: any) => availability.service.establishmentId,
-      getUserRole: (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      getUserRole: (uid, eid) => deps.establishmentRepository.getUserRole(uid, eid),
       action: 'delete availability slots',
       checkDependencies: true,
       dependencyErrorMessage: 'Cannot delete availability with active bookings',
     })
-  }
-}
+  },
+})
 

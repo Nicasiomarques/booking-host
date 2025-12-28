@@ -37,28 +37,27 @@ export interface CreateBookingInput {
   notes?: string
 }
 
-export class BookingService {
-  constructor(
-    private readonly unitOfWork: UnitOfWorkPort,
-    private readonly bookingRepository: BookingRepositoryPort,
-    private readonly serviceRepository: ServiceRepositoryPort,
-    private readonly availabilityRepository: AvailabilityRepositoryPort,
-    private readonly extraItemRepository: ExtraItemRepositoryPort,
-    private readonly establishmentRepository: EstablishmentRepositoryPort,
-    private readonly roomRepository: RoomRepositoryPort
-  ) {}
+export const createBookingService = (deps: {
+  unitOfWork: UnitOfWorkPort
+  bookingRepository: BookingRepositoryPort
+  serviceRepository: ServiceRepositoryPort
+  availabilityRepository: AvailabilityRepositoryPort
+  extraItemRepository: ExtraItemRepositoryPort
+  establishmentRepository: EstablishmentRepositoryPort
+  roomRepository: RoomRepositoryPort
+}) => ({
 
   async create(input: CreateBookingInput, userId: string): Promise<Booking> {
     // Validate service exists and is active
     const service = requireEntity(
-      await this.serviceRepository.findById(input.serviceId),
+      await deps.serviceRepository.findById(input.serviceId),
       'Service'
     )
     if (!service.active) throw new ConflictError('Service is not active')
 
     // Validate availability exists
     const availability = requireEntity(
-      await this.availabilityRepository.findById(input.availabilityId),
+      await deps.availabilityRepository.findById(input.availabilityId),
       'Availability'
     )
 
@@ -107,7 +106,7 @@ export class BookingService {
       // Validate room if provided
       if (input.roomId) {
         const room = requireEntity(
-          await this.roomRepository.findById(input.roomId),
+          await deps.roomRepository.findById(input.roomId),
           'Room'
         )
         if (room.serviceId !== input.serviceId) {
@@ -120,7 +119,7 @@ export class BookingService {
         }
 
         // Check if room is available for the period (no conflicting bookings)
-        const availableRooms = await this.roomRepository.findAvailableRooms(
+        const availableRooms = await deps.roomRepository.findAvailableRooms(
           input.serviceId,
           checkInDate,
           checkOutDate
@@ -133,7 +132,7 @@ export class BookingService {
         roomId = input.roomId
       } else {
         // Find available room automatically
-        const availableRooms = await this.roomRepository.findAvailableRooms(
+        const availableRooms = await deps.roomRepository.findAvailableRooms(
           input.serviceId,
           checkInDate,
           checkOutDate
@@ -169,7 +168,7 @@ export class BookingService {
     const extrasData: BookingExtraItemData[] = []
     if (input.extras && input.extras.length > 0) {
       for (const extra of input.extras) {
-        const extraItem = await this.extraItemRepository.findById(extra.extraItemId)
+        const extraItem = await deps.extraItemRepository.findById(extra.extraItemId)
         if (!extraItem || !extraItem.active) {
           throw new NotFoundError(`ExtraItem ${extra.extraItemId}`)
         }
@@ -198,7 +197,7 @@ export class BookingService {
     }
 
     // Execute transaction using Unit of Work
-    return this.unitOfWork.execute(async (ctx) => {
+    return deps.unitOfWork.execute(async (ctx) => {
       // Decrement capacity
       await ctx.availabilityRepository.decrementCapacity(input.availabilityId, input.quantity)
 
@@ -232,29 +231,29 @@ export class BookingService {
         extrasData
       )
     })
-  }
+  },
 
   async findById(id: string, userId: string): Promise<BookingWithDetails> {
     const booking = requireEntity(
-      await this.bookingRepository.findById(id),
+      await deps.bookingRepository.findById(id),
       'Booking'
     )
 
     // Check if user is the owner or has role in establishment
     if (booking.userId !== userId) {
-      const role = await this.establishmentRepository.getUserRole(userId, booking.establishmentId)
+      const role = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
       if (!role) throw new ForbiddenError('You do not have access to this booking')
     }
 
     return booking
-  }
+  },
 
   async findByUser(
     userId: string,
     options: ListBookingsOptions = {}
   ): Promise<PaginatedResult<BookingWithDetails>> {
-    return this.bookingRepository.findByUser(userId, options)
-  }
+    return deps.bookingRepository.findByUser(userId, options)
+  },
 
   async findByEstablishment(
     establishmentId: string,
@@ -262,23 +261,23 @@ export class BookingService {
     options: ListBookingsOptions = {}
   ): Promise<PaginatedResult<BookingWithDetails>> {
     // Check if user has role in establishment
-    const role = await this.establishmentRepository.getUserRole(userId, establishmentId)
+    const role = await deps.establishmentRepository.getUserRole(userId, establishmentId)
     if (!role) {
       throw new ForbiddenError('You do not have access to this establishment bookings')
     }
 
-    return this.bookingRepository.findByEstablishment(establishmentId, options)
-  }
+    return deps.bookingRepository.findByEstablishment(establishmentId, options)
+  },
 
   async cancel(id: string, userId: string): Promise<BookingWithDetails> {
     const ownership = requireEntity(
-      await this.bookingRepository.getBookingOwnership(id),
+      await deps.bookingRepository.getBookingOwnership(id),
       'Booking'
     )
 
     // Check if user is the owner or has role in establishment
     if (ownership.userId !== userId) {
-      const role = await this.establishmentRepository.getUserRole(userId, ownership.establishmentId)
+      const role = await deps.establishmentRepository.getUserRole(userId, ownership.establishmentId)
       if (!role) throw new ForbiddenError('You do not have permission to cancel this booking')
     }
 
@@ -288,7 +287,7 @@ export class BookingService {
     }
 
     // Execute transaction using Unit of Work
-    await this.unitOfWork.execute(async (ctx) => {
+    await deps.unitOfWork.execute(async (ctx) => {
       // Restore capacity
       await ctx.availabilityRepository.incrementCapacity(
         ownership.availabilityId,
@@ -304,17 +303,17 @@ export class BookingService {
       await ctx.bookingRepository.updateStatus(id, 'CANCELLED')
     })
 
-    return this.bookingRepository.findById(id) as Promise<BookingWithDetails>
-  }
+    return deps.bookingRepository.findById(id) as Promise<BookingWithDetails>
+  },
 
   async confirm(id: string, userId: string): Promise<BookingWithDetails> {
     const ownership = requireEntity(
-      await this.bookingRepository.getBookingOwnership(id),
+      await deps.bookingRepository.getBookingOwnership(id),
       'Booking'
     )
 
     // Check if user has role in establishment (only staff/owner can confirm)
-    const role = await this.establishmentRepository.getUserRole(userId, ownership.establishmentId)
+    const role = await deps.establishmentRepository.getUserRole(userId, ownership.establishmentId)
     if (!role) {
       throw new ForbiddenError('You do not have permission to confirm this booking')
     }
@@ -329,25 +328,25 @@ export class BookingService {
     }
 
     // Update booking status
-    await this.bookingRepository.updateStatus(id, 'CONFIRMED')
+    await deps.bookingRepository.updateStatus(id, 'CONFIRMED')
 
-    return this.bookingRepository.findById(id) as Promise<BookingWithDetails>
-  }
+    return deps.bookingRepository.findById(id) as Promise<BookingWithDetails>
+  },
 
   async checkIn(id: string, userId: string): Promise<BookingWithDetails> {
     const booking = requireEntity(
-      await this.bookingRepository.findById(id),
+      await deps.bookingRepository.findById(id),
       'Booking'
     )
 
     // Check if user has role in establishment (only staff/owner can check in)
-    const role = await this.establishmentRepository.getUserRole(userId, booking.establishmentId)
+    const role = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
     if (!role) {
       throw new ForbiddenError('You do not have permission to check in this booking')
     }
 
     // Validate booking is for hotel service
-    const service = await this.serviceRepository.findById(booking.serviceId)
+    const service = await deps.serviceRepository.findById(booking.serviceId)
     if (service?.type !== 'HOTEL') {
       throw new ConflictError('Check-in is only available for hotel bookings')
     }
@@ -370,25 +369,25 @@ export class BookingService {
     }
 
     // Update booking status to CHECKED_IN
-    await this.bookingRepository.updateStatus(id, 'CHECKED_IN')
+    await deps.bookingRepository.updateStatus(id, 'CHECKED_IN')
 
-    return this.bookingRepository.findById(id) as Promise<BookingWithDetails>
-  }
+    return deps.bookingRepository.findById(id) as Promise<BookingWithDetails>
+  },
 
   async checkOut(id: string, userId: string): Promise<BookingWithDetails> {
     const booking = requireEntity(
-      await this.bookingRepository.findById(id),
+      await deps.bookingRepository.findById(id),
       'Booking'
     )
 
     // Check if user has role in establishment (only staff/owner can check out)
-    const role = await this.establishmentRepository.getUserRole(userId, booking.establishmentId)
+    const role = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
     if (!role) {
       throw new ForbiddenError('You do not have permission to check out this booking')
     }
 
     // Validate booking is for hotel service
-    const service = await this.serviceRepository.findById(booking.serviceId)
+    const service = await deps.serviceRepository.findById(booking.serviceId)
     if (service?.type !== 'HOTEL') {
       throw new ConflictError('Check-out is only available for hotel bookings')
     }
@@ -407,7 +406,7 @@ export class BookingService {
     }
 
     // Execute transaction to update booking status and free the room
-    await this.unitOfWork.execute(async (ctx) => {
+    await deps.unitOfWork.execute(async (ctx) => {
       // Update booking status to CHECKED_OUT
       await ctx.bookingRepository.updateStatus(id, 'CHECKED_OUT')
 
@@ -417,23 +416,23 @@ export class BookingService {
       }
     })
 
-    return this.bookingRepository.findById(id) as Promise<BookingWithDetails>
-  }
+    return deps.bookingRepository.findById(id) as Promise<BookingWithDetails>
+  },
 
   async markNoShow(id: string, userId: string): Promise<BookingWithDetails> {
     const booking = requireEntity(
-      await this.bookingRepository.findById(id),
+      await deps.bookingRepository.findById(id),
       'Booking'
     )
 
     // Check if user has role in establishment (only staff/owner can mark no-show)
-    const role = await this.establishmentRepository.getUserRole(userId, booking.establishmentId)
+    const role = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
     if (!role) {
       throw new ForbiddenError('You do not have permission to mark this booking as no-show')
     }
 
     // Validate booking is for hotel service
-    const service = await this.serviceRepository.findById(booking.serviceId)
+    const service = await deps.serviceRepository.findById(booking.serviceId)
     if (service?.type !== 'HOTEL') {
       throw new ConflictError('No-show is only available for hotel bookings')
     }
@@ -456,7 +455,7 @@ export class BookingService {
     }
 
     // Execute transaction to update booking status and free the room
-    await this.unitOfWork.execute(async (ctx) => {
+    await deps.unitOfWork.execute(async (ctx) => {
       // Update booking status to NO_SHOW
       await ctx.bookingRepository.updateStatus(id, 'NO_SHOW')
 
@@ -466,7 +465,7 @@ export class BookingService {
       }
     })
 
-    return this.bookingRepository.findById(id) as Promise<BookingWithDetails>
-  }
-}
+    return deps.bookingRepository.findById(id) as Promise<BookingWithDetails>
+  },
+})
 

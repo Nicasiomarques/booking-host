@@ -4,43 +4,41 @@ import { requireOwnerRole } from '#shared/application/utils/authorization.helper
 import { requireEntity } from '#shared/application/utils/validation.helper.js'
 import { updateWithAuthorization, deleteWithAuthorization } from '#shared/application/services/crud-helpers.js'
 
-export class ServiceService {
-  constructor(
-    private readonly repository: ServiceRepositoryPort,
-    private readonly establishmentRepository: EstablishmentRepositoryPort
-  ) {}
-
+export const createServiceService = (deps: {
+  repository: ServiceRepositoryPort
+  establishmentRepository: EstablishmentRepositoryPort
+}) => ({
   async create(
     establishmentId: string,
     data: Omit<CreateServiceData, 'establishmentId'>,
     userId: string
   ): Promise<Service> {
     await requireOwnerRole(
-      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      (uid, eid) => deps.establishmentRepository.getUserRole(uid, eid),
       userId,
       establishmentId,
       'create services'
     )
 
-    return this.repository.create({
+    return deps.repository.create({
       ...data,
       establishmentId,
     })
-  }
+  },
 
   async findById(id: string): Promise<Service> {
     return requireEntity(
-      await this.repository.findById(id),
+      await deps.repository.findById(id),
       'Service'
     )
-  }
+  },
 
   async findByEstablishment(
     establishmentId: string,
     options: { activeOnly?: boolean } = {}
   ): Promise<Service[]> {
-    return this.repository.findByEstablishment(establishmentId, options)
-  }
+    return deps.repository.findByEstablishment(establishmentId, options)
+  },
 
   async update(
     id: string,
@@ -49,30 +47,30 @@ export class ServiceService {
   ): Promise<Service> {
     return updateWithAuthorization(id, data, userId, {
       repository: {
-        findById: (id) => this.repository.findById(id),
-        update: (id, data) => this.repository.update(id, data),
+        findById: (id) => deps.repository.findById(id),
+        update: (id, data) => deps.repository.update(id, data),
       },
       entityName: 'Service',
       getEstablishmentId: (service) => service.establishmentId,
-      getUserRole: (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      getUserRole: (uid, eid) => deps.establishmentRepository.getUserRole(uid, eid),
       action: 'update services',
     })
-  }
+  },
 
   async delete(id: string, userId: string): Promise<Service> {
     return deleteWithAuthorization(id, userId, {
       repository: {
-        findById: (id) => this.repository.findById(id),
-        softDelete: (id) => this.repository.softDelete(id),
-        hasActiveBookings: (id) => this.repository.hasActiveBookings(id),
+        findById: (id) => deps.repository.findById(id),
+        softDelete: (id) => deps.repository.softDelete(id),
+        hasActiveBookings: (id) => deps.repository.hasActiveBookings(id),
       },
       entityName: 'Service',
       getEstablishmentId: (service) => service.establishmentId,
-      getUserRole: (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      getUserRole: (uid, eid) => deps.establishmentRepository.getUserRole(uid, eid),
       action: 'delete services',
       checkDependencies: true,
       dependencyErrorMessage: 'Cannot delete service with active bookings',
     })
-  }
-}
+  },
+})
 

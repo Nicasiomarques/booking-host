@@ -9,26 +9,26 @@ import type { EstablishmentRepositoryPort } from '#shared/application/ports/inde
 import { requireEntity } from '#shared/application/utils/validation.helper.js'
 import { updateWithAuthorization } from '#shared/application/services/crud-helpers.js'
 
-export class EstablishmentService {
-  constructor(private readonly repository: EstablishmentRepositoryPort) {}
-
+export const createEstablishmentService = (deps: {
+  repository: EstablishmentRepositoryPort
+}) => ({
   async create(
     data: CreateEstablishmentData,
     userId: string
   ): Promise<Establishment> {
-    return this.repository.create(data, userId)
-  }
+    return deps.repository.create(data, userId)
+  },
 
   async findById(id: string): Promise<Establishment> {
     return requireEntity(
-      await this.repository.findById(id),
+      await deps.repository.findById(id),
       'Establishment'
     )
-  }
+  },
 
   async findByUserId(userId: string): Promise<EstablishmentWithRole[]> {
-    return this.repository.findByUserId(userId)
-  }
+    return deps.repository.findByUserId(userId)
+  },
 
   async update(
     id: string,
@@ -37,18 +37,18 @@ export class EstablishmentService {
   ): Promise<Establishment> {
     return updateWithAuthorization(id, data, userId, {
       repository: {
-        findById: (id) => this.repository.findById(id),
-        update: (id, data) => this.repository.update(id, data),
+        findById: (id) => deps.repository.findById(id),
+        update: (id, data) => deps.repository.update(id, data),
       },
       entityName: 'Establishment',
       getEstablishmentId: (establishment) => establishment.id,
-      getUserRole: (uid, eid) => this.repository.getUserRole(uid, eid),
+      getUserRole: (uid, eid) => deps.repository.getUserRole(uid, eid),
       action: 'update establishments',
     })
-  }
+  },
 
   async getUserRole(userId: string, establishmentId: string): Promise<Role | null> {
-    return this.repository.getUserRole(userId, establishmentId)
-  }
-}
+    return deps.repository.getUserRole(userId, establishmentId)
+  },
+})
 
