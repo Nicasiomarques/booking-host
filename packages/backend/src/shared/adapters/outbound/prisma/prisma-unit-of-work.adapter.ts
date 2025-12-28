@@ -11,7 +11,9 @@ import type {
   CreateBookingData,
   BookingExtraItemData,
 } from '#features/booking/domain/index.js'
-import type { BookingStatus } from '#shared/domain/index.js'
+import type { BookingStatus, DomainError, Either } from '#shared/domain/index.js'
+import { fromPromise } from '#shared/domain/index.js'
+import { ConflictError, NotFoundError } from '#shared/domain/index.js'
 import type { Availability } from '#features/availability/domain/index.js'
 import type { Room } from '#features/room/domain/index.js'
 import type { RoomType } from '#shared/domain/index.js'
@@ -49,49 +51,48 @@ function createTransactionalBookingRepository(
     async create(
       data: CreateBookingData,
       extras: BookingExtraItemData[]
-    ): Promise<Booking> {
-      const result = await tx.booking.create({
-        data: {
-          userId: data.userId,
-          establishmentId: data.establishmentId,
-          serviceId: data.serviceId,
-          availabilityId: data.availabilityId,
-          quantity: data.quantity,
-          totalPrice: new Prisma.Decimal(data.totalPrice),
-          status: data.status ?? 'CONFIRMED',
-          // Hotel-specific fields
-          checkInDate: data.checkInDate ?? null,
-          checkOutDate: data.checkOutDate ?? null,
-          roomId: data.roomId ?? null,
-          numberOfNights: data.numberOfNights ?? null,
-          numberOfGuests: data.numberOfGuests ?? null,
-          guestName: data.guestName ?? null,
-          guestEmail: data.guestEmail ?? null,
-          guestPhone: data.guestPhone ?? null,
-          guestDocument: data.guestDocument ?? null,
-          notes: data.notes ?? null,
-          confirmedAt: data.status === 'CONFIRMED' ? new Date() : null,
-          extraItems: {
-            create: extras.map((e) => ({
-              extraItemId: e.extraItemId,
-              quantity: e.quantity,
-              priceAtBooking: new Prisma.Decimal(e.priceAtBooking),
-            })),
+    ): Promise<Either<DomainError, Booking>> {
+      return fromPromise(
+        tx.booking.create({
+          data: {
+            userId: data.userId,
+            establishmentId: data.establishmentId,
+            serviceId: data.serviceId,
+            availabilityId: data.availabilityId,
+            quantity: data.quantity,
+            totalPrice: new Prisma.Decimal(data.totalPrice),
+            status: data.status ?? 'CONFIRMED',
+            checkInDate: data.checkInDate ?? null,
+            checkOutDate: data.checkOutDate ?? null,
+            roomId: data.roomId ?? null,
+            numberOfNights: data.numberOfNights ?? null,
+            numberOfGuests: data.numberOfGuests ?? null,
+            guestName: data.guestName ?? null,
+            guestEmail: data.guestEmail ?? null,
+            guestPhone: data.guestPhone ?? null,
+            guestDocument: data.guestDocument ?? null,
+            notes: data.notes ?? null,
+            confirmedAt: data.status === 'CONFIRMED' ? new Date() : null,
+            extraItems: {
+              create: extras.map((e) => ({
+                extraItemId: e.extraItemId,
+                quantity: e.quantity,
+                priceAtBooking: new Prisma.Decimal(e.priceAtBooking),
+              })),
+            },
           },
-        },
-      })
-      return toBooking(result)
+        }),
+        () => new ConflictError('Failed to create booking')
+      ).then((either) => either.map(toBooking))
     },
 
-    async updateStatus(id: string, status: BookingStatus, cancellationReason?: string | null): Promise<Booking> {
+    async updateStatus(id: string, status: BookingStatus, cancellationReason?: string | null): Promise<Either<DomainError, Booking>> {
       const updateData: any = { status }
       
-      // Automatically set confirmedAt when status changes to CONFIRMED
       if (status === 'CONFIRMED') {
         updateData.confirmedAt = new Date()
       }
       
-      // Automatically set cancelledAt when status changes to CANCELLED
       if (status === 'CANCELLED') {
         updateData.cancelledAt = new Date()
         if (cancellationReason !== undefined) {
@@ -99,21 +100,21 @@ function createTransactionalBookingRepository(
         }
       }
       
-      // Automatically set checkedInAt when status changes to CHECKED_IN
       if (status === 'CHECKED_IN') {
         updateData.checkedInAt = new Date()
       }
       
-      // Automatically set checkedOutAt when status changes to CHECKED_OUT
       if (status === 'CHECKED_OUT') {
         updateData.checkedOutAt = new Date()
       }
       
-      const result = await tx.booking.update({
-        where: { id },
-        data: updateData,
-      })
-      return toBooking(result)
+      return fromPromise(
+        tx.booking.update({
+          where: { id },
+          data: updateData,
+        }),
+        () => new NotFoundError('Booking')
+      ).then((either) => either.map(toBooking))
     },
   }
 }
@@ -132,20 +133,24 @@ function createTransactionalAvailabilityRepository(
   }
   
   return {
-    async decrementCapacity(id: string, quantity: number): Promise<Availability> {
-      const result = await tx.availability.update({
-        where: { id },
-        data: { capacity: { decrement: quantity } },
-      })
-      return toAvailability(result)
+    async decrementCapacity(id: string, quantity: number): Promise<Either<DomainError, Availability>> {
+      return fromPromise(
+        tx.availability.update({
+          where: { id },
+          data: { capacity: { decrement: quantity } },
+        }),
+        () => new NotFoundError('Availability')
+      ).then((either) => either.map(toAvailability))
     },
 
-    async incrementCapacity(id: string, quantity: number): Promise<Availability> {
-      const result = await tx.availability.update({
-        where: { id },
-        data: { capacity: { increment: quantity } },
-      })
-      return toAvailability(result)
+    async incrementCapacity(id: string, quantity: number): Promise<Either<DomainError, Availability>> {
+      return fromPromise(
+        tx.availability.update({
+          where: { id },
+          data: { capacity: { increment: quantity } },
+        }),
+        () => new NotFoundError('Availability')
+      ).then((either) => either.map(toAvailability))
     },
   }
 }
@@ -166,12 +171,14 @@ function createTransactionalRoomRepository(
   tx: Prisma.TransactionClient
 ): TransactionalRoomRepository {
   return {
-    async updateStatus(id: string, status: RoomStatus): Promise<Room> {
-      const result = await tx.room.update({
-        where: { id },
-        data: { status },
-      })
-      return toRoom(result)
+    async updateStatus(id: string, status: RoomStatus): Promise<Either<DomainError, Room>> {
+      return fromPromise(
+        tx.room.update({
+          where: { id },
+          data: { status },
+        }),
+        () => new NotFoundError('Room')
+      ).then((either) => either.map(toRoom))
     },
   }
 }
