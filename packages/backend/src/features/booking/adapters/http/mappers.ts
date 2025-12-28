@@ -1,6 +1,4 @@
 import { formatDate, formatDecimal } from '#shared/adapters/http/utils/response-formatters.js'
-import type { BookingWithDetails } from '../../domain/index.js'
-import type { PaginatedResult } from '#shared/domain/index.js'
 
 export function formatBookingResponse<T extends { 
   totalPrice: string | number
