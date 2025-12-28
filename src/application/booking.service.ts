@@ -6,6 +6,7 @@ import type {
   PaginatedResult,
 } from '#domain/index.js'
 import { NotFoundError, ForbiddenError, ConflictError } from '#domain/index.js'
+import { requireEntity } from './utils/validation.helper.js'
 import type {
   UnitOfWorkPort,
   ServiceRepositoryPort,
@@ -28,9 +29,12 @@ export interface CreateBookingInput {
   checkInDate?: string
   checkOutDate?: string
   roomId?: string
+  numberOfGuests?: number
   guestName?: string
   guestEmail?: string
+  guestPhone?: string
   guestDocument?: string
+  notes?: string
 }
 
 export class BookingService {
@@ -46,12 +50,17 @@ export class BookingService {
 
   async create(input: CreateBookingInput, userId: string): Promise<Booking> {
     // Validate service exists and is active
-    const service = await this.serviceRepository.findById(input.serviceId)
-    if (!service || !service.active) throw new NotFoundError('Service')
+    const service = requireEntity(
+      await this.serviceRepository.findById(input.serviceId),
+      'Service'
+    )
+    if (!service.active) throw new ConflictError('Service is not active')
 
     // Validate availability exists
-    const availability = await this.availabilityRepository.findById(input.availabilityId)
-    if (!availability) throw new NotFoundError('Availability')
+    const availability = requireEntity(
+      await this.availabilityRepository.findById(input.availabilityId),
+      'Availability'
+    )
 
     // Ensure availability belongs to service
     if (availability.serviceId !== input.serviceId) {
@@ -97,8 +106,10 @@ export class BookingService {
 
       // Validate room if provided
       if (input.roomId) {
-        const room = await this.roomRepository.findById(input.roomId)
-        if (!room) throw new NotFoundError('Room')
+        const room = requireEntity(
+          await this.roomRepository.findById(input.roomId),
+          'Room'
+        )
         if (room.serviceId !== input.serviceId) {
           throw new ConflictError('Room does not belong to the specified service')
         }
@@ -142,13 +153,16 @@ export class BookingService {
     }
 
     // Calculate total price
+    // Use dynamic price from availability if available, otherwise use service basePrice
+    const unitPrice = availability.price ? Number(availability.price) : Number(service.basePrice)
+    
     let totalPrice: number
     if (isHotelBooking && numberOfNights) {
       // Price per night * number of nights
-      totalPrice = Number(service.basePrice) * numberOfNights
+      totalPrice = unitPrice * numberOfNights
     } else {
       // Standard calculation
-      totalPrice = Number(service.basePrice) * input.quantity
+      totalPrice = unitPrice * input.quantity
     }
 
     // Process extras
@@ -210,7 +224,10 @@ export class BookingService {
           numberOfNights,
           guestName: input.guestName,
           guestEmail: input.guestEmail,
+          guestPhone: input.guestPhone,
           guestDocument: input.guestDocument,
+          notes: input.notes,
+          numberOfGuests: input.numberOfGuests,
         },
         extrasData
       )
@@ -218,9 +235,10 @@ export class BookingService {
   }
 
   async findById(id: string, userId: string): Promise<BookingWithDetails> {
-    const booking = await this.bookingRepository.findById(id)
-
-    if (!booking) throw new NotFoundError('Booking')
+    const booking = requireEntity(
+      await this.bookingRepository.findById(id),
+      'Booking'
+    )
 
     // Check if user is the owner or has role in establishment
     if (booking.userId !== userId) {
@@ -253,9 +271,10 @@ export class BookingService {
   }
 
   async cancel(id: string, userId: string): Promise<BookingWithDetails> {
-    const ownership = await this.bookingRepository.getBookingOwnership(id)
-
-    if (!ownership) throw new NotFoundError('Booking')
+    const ownership = requireEntity(
+      await this.bookingRepository.getBookingOwnership(id),
+      'Booking'
+    )
 
     // Check if user is the owner or has role in establishment
     if (ownership.userId !== userId) {
@@ -289,9 +308,10 @@ export class BookingService {
   }
 
   async confirm(id: string, userId: string): Promise<BookingWithDetails> {
-    const ownership = await this.bookingRepository.getBookingOwnership(id)
-
-    if (!ownership) throw new NotFoundError('Booking')
+    const ownership = requireEntity(
+      await this.bookingRepository.getBookingOwnership(id),
+      'Booking'
+    )
 
     // Check if user has role in establishment (only staff/owner can confirm)
     const role = await this.establishmentRepository.getUserRole(userId, ownership.establishmentId)
@@ -315,8 +335,10 @@ export class BookingService {
   }
 
   async checkIn(id: string, userId: string): Promise<BookingWithDetails> {
-    const booking = await this.bookingRepository.findById(id)
-    if (!booking) throw new NotFoundError('Booking')
+    const booking = requireEntity(
+      await this.bookingRepository.findById(id),
+      'Booking'
+    )
 
     // Check if user has role in establishment (only staff/owner can check in)
     const role = await this.establishmentRepository.getUserRole(userId, booking.establishmentId)
@@ -354,8 +376,10 @@ export class BookingService {
   }
 
   async checkOut(id: string, userId: string): Promise<BookingWithDetails> {
-    const booking = await this.bookingRepository.findById(id)
-    if (!booking) throw new NotFoundError('Booking')
+    const booking = requireEntity(
+      await this.bookingRepository.findById(id),
+      'Booking'
+    )
 
     // Check if user has role in establishment (only staff/owner can check out)
     const role = await this.establishmentRepository.getUserRole(userId, booking.establishmentId)
@@ -397,8 +421,10 @@ export class BookingService {
   }
 
   async markNoShow(id: string, userId: string): Promise<BookingWithDetails> {
-    const booking = await this.bookingRepository.findById(id)
-    if (!booking) throw new NotFoundError('Booking')
+    const booking = requireEntity(
+      await this.bookingRepository.findById(id),
+      'Booking'
+    )
 
     // Check if user has role in establishment (only staff/owner can mark no-show)
     const role = await this.establishmentRepository.getUserRole(userId, booking.establishmentId)

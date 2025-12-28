@@ -5,8 +5,9 @@ import type {
   EstablishmentWithRole,
   Role,
 } from '#domain/index.js'
-import { NotFoundError, ForbiddenError } from '#domain/index.js'
 import type { EstablishmentRepositoryPort } from './ports/index.js'
+import { requireOwnerRole } from './utils/authorization.helper.js'
+import { requireEntity } from './utils/validation.helper.js'
 
 export class EstablishmentService {
   constructor(private readonly repository: EstablishmentRepositoryPort) {}
@@ -19,11 +20,10 @@ export class EstablishmentService {
   }
 
   async findById(id: string): Promise<Establishment> {
-    const establishment = await this.repository.findById(id)
-
-    if (!establishment) throw new NotFoundError('Establishment')
-
-    return establishment
+    return requireEntity(
+      await this.repository.findById(id),
+      'Establishment'
+    )
   }
 
   async findByUserId(userId: string): Promise<EstablishmentWithRole[]> {
@@ -35,13 +35,17 @@ export class EstablishmentService {
     data: UpdateEstablishmentData,
     userId: string
   ): Promise<Establishment> {
-    const role = await this.repository.getUserRole(userId, id)
+    await requireOwnerRole(
+      (uid, eid) => this.repository.getUserRole(uid, eid),
+      userId,
+      id,
+      'update establishments'
+    )
 
-    if (role !== 'OWNER') throw new ForbiddenError('Only owners can update establishments')
-
-    const establishment = await this.repository.findById(id)
-
-    if (!establishment) throw new NotFoundError('Establishment')
+    requireEntity(
+      await this.repository.findById(id),
+      'Establishment'
+    )
 
     return this.repository.update(id, data)
   }

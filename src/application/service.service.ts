@@ -1,6 +1,8 @@
 import type { Service, CreateServiceData, UpdateServiceData } from '#domain/index.js'
-import { NotFoundError, ForbiddenError, ConflictError } from '#domain/index.js'
+import { ConflictError } from '#domain/index.js'
 import type { ServiceRepositoryPort, EstablishmentRepositoryPort } from './ports/index.js'
+import { requireOwnerRole } from './utils/authorization.helper.js'
+import { requireEntity } from './utils/validation.helper.js'
 
 export class ServiceService {
   constructor(
@@ -13,9 +15,12 @@ export class ServiceService {
     data: Omit<CreateServiceData, 'establishmentId'>,
     userId: string
   ): Promise<Service> {
-    const role = await this.establishmentRepository.getUserRole(userId, establishmentId)
-
-    if (role !== 'OWNER') throw new ForbiddenError('Only owners can create services')
+    await requireOwnerRole(
+      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      userId,
+      establishmentId,
+      'create services'
+    )
 
     return this.repository.create({
       ...data,
@@ -24,11 +29,10 @@ export class ServiceService {
   }
 
   async findById(id: string): Promise<Service> {
-    const service = await this.repository.findById(id)
-
-    if (!service) throw new NotFoundError('Service')
-
-    return service
+    return requireEntity(
+      await this.repository.findById(id),
+      'Service'
+    )
   }
 
   async findByEstablishment(
@@ -43,25 +47,33 @@ export class ServiceService {
     data: UpdateServiceData,
     userId: string
   ): Promise<Service> {
-    const service = await this.repository.findById(id)
+    const service = requireEntity(
+      await this.repository.findById(id),
+      'Service'
+    )
 
-    if (!service) throw new NotFoundError('Service')
-
-    const role = await this.establishmentRepository.getUserRole(userId, service.establishmentId)
-
-    if (role !== 'OWNER') throw new ForbiddenError('Only owners can update services')
+    await requireOwnerRole(
+      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      userId,
+      service.establishmentId,
+      'update services'
+    )
 
     return this.repository.update(id, data)
   }
 
   async delete(id: string, userId: string): Promise<Service> {
-    const service = await this.repository.findById(id)
+    const service = requireEntity(
+      await this.repository.findById(id),
+      'Service'
+    )
 
-    if (!service) throw new NotFoundError('Service')
-
-    const role = await this.establishmentRepository.getUserRole(userId, service.establishmentId)
-
-    if (role !== 'OWNER') throw new ForbiddenError('Only owners can delete services')
+    await requireOwnerRole(
+      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      userId,
+      service.establishmentId,
+      'delete services'
+    )
 
     const hasBookings = await this.repository.hasActiveBookings(id)
 

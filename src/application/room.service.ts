@@ -1,6 +1,8 @@
 import type { Room, CreateRoomData, UpdateRoomData } from '#domain/index.js'
-import { NotFoundError, ForbiddenError, ConflictError } from '#domain/index.js'
+import { ConflictError } from '#domain/index.js'
 import type { RoomRepositoryPort, ServiceRepositoryPort, EstablishmentRepositoryPort } from './ports/index.js'
+import { requireOwnerRole } from './utils/authorization.helper.js'
+import { requireEntity } from './utils/validation.helper.js'
 
 export class RoomService {
   constructor(
@@ -10,11 +12,17 @@ export class RoomService {
   ) {}
 
   async create(serviceId: string, data: Omit<CreateRoomData, 'serviceId'>, userId: string): Promise<Room> {
-    const service = await this.serviceRepository.findById(serviceId)
-    if (!service) throw new NotFoundError('Service')
+    const service = requireEntity(
+      await this.serviceRepository.findById(serviceId),
+      'Service'
+    )
 
-    const role = await this.establishmentRepository.getUserRole(userId, service.establishmentId)
-    if (role !== 'OWNER') throw new ForbiddenError('Only owners can create rooms')
+    await requireOwnerRole(
+      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      userId,
+      service.establishmentId,
+      'create rooms'
+    )
 
     // Check if room number already exists for this service
     const existingRooms = await this.repository.findByService(serviceId)
@@ -29,26 +37,37 @@ export class RoomService {
   }
 
   async findById(id: string): Promise<Room> {
-    const room = await this.repository.findById(id)
-    if (!room) throw new NotFoundError('Room')
-    return room
+    return requireEntity(
+      await this.repository.findById(id),
+      'Room'
+    )
   }
 
   async findByService(serviceId: string): Promise<Room[]> {
-    const service = await this.serviceRepository.findById(serviceId)
-    if (!service) throw new NotFoundError('Service')
+    requireEntity(
+      await this.serviceRepository.findById(serviceId),
+      'Service'
+    )
     return this.repository.findByService(serviceId)
   }
 
   async update(id: string, data: UpdateRoomData, userId: string): Promise<Room> {
-    const room = await this.repository.findById(id)
-    if (!room) throw new NotFoundError('Room')
+    const room = requireEntity(
+      await this.repository.findById(id),
+      'Room'
+    )
 
-    const service = await this.serviceRepository.findById(room.serviceId)
-    if (!service) throw new NotFoundError('Service')
+    const service = requireEntity(
+      await this.serviceRepository.findById(room.serviceId),
+      'Service'
+    )
 
-    const role = await this.establishmentRepository.getUserRole(userId, service.establishmentId)
-    if (role !== 'OWNER') throw new ForbiddenError('Only owners can update rooms')
+    await requireOwnerRole(
+      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      userId,
+      service.establishmentId,
+      'update rooms'
+    )
 
     // If updating number, check for conflicts
     if (data.number && data.number !== room.number) {
@@ -70,14 +89,22 @@ export class RoomService {
   }
 
   async delete(id: string, userId: string): Promise<Room> {
-    const room = await this.repository.findById(id)
-    if (!room) throw new NotFoundError('Room')
+    const room = requireEntity(
+      await this.repository.findById(id),
+      'Room'
+    )
 
-    const service = await this.serviceRepository.findById(room.serviceId)
-    if (!service) throw new NotFoundError('Service')
+    const service = requireEntity(
+      await this.serviceRepository.findById(room.serviceId),
+      'Service'
+    )
 
-    const role = await this.establishmentRepository.getUserRole(userId, service.establishmentId)
-    if (role !== 'OWNER') throw new ForbiddenError('Only owners can delete rooms')
+    await requireOwnerRole(
+      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      userId,
+      service.establishmentId,
+      'delete rooms'
+    )
 
     // Check if room has active bookings
     const hasActiveBookings = await this.repository.hasActiveBookings(id)

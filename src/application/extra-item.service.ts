@@ -1,10 +1,11 @@
 import type { ExtraItem, CreateExtraItemData, UpdateExtraItemData } from '#domain/index.js'
-import { NotFoundError, ForbiddenError } from '#domain/index.js'
 import type {
   ExtraItemRepositoryPort,
   ServiceRepositoryPort,
   EstablishmentRepositoryPort,
 } from './ports/index.js'
+import { requireOwnerRole } from './utils/authorization.helper.js'
+import { requireEntity } from './utils/validation.helper.js'
 
 export class ExtraItemService {
   constructor(
@@ -18,13 +19,17 @@ export class ExtraItemService {
     data: Omit<CreateExtraItemData, 'serviceId'>,
     userId: string
   ): Promise<ExtraItem> {
-    const service = await this.serviceRepository.findById(serviceId)
+    const service = requireEntity(
+      await this.serviceRepository.findById(serviceId),
+      'Service'
+    )
 
-    if (!service) throw new NotFoundError('Service')
-
-    const role = await this.establishmentRepository.getUserRole(userId, service.establishmentId)
-
-    if (role !== 'OWNER') throw new ForbiddenError('Only owners can create extra items')
+    await requireOwnerRole(
+      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      userId,
+      service.establishmentId,
+      'create extra items'
+    )
 
     return this.repository.create({
       ...data,
@@ -33,11 +38,10 @@ export class ExtraItemService {
   }
 
   async findById(id: string): Promise<ExtraItem> {
-    const extraItem = await this.repository.findById(id)
-
-    if (!extraItem) throw new NotFoundError('ExtraItem')
-
-    return extraItem
+    return requireEntity(
+      await this.repository.findById(id),
+      'ExtraItem'
+    )
   }
 
   async findByService(
@@ -52,31 +56,33 @@ export class ExtraItemService {
     data: UpdateExtraItemData,
     userId: string
   ): Promise<ExtraItem> {
-    const extraItem = await this.repository.findByIdWithService(id)
-
-    if (!extraItem) throw new NotFoundError('ExtraItem')
-
-    const role = await this.establishmentRepository.getUserRole(
-      userId,
-      extraItem.service.establishmentId
+    const extraItem = requireEntity(
+      await this.repository.findByIdWithService(id),
+      'ExtraItem'
     )
 
-    if (role !== 'OWNER') throw new ForbiddenError('Only owners can update extra items')
+    await requireOwnerRole(
+      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      userId,
+      extraItem.service.establishmentId,
+      'update extra items'
+    )
 
     return this.repository.update(id, data)
   }
 
   async delete(id: string, userId: string): Promise<ExtraItem> {
-    const extraItem = await this.repository.findByIdWithService(id)
-
-    if (!extraItem) throw new NotFoundError('ExtraItem')
-
-    const role = await this.establishmentRepository.getUserRole(
-      userId,
-      extraItem.service.establishmentId
+    const extraItem = requireEntity(
+      await this.repository.findByIdWithService(id),
+      'ExtraItem'
     )
 
-    if (role !== 'OWNER') throw new ForbiddenError('Only owners can delete extra items')
+    await requireOwnerRole(
+      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      userId,
+      extraItem.service.establishmentId,
+      'delete extra items'
+    )
 
     return this.repository.softDelete(id)
   }

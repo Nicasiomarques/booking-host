@@ -1,10 +1,12 @@
 import type { Availability, CreateAvailabilityData, UpdateAvailabilityData } from '#domain/index.js'
-import { NotFoundError, ForbiddenError, ConflictError } from '#domain/index.js'
+import { ConflictError } from '#domain/index.js'
 import type {
   AvailabilityRepositoryPort,
   ServiceRepositoryPort,
   EstablishmentRepositoryPort,
 } from './ports/index.js'
+import { requireOwnerRole } from './utils/authorization.helper.js'
+import { requireEntity } from './utils/validation.helper.js'
 
 export class AvailabilityService {
   constructor(
@@ -18,13 +20,17 @@ export class AvailabilityService {
     data: Omit<CreateAvailabilityData, 'serviceId'>,
     userId: string
   ): Promise<Availability> {
-    const service = await this.serviceRepository.findById(serviceId)
+    const service = requireEntity(
+      await this.serviceRepository.findById(serviceId),
+      'Service'
+    )
 
-    if (!service) throw new NotFoundError('Service')
-
-    const role = await this.establishmentRepository.getUserRole(userId, service.establishmentId)
-
-    if (role !== 'OWNER') throw new ForbiddenError('Only owners can create availability slots')
+    await requireOwnerRole(
+      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      userId,
+      service.establishmentId,
+      'create availability slots'
+    )
 
     // Check for overlapping time slots
     const hasOverlap = await this.repository.checkOverlap(
@@ -43,11 +49,10 @@ export class AvailabilityService {
   }
 
   async findById(id: string): Promise<Availability> {
-    const availability = await this.repository.findById(id)
-
-    if (!availability) throw new NotFoundError('Availability')
-
-    return availability
+    return requireEntity(
+      await this.repository.findById(id),
+      'Availability'
+    )
   }
 
   async findByService(
@@ -62,16 +67,17 @@ export class AvailabilityService {
     data: UpdateAvailabilityData,
     userId: string
   ): Promise<Availability> {
-    const availability = await this.repository.findByIdWithService(id)
-
-    if (!availability) throw new NotFoundError('Availability')
-
-    const role = await this.establishmentRepository.getUserRole(
-      userId,
-      availability.service.establishmentId
+    const availability = requireEntity(
+      await this.repository.findByIdWithService(id),
+      'Availability'
     )
 
-    if (role !== 'OWNER') throw new ForbiddenError('Only owners can update availability slots')
+    await requireOwnerRole(
+      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      userId,
+      availability.service.establishmentId,
+      'update availability slots'
+    )
 
     // If date or time is being changed, check for overlaps
     if (data.date || data.startTime || data.endTime) {
@@ -94,16 +100,17 @@ export class AvailabilityService {
   }
 
   async delete(id: string, userId: string): Promise<Availability> {
-    const availability = await this.repository.findByIdWithService(id)
-
-    if (!availability) throw new NotFoundError('Availability')
-
-    const role = await this.establishmentRepository.getUserRole(
-      userId,
-      availability.service.establishmentId
+    const availability = requireEntity(
+      await this.repository.findByIdWithService(id),
+      'Availability'
     )
 
-    if (role !== 'OWNER') throw new ForbiddenError('Only owners can delete availability slots')
+    await requireOwnerRole(
+      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      userId,
+      availability.service.establishmentId,
+      'delete availability slots'
+    )
 
     const hasBookings = await this.repository.hasActiveBookings(id)
 
