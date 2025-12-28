@@ -1,2 +1,3 @@
-export { AuthService, type RegisterInput, type LoginInput, type AuthResult } from './auth.service.js'
+export { AuthService } from './auth.service.js'
+export type { RegisterInput, LoginInput, AuthResult } from '../domain/index.js'
 

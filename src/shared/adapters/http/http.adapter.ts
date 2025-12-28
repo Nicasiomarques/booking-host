@@ -110,14 +110,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(import('./plugins/services.plugin.js'))
   await app.register(import('./plugins/error-handler.plugin.js'))
 
-  // Endpoints
-  await app.register(import('#features/auth/adapters/endpoints.js'), { prefix: '/v1/auth' })
-  await app.register(import('#features/establishment/adapters/endpoints.js'), { prefix: '/v1/establishments' })
-  await app.register(import('#features/service/adapters/endpoints.js'), { prefix: '/v1' })
-  await app.register(import('#features/extra-item/adapters/endpoints.js'), { prefix: '/v1' })
-  await app.register(import('#features/availability/adapters/endpoints.js'), { prefix: '/v1' })
-  await app.register(import('#features/booking/adapters/endpoints.js'), { prefix: '/v1' })
-  await app.register(import('#features/room/adapters/endpoints.js'), { prefix: '/v1' })
+  // Routes
+  const { registerRoutes } = await import('./routes/index.js')
+  await registerRoutes(app)
 
   // Health check
   app.get('/health', async () => ({ status: 'ok' }))

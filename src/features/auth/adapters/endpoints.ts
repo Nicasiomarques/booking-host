@@ -5,9 +5,8 @@ import {
   authResponseSchema,
   refreshResponseSchema,
   meResponseSchema,
-  RegisterInput,
-  LoginInput,
 } from './schemas.js'
+import type { RegisterInput, LoginInput } from '../../domain/index.js'
 import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
 import { validate, authenticate } from '#shared/adapters/http/middleware/index.js'
 import { isProduction } from '#config/index.js'

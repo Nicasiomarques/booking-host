@@ -8,30 +8,11 @@ import type {
   UserRepositoryPort,
 } from '#shared/application/ports/index.js'
 import { DatabaseErrorType } from '#shared/application/ports/index.js'
-
-export interface RegisterInput {
-  email: string
-  password: string
-  name: string
-  phone?: string
-  birthDate?: string
-  address?: string
-}
-
-export interface LoginInput {
-  email: string
-  password: string
-}
-
-export interface AuthResult {
-  accessToken: string
-  refreshToken: string
-  user: {
-    id: string
-    email: string
-    name: string
-  }
-}
+import type {
+  RegisterInput,
+  LoginInput,
+  AuthResult,
+} from '../domain/index.js'
 
 export class AuthService {
   constructor(

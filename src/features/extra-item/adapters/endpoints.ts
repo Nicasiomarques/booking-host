@@ -10,6 +10,7 @@ import {
 import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
 import { validate, authenticate } from '#shared/adapters/http/middleware/index.js'
 import { serviceIdParamSchema } from '#features/service/adapters/schemas.js'
+import { formatExtraItemResponse } from './http/mappers.js'
 
 const idParamSchema = z.object({
   id: z.string().uuid(),
@@ -20,13 +21,6 @@ const listExtrasQuerySchema = z.object({
     description: 'Filter by active status',
   }),
 })
-
-function formatExtraItemResponse<T extends { price: string | number }>(extra: T) {
-  return {
-    ...extra,
-    price: typeof extra.price === 'string' ? parseFloat(extra.price) : extra.price,
-  }
-}
 
 export default async function extraItemEndpoints(fastify: FastifyInstance) {
   const { extraItem: service } = fastify.services

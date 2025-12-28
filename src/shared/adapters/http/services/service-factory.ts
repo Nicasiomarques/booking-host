@@ -1,25 +1,4 @@
 import { PrismaClient } from '@prisma/client'
-import {
-  AuthService,
-} from '#features/auth/application/index.js'
-import {
-  EstablishmentService,
-} from '#features/establishment/application/index.js'
-import {
-  ServiceService,
-} from '#features/service/application/index.js'
-import {
-  ExtraItemService,
-} from '#features/extra-item/application/index.js'
-import {
-  AvailabilityService,
-} from '#features/availability/application/index.js'
-import {
-  BookingService,
-} from '#features/booking/application/index.js'
-import {
-  RoomService,
-} from '#features/room/application/index.js'
 import type {
   PasswordHasherPort,
   TokenProviderPort,
@@ -27,37 +6,37 @@ import type {
   UnitOfWorkPort,
 } from '#shared/application/ports/index.js'
 import {
-  UserRepository,
-  EstablishmentRepository,
-  ServiceRepository,
-  ExtraItemRepository,
-  AvailabilityRepository,
-  BookingRepository,
-  RoomRepository,
   PrismaUnitOfWorkAdapter,
   PrismaRepositoryErrorHandlerAdapter,
 } from '#shared/adapters/outbound/prisma/index.js'
 import { Argon2PasswordHasherAdapter } from '#shared/adapters/outbound/crypto/index.js'
 import { JwtTokenProviderAdapter } from '#shared/adapters/outbound/token/index.js'
+import { createAuthComposition, type AuthComposition } from '#features/auth/composition.js'
+import { createEstablishmentComposition, type EstablishmentComposition } from '#features/establishment/composition.js'
+import { createServiceComposition, type ServiceComposition } from '#features/service/composition.js'
+import { createExtraItemComposition, type ExtraItemComposition } from '#features/extra-item/composition.js'
+import { createAvailabilityComposition, type AvailabilityComposition } from '#features/availability/composition.js'
+import { createBookingComposition, type BookingComposition } from '#features/booking/composition.js'
+import { createRoomComposition, type RoomComposition } from '#features/room/composition.js'
 
 export interface Services {
-  auth: AuthService
-  establishment: EstablishmentService
-  service: ServiceService
-  extraItem: ExtraItemService
-  availability: AvailabilityService
-  booking: BookingService
-  room: RoomService
+  auth: AuthComposition['service']
+  establishment: EstablishmentComposition['service']
+  service: ServiceComposition['service']
+  extraItem: ExtraItemComposition['service']
+  availability: AvailabilityComposition['service']
+  booking: BookingComposition['service']
+  room: RoomComposition['service']
 }
 
 export interface Repositories {
-  user: UserRepository
-  establishment: EstablishmentRepository
-  service: ServiceRepository
-  extraItem: ExtraItemRepository
-  availability: AvailabilityRepository
-  booking: BookingRepository
-  room: RoomRepository
+  user: AuthComposition['repository']
+  establishment: EstablishmentComposition['repository']
+  service: ServiceComposition['repository']
+  extraItem: ExtraItemComposition['repository']
+  availability: AvailabilityComposition['repository']
+  booking: BookingComposition['repository']
+  room: RoomComposition['repository']
 }
 
 export interface Adapters {
@@ -82,60 +61,66 @@ function createAdapters(prisma: PrismaClient): Adapters {
   }
 }
 
-function createRepositories(prisma: PrismaClient): Repositories {
-  return {
-    user: new UserRepository(prisma),
-    establishment: new EstablishmentRepository(prisma),
-    service: new ServiceRepository(prisma),
-    extraItem: new ExtraItemRepository(prisma),
-    availability: new AvailabilityRepository(prisma),
-    booking: new BookingRepository(prisma),
-    room: new RoomRepository(prisma),
-  }
-}
-
-function createServices(repositories: Repositories, adapters: Adapters): Services {
-  return {
-    auth: new AuthService(
-      repositories.user,
-      adapters.passwordHasher,
-      adapters.tokenProvider,
-      adapters.repositoryErrorHandler
-    ),
-    establishment: new EstablishmentService(repositories.establishment),
-    service: new ServiceService(repositories.service, repositories.establishment),
-    extraItem: new ExtraItemService(
-      repositories.extraItem,
-      repositories.service,
-      repositories.establishment
-    ),
-    availability: new AvailabilityService(
-      repositories.availability,
-      repositories.service,
-      repositories.establishment
-    ),
-    booking: new BookingService(
-      adapters.unitOfWork,
-      repositories.booking,
-      repositories.service,
-      repositories.availability,
-      repositories.extraItem,
-      repositories.establishment,
-      repositories.room
-    ),
-    room: new RoomService(
-      repositories.room,
-      repositories.service,
-      repositories.establishment
-    ),
-  }
-}
-
 export function createCompositionRoot(prisma: PrismaClient): CompositionRoot {
   const adapters = createAdapters(prisma)
-  const repositories = createRepositories(prisma)
-  const services = createServices(repositories, adapters)
 
-  return { services, repositories, adapters }
+  // Create compositions in dependency order
+  const authComposition = createAuthComposition(prisma, {
+    passwordHasher: adapters.passwordHasher,
+    tokenProvider: adapters.tokenProvider,
+    repositoryErrorHandler: adapters.repositoryErrorHandler,
+  })
+
+  const establishmentComposition = createEstablishmentComposition(prisma)
+
+  const serviceComposition = createServiceComposition(prisma, {
+    establishmentRepository: establishmentComposition.repository,
+  })
+
+  const extraItemComposition = createExtraItemComposition(prisma, {
+    serviceRepository: serviceComposition.repository,
+    establishmentRepository: establishmentComposition.repository,
+  })
+
+  const availabilityComposition = createAvailabilityComposition(prisma, {
+    serviceRepository: serviceComposition.repository,
+    establishmentRepository: establishmentComposition.repository,
+  })
+
+  const roomComposition = createRoomComposition(prisma, {
+    serviceRepository: serviceComposition.repository,
+    establishmentRepository: establishmentComposition.repository,
+  })
+
+  const bookingComposition = createBookingComposition(prisma, {
+    unitOfWork: adapters.unitOfWork,
+    serviceRepository: serviceComposition.repository,
+    availabilityRepository: availabilityComposition.repository,
+    extraItemRepository: extraItemComposition.repository,
+    establishmentRepository: establishmentComposition.repository,
+    roomRepository: roomComposition.repository,
+  })
+
+  return {
+    services: {
+      auth: authComposition.service,
+      establishment: establishmentComposition.service,
+      service: serviceComposition.service,
+      extraItem: extraItemComposition.service,
+      availability: availabilityComposition.service,
+      booking: bookingComposition.service,
+      room: roomComposition.service,
+    },
+    repositories: {
+      user: authComposition.repository,
+      establishment: establishmentComposition.repository,
+      service: serviceComposition.repository,
+      extraItem: extraItemComposition.repository,
+      availability: availabilityComposition.repository,
+      booking: bookingComposition.repository,
+      room: roomComposition.repository,
+    },
+    adapters,
+  }
 }
 

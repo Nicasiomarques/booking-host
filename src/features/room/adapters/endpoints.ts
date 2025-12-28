@@ -10,27 +10,11 @@ import {
 import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
 import { validate, authenticate, requireRole, requireRoleViaRoom } from '#shared/adapters/http/middleware/index.js'
 import { serviceIdParamSchema } from '#features/service/adapters/schemas.js'
+import { formatRoomResponse } from './http/mappers.js'
 
 const idParamSchema = z.object({
   id: z.string().uuid(),
 })
-
-function formatRoomResponse(room: {
-  id: string
-  serviceId: string
-  number: string
-  floor: number | null
-  description: string | null
-  status: string
-  createdAt: Date
-  updatedAt: Date
-}) {
-  return {
-    ...room,
-    createdAt: room.createdAt.toISOString(),
-    updatedAt: room.updatedAt.toISOString(),
-  }
-}
 
 export default async function roomEndpoints(fastify: FastifyInstance) {
   const { room: service } = fastify.services

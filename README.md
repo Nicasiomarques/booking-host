@@ -59,8 +59,9 @@ graph TB
     end
 
     subgraph "Adapters Outbound"
-        PR[Prisma Repositories]
+        PR[Prisma Repositories<br/>por Feature]
         JWT[JWT Adapter]
+        UOW[Unit of Work]
     end
 
     subgraph "Infrastructure"
@@ -76,31 +77,66 @@ graph TB
 
 ### Estrutura de Diretorios
 
+O projeto segue uma arquitetura modular por feature, onde cada feature é auto-contida:
+
 ```
 src/
-├── domain/                    # Logica de dominio (sem deps externas)
-│   ├── errors.ts             # DomainError, NotFoundError, etc.
-│   └── types.ts              # Role types
-├── application/              # Servicos de negocio
-│   ├── auth.service.ts
-│   ├── booking.service.ts    # Inclui logica de hotel bookings
-│   ├── room.service.ts       # Gestao de quartos
-│   ├── establishment.service.ts
-│   ├── service.service.ts
-│   ├── availability.service.ts
-│   ├── extra-item.service.ts
-│   └── password.service.ts
-├── adapters/
-│   ├── inbound/http/         # Camada HTTP (Fastify)
-│   │   ├── routes/           # Rotas por dominio
-│   │   ├── middleware/       # Auth, ACL, Validation
-│   │   ├── schemas/          # Schemas Zod
-│   │   └── plugins/          # Prisma, Error Handler
-│   └── outbound/
-│       ├── prisma/           # Repositorios
-│       └── token/            # JWT adapter
-└── config/                   # Configuracoes
+├── features/                 # Features modulares (cada uma auto-contida)
+│   ├── auth/
+│   │   ├── adapters/
+│   │   │   ├── http/
+│   │   │   │   ├── endpoints.ts    # Rotas HTTP
+│   │   │   │   ├── index.ts        # Plugin Fastify
+│   │   │   │   └── schemas.ts      # Schemas Zod
+│   │   │   └── persistence/
+│   │   │       └── user.repository.ts  # Repositório Prisma
+│   │   ├── application/
+│   │   │   └── auth.service.ts     # Lógica de negócio
+│   │   ├── domain/
+│   │   │   └── auth.ts             # Entidades e interfaces
+│   │   └── composition.ts          # Módulo de composição (DI)
+│   ├── booking/
+│   │   ├── adapters/
+│   │   │   ├── http/
+│   │   │   │   ├── endpoints.ts
+│   │   │   │   ├── mappers.ts      # Formatação de respostas
+│   │   │   │   └── index.ts
+│   │   │   └── persistence/
+│   │   │       └── booking.repository.ts
+│   │   ├── application/
+│   │   │   └── booking.service.ts
+│   │   ├── domain/
+│   │   │   └── booking.ts
+│   │   └── composition.ts
+│   └── [outras features: establishment, service, availability, extra-item, room]
+├── shared/                    # Código compartilhado
+│   ├── adapters/
+│   │   ├── http/
+│   │   │   ├── routes/
+│   │   │   │   └── index.ts        # Registro centralizado de rotas
+│   │   │   ├── middleware/         # Auth, ACL, Validation
+│   │   │   ├── plugins/            # Prisma, Error Handler, Services
+│   │   │   └── services/
+│   │   │       └── service-factory.ts  # Composition Root
+│   │   └── outbound/
+│   │       ├── prisma/              # Adapters Prisma (UnitOfWork, ErrorHandler)
+│   │       ├── crypto/              # Argon2 adapter
+│   │       └── token/               # JWT adapter
+│   ├── application/
+│   │   ├── ports/                  # Interfaces (Ports)
+│   │   └── utils/                  # Helpers compartilhados
+│   └── domain/
+│       ├── errors.ts               # DomainError, NotFoundError, etc.
+│       └── user.ts                 # Tipos compartilhados
+└── config/                        # Configurações
 ```
+
+**Princípios da Arquitetura Modular:**
+
+- **Cada feature é auto-contida**: possui seus próprios repositórios, adapters, services e domain
+- **Módulos de composição**: cada feature tem um `composition.ts` que instancia suas dependências
+- **Separação de responsabilidades**: mappers separados dos endpoints, repositórios dentro das features
+- **Registro centralizado**: rotas registradas em `shared/adapters/http/routes/index.ts`
 
 ---
 
