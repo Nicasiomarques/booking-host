@@ -59,8 +59,8 @@ export class ExtraItemService {
   ): Promise<ExtraItem> {
     return updateWithAuthorization(id, data, userId, {
       repository: {
-        ...this.repository,
         findByIdWithService: (id) => this.repository.findByIdWithService(id),
+        update: (id, data) => this.repository.update(id, data),
       },
       entityName: 'ExtraItem',
       getEstablishmentId: (extraItem: any) => extraItem.service.establishmentId,
@@ -72,8 +72,8 @@ export class ExtraItemService {
   async delete(id: string, userId: string): Promise<ExtraItem> {
     return deleteWithAuthorization(id, userId, {
       repository: {
-        ...this.repository,
         findByIdWithService: (id) => this.repository.findByIdWithService(id),
+        softDelete: (id) => this.repository.softDelete(id),
       },
       entityName: 'ExtraItem',
       getEstablishmentId: (extraItem: any) => extraItem.service.establishmentId,

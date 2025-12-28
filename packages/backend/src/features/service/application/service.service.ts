@@ -48,7 +48,10 @@ export class ServiceService {
     userId: string
   ): Promise<Service> {
     return updateWithAuthorization(id, data, userId, {
-      repository: this.repository,
+      repository: {
+        findById: (id) => this.repository.findById(id),
+        update: (id, data) => this.repository.update(id, data),
+      },
       entityName: 'Service',
       getEstablishmentId: (service) => service.establishmentId,
       getUserRole: (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
@@ -59,7 +62,8 @@ export class ServiceService {
   async delete(id: string, userId: string): Promise<Service> {
     return deleteWithAuthorization(id, userId, {
       repository: {
-        ...this.repository,
+        findById: (id) => this.repository.findById(id),
+        softDelete: (id) => this.repository.softDelete(id),
         hasActiveBookings: (id) => this.repository.hasActiveBookings(id),
       },
       entityName: 'Service',
