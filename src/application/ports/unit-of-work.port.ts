@@ -13,7 +13,7 @@ import type {
  */
 export interface TransactionalBookingRepository {
   create(data: CreateBookingData, extras: BookingExtraItemData[]): Promise<Booking>
-  updateStatus(id: string, status: BookingStatus): Promise<Booking>
+  updateStatus(id: string, status: BookingStatus, cancellationReason?: string | null): Promise<Booking>
 }
 
 /**

@@ -1,4 +1,4 @@
-import type { UserWithRoles } from '#domain/index.js'
+import type { UserWithRoles, CreateUserData } from '#domain/index.js'
 
 /**
  * Port interface for User repository operations
@@ -6,6 +6,6 @@ import type { UserWithRoles } from '#domain/index.js'
 export interface UserRepositoryPort {
   findById(id: string): Promise<UserWithRoles | null>
   findByEmail(email: string): Promise<UserWithRoles | null>
-  create(data: { email: string; passwordHash: string; name: string }): Promise<UserWithRoles>
+  create(data: CreateUserData): Promise<UserWithRoles>
   update(id: string, data: Partial<{ name: string; passwordHash: string }>): Promise<UserWithRoles | null>
 }

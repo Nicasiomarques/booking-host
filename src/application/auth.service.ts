@@ -13,6 +13,9 @@ export interface RegisterInput {
   email: string
   password: string
   name: string
+  phone?: string
+  birthDate?: string
+  address?: string
 }
 
 export interface LoginInput {
@@ -46,6 +49,9 @@ export class AuthService {
         email: input.email,
         passwordHash,
         name: input.name,
+        phone: input.phone,
+        birthDate: input.birthDate ? new Date(input.birthDate) : undefined,
+        address: input.address,
       })
 
       return this.generateAuthResult(user)
