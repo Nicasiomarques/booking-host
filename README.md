@@ -1,6 +1,25 @@
-# Booking API
+# Booking Service
 
-API de gestao de reservas para estabelecimentos multi-tenant.
+Monorepo contendo a API de gestão de reservas e o backoffice para estabelecimentos multi-tenant.
+
+## Estrutura do Monorepo
+
+```
+booking-service/
+├── packages/
+│   ├── backend/          # API Backend (Fastify + Prisma)
+│   └── backoffice/       # Frontend Backoffice (SolidJS + Vite)
+├── docs/                 # Documentação
+│   └── MONOREPO_GUIDE.md # Guia completo de monorepos
+└── package.json          # Workspace root
+```
+
+> 📖 **Novo em monorepos?** Leia o [Guia Completo de Monorepos](./docs/MONOREPO_GUIDE.md) para entender como funciona, vantagens, desvantagens e como usar.
+
+## Packages
+
+### Backend (`packages/backend`)
+API de gestão de reservas para estabelecimentos multi-tenant.
 
 ## Visao Geral
 
@@ -701,8 +720,8 @@ Base URL: `/v1`
 ### Pre-requisitos
 
 - Node.js 22+
+- pnpm 8+
 - PostgreSQL
-- npm/yarn/pnpm
 
 ### Instalacao
 
@@ -710,17 +729,29 @@ Base URL: `/v1`
 # Clonar e instalar
 git clone <repo>
 cd booking-service
-npm install
+pnpm install
 
-# Configurar ambiente
+# Configurar ambiente do backend
+cd packages/backend
 cp .env.example .env
 # Editar .env com as suas configuracoes
 
 # Configurar base de dados
-npm run db:migrate
+pnpm db:migrate
 
-# Iniciar em desenvolvimento
-npm run dev
+# Voltar para a raiz
+cd ../..
+```
+
+### Desenvolvimento
+
+```bash
+# Iniciar backend e backoffice em paralelo
+pnpm dev:all
+
+# Ou iniciar separadamente
+pnpm dev:backend      # Backend apenas
+pnpm dev:backoffice   # Backoffice apenas
 ```
 
 ### Variaveis de Ambiente
@@ -740,18 +771,43 @@ JWT_ISSUER=booking-service
 JWT_AUDIENCE=booking-api
 ```
 
-### Scripts Disponiveis
+### Scripts Disponiveis (Raiz)
 
 ```bash
-npm run dev          # Desenvolvimento com hot-reload
-npm run build        # Compilar TypeScript
-npm start            # Producao
-npm test             # Testes em watch mode
-npm run test:e2e     # Testes E2E
-npm run db:generate  # Gerar Prisma Client
-npm run db:migrate   # Executar migracoes
-npm run db:push      # Sync schema (dev)
-npm run db:studio    # Prisma Studio GUI
+# Desenvolvimento
+pnpm dev:all             # Backend + Backoffice em paralelo
+pnpm dev:backend         # Backend apenas
+pnpm dev:backoffice      # Backoffice apenas
+
+# Build
+pnpm build               # Build de todos os packages
+pnpm build:backend       # Build do backend
+pnpm build:backoffice    # Build do backoffice
+
+# Testes
+pnpm test                # Testes de todos os packages
+pnpm test:backend        # Testes do backend
+pnpm test:backoffice     # Testes E2E do backoffice
+
+# Database (Backend)
+pnpm db:generate         # Gerar Prisma Client
+pnpm db:migrate          # Executar migracoes
+pnpm db:push             # Sync schema (dev)
+pnpm db:studio           # Prisma Studio GUI
+pnpm db:reset            # Reset database
+pnpm db:seed             # Seed database
+```
+
+### Scripts por Package
+
+Para executar scripts específicos de um package:
+
+```bash
+# Backend
+pnpm --filter @booking-service/backend <script>
+
+# Backoffice
+pnpm --filter @booking-service/backoffice <script>
 ```
 
 ---
@@ -788,10 +844,16 @@ Swagger UI disponivel em `/docs` quando o servidor esta a correr.
 
 ```bash
 # Executar todos os testes
-npm run test:e2e
+pnpm test
 
-# Watch mode
-npm test
+# Testes do backend
+pnpm test:backend
+
+# Testes do backoffice
+pnpm test:backoffice
+
+# Watch mode (backend)
+pnpm --filter @booking-service/backend test
 ```
 
 Testes E2E cobrem:

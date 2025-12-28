@@ -1,5 +1,5 @@
 {
-  "name": "backoffice",
+  "name": "@booking-service/backoffice",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -22,9 +22,7 @@
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "@tailwindcss/vite": "^4.1.18",
-    "@types/node": "^24.10.1",
     "tailwindcss": "^4.1.18",
-    "typescript": "~5.9.3",
     "vite": "^7.2.4",
     "vite-plugin-solid": "^2.11.10"
   }

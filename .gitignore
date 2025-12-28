@@ -1,5 +1,10 @@
 # Dependencies
 node_modules/
+.pnpm-store/
+
+# Lock files (pnpm-lock.yaml should be committed)
+package-lock.json
+yarn.lock
 
 # Build output
 dist/
