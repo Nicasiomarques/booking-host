@@ -1,7 +1,7 @@
 import type { Room, CreateRoomData, UpdateRoomData } from '../domain/index.js'
-import { ConflictError } from '#shared/domain/index.js'
+import { validateRoomNumberUniqueness, canRoomBeSetToAvailable } from '../domain/index.js'
 import type { DomainError, Either } from '#shared/domain/index.js'
-import { left, right, isLeft } from '#shared/domain/index.js'
+import { isLeft, right } from '#shared/domain/index.js'
 import type { RoomRepositoryPort, ServiceRepositoryPort, EstablishmentRepositoryPort } from '#shared/application/ports/index.js'
 import { requireEntity } from '#shared/application/utils/validation.helper.js'
 import { updateWithAuthorization, deleteWithAuthorization, createWithServiceAuthorization } from '#shared/application/services/crud-helpers.js'
@@ -28,10 +28,7 @@ export const createRoomService = (deps: {
         if (isLeft(roomsResult)) {
           return roomsResult
         }
-        if (roomsResult.value.some((r) => r.number === data.number)) {
-          return left(new ConflictError(`Room number ${data.number} already exists for this service`))
-        }
-        return right(undefined)
+        return validateRoomNumberUniqueness(data.number, roomsResult.value)
       },
     })
   },
@@ -81,8 +78,9 @@ export const createRoomService = (deps: {
       if (isLeft(roomsResult)) {
         return roomsResult
       }
-      if (roomsResult.value.some((r) => r.number === data.number && r.id !== id)) {
-        return left(new ConflictError(`Room number ${data.number} already exists for this service`))
+      const uniquenessResult = validateRoomNumberUniqueness(data.number, roomsResult.value, id)
+      if (isLeft(uniquenessResult)) {
+        return uniquenessResult
       }
     }
 
@@ -91,8 +89,9 @@ export const createRoomService = (deps: {
       if (isLeft(bookingsResult)) {
         return bookingsResult
       }
-      if (bookingsResult.value) {
-        return left(new ConflictError('Cannot set room to AVAILABLE while it has active bookings'))
+      const canSetAvailableResult = canRoomBeSetToAvailable(bookingsResult.value)
+      if (isLeft(canSetAvailableResult)) {
+        return canSetAvailableResult
       }
     }
 

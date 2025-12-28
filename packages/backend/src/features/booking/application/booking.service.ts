@@ -4,10 +4,22 @@ import type {
   BookingExtraItemData,
   ListBookingsOptions,
 } from '../domain/index.js'
+import {
+  bookingBelongsToUser,
+  validateHotelDates,
+  canBookingBeCheckedIn,
+  canBookingBeCheckedOut,
+  canBookingStatusBeCancelled,
+  canBookingStatusBeConfirmed,
+} from '../domain/index.js'
 import type { PaginatedResult, DomainError, Either } from '#shared/domain/index.js'
 import { NotFoundError, ForbiddenError, ConflictError } from '#shared/domain/index.js'
 import { left, right, isLeft } from '#shared/domain/index.js'
 import { requireEntity } from '#shared/application/utils/validation.helper.js'
+import { isServiceHotel, canServiceBeBooked } from '#features/service/domain/index.js'
+import { availabilityBelongsToService, availabilityHasCapacity } from '#features/availability/domain/index.js'
+import { validateExtraItemForBooking, extraItemCanAccommodateQuantity } from '#features/extra-item/domain/index.js'
+import { canRoomBeBooked } from '#features/room/domain/index.js'
 import type {
   UnitOfWorkPort,
   ServiceRepositoryPort,
@@ -58,8 +70,10 @@ export const createBookingService = (deps: {
       return serviceEither
     }
     const service = serviceEither.value
-    if (!service.active) {
-      return left(new ConflictError('Service is not active'))
+    
+    const canBeBookedResult = canServiceBeBooked(service)
+    if (isLeft(canBeBookedResult)) {
+      return canBeBookedResult
     }
 
     const availabilityResult = await deps.availabilityRepository.findById(input.availabilityId)
@@ -72,12 +86,12 @@ export const createBookingService = (deps: {
     }
     const availability = availabilityEither.value
 
-    if (availability.serviceId !== input.serviceId) {
+    if (!availabilityBelongsToService(availability, input.serviceId)) {
       return left(new ConflictError('Availability does not belong to the specified service'))
     }
 
     // Hotel-specific validations
-    const isHotelBooking = service.type === 'HOTEL'
+    const isHotelBooking = isServiceHotel(service)
     let checkInDate: Date | undefined
     let checkOutDate: Date | undefined
     let numberOfNights: number | undefined
@@ -91,23 +105,11 @@ export const createBookingService = (deps: {
       checkInDate = new Date(input.checkInDate + 'T00:00:00.000Z')
       checkOutDate = new Date(input.checkOutDate + 'T00:00:00.000Z')
 
-      const today = new Date()
-      today.setUTCHours(0, 0, 0, 0)
-
-      if (checkInDate < today) {
-        return left(new ConflictError('checkInDate cannot be in the past'))
+      const datesValidationResult = validateHotelDates(checkInDate, checkOutDate)
+      if (isLeft(datesValidationResult)) {
+        return datesValidationResult
       }
-
-      if (checkInDate >= checkOutDate) {
-        return left(new ConflictError('checkOutDate must be after checkInDate'))
-      }
-
-      const diffTime = checkOutDate.getTime() - checkInDate.getTime()
-      numberOfNights = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-      if (numberOfNights < 1) {
-        return left(new ConflictError('Minimum stay is 1 night'))
-      }
+      numberOfNights = datesValidationResult.value.numberOfNights
 
       if (input.roomId) {
         const roomResult = await deps.roomRepository.findById(input.roomId)
@@ -120,12 +122,9 @@ export const createBookingService = (deps: {
         }
         const room = roomEither.value
 
-        if (room.serviceId !== input.serviceId) {
-          return left(new ConflictError('Room does not belong to the specified service'))
-        }
-
-        if (room.status !== 'AVAILABLE') {
-          return left(new ConflictError(`Room is ${room.status} and cannot be booked`))
+        const canBookRoomResult = canRoomBeBooked(room, input.serviceId)
+        if (isLeft(canBookRoomResult)) {
+          return canBookRoomResult
         }
 
         const availableRoomsResult = await deps.roomRepository.findAvailableRooms(
@@ -159,8 +158,11 @@ export const createBookingService = (deps: {
       }
     }
 
-    if (!isHotelBooking && availability.capacity < input.quantity) {
-      return left(new ConflictError('No available capacity for the requested quantity'))
+    if (!isHotelBooking) {
+      const capacityResult = availabilityHasCapacity(availability, input.quantity)
+      if (isLeft(capacityResult)) {
+        return capacityResult
+      }
     }
 
     // Calculate total price
@@ -183,19 +185,16 @@ export const createBookingService = (deps: {
         if (isLeft(extraItemResult)) {
           return extraItemResult
         }
-        const extraItem = extraItemResult.value
-        if (!extraItem || !extraItem.active) {
-          return left(new NotFoundError(`ExtraItem ${extra.extraItemId}`))
+        
+        const validatedExtraItemResult = validateExtraItemForBooking(extraItemResult.value, input.serviceId)
+        if (isLeft(validatedExtraItemResult)) {
+          return validatedExtraItemResult
         }
+        const extraItem = validatedExtraItemResult.value
 
-        if (extraItem.serviceId !== input.serviceId) {
-          return left(new ConflictError(`Extra item ${extra.extraItemId} does not belong to the service`))
-        }
-
-        if (extra.quantity > extraItem.maxQuantity) {
-          return left(new ConflictError(
-            `Extra item ${extraItem.name} quantity exceeds maximum of ${extraItem.maxQuantity}`
-          ))
+        const quantityResult = extraItemCanAccommodateQuantity(extraItem, extra.quantity)
+        if (isLeft(quantityResult)) {
+          return quantityResult
         }
 
         const priceAtBooking = Number(extraItem.price)
@@ -260,7 +259,7 @@ export const createBookingService = (deps: {
     }
     const booking = bookingEither.value
 
-    if (booking.userId !== userId) {
+    if (!bookingBelongsToUser(booking, userId)) {
       const roleResult = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
       if (isLeft(roleResult) || !roleResult.value) {
         return left(new ForbiddenError('You do not have access to this booking'))
@@ -308,8 +307,9 @@ export const createBookingService = (deps: {
       }
     }
 
-    if (ownership.status === 'CANCELLED') {
-      return left(new ConflictError('Booking is already cancelled'))
+    const canCancelResult = canBookingStatusBeCancelled(ownership.status)
+    if (isLeft(canCancelResult)) {
+      return canCancelResult
     }
 
     const transactionResult = await deps.unitOfWork.execute(async (ctx) => {
@@ -359,12 +359,9 @@ export const createBookingService = (deps: {
       return left(new ForbiddenError('You do not have permission to confirm this booking'))
     }
 
-    if (ownership.status === 'CONFIRMED') {
-      return left(new ConflictError('Booking is already confirmed'))
-    }
-
-    if (ownership.status === 'CANCELLED') {
-      return left(new ConflictError('Cannot confirm a cancelled booking'))
+    const canConfirmResult = canBookingStatusBeConfirmed(ownership.status)
+    if (isLeft(canConfirmResult)) {
+      return canConfirmResult
     }
 
     const updateResult = await deps.bookingRepository.updateStatus(id, 'CONFIRMED')
@@ -400,24 +397,13 @@ export const createBookingService = (deps: {
     if (isLeft(serviceResult) || !serviceResult.value) {
       return left(new NotFoundError('Service'))
     }
-    if (serviceResult.value.type !== 'HOTEL') {
+    if (!isServiceHotel(serviceResult.value)) {
       return left(new ConflictError('Check-in is only available for hotel bookings'))
     }
 
-    if (booking.status === 'CHECKED_IN') {
-      return left(new ConflictError('Booking is already checked in'))
-    }
-
-    if (booking.status === 'CHECKED_OUT') {
-      return left(new ConflictError('Cannot check in a booking that has already been checked out'))
-    }
-
-    if (booking.status === 'CANCELLED') {
-      return left(new ConflictError('Cannot check in a cancelled booking'))
-    }
-
-    if (booking.status === 'NO_SHOW') {
-      return left(new ConflictError('Cannot check in a no-show booking'))
+    const canCheckInResult = canBookingBeCheckedIn(booking)
+    if (isLeft(canCheckInResult)) {
+      return canCheckInResult
     }
 
     const updateResult = await deps.bookingRepository.updateStatus(id, 'CHECKED_IN')
@@ -453,20 +439,13 @@ export const createBookingService = (deps: {
     if (isLeft(serviceResult) || !serviceResult.value) {
       return left(new NotFoundError('Service'))
     }
-    if (serviceResult.value.type !== 'HOTEL') {
+    if (!isServiceHotel(serviceResult.value)) {
       return left(new ConflictError('Check-out is only available for hotel bookings'))
     }
 
-    if (booking.status === 'CHECKED_OUT') {
-      return left(new ConflictError('Booking is already checked out'))
-    }
-
-    if (booking.status === 'CANCELLED') {
-      return left(new ConflictError('Cannot check out a cancelled booking'))
-    }
-
-    if (booking.status === 'NO_SHOW') {
-      return left(new ConflictError('Cannot check out a no-show booking'))
+    const canCheckOutResult = canBookingBeCheckedOut(booking)
+    if (isLeft(canCheckOutResult)) {
+      return canCheckOutResult
     }
 
     const transactionResult = await deps.unitOfWork.execute(async (ctx) => {
@@ -517,7 +496,7 @@ export const createBookingService = (deps: {
     if (isLeft(serviceResult) || !serviceResult.value) {
       return left(new NotFoundError('Service'))
     }
-    if (serviceResult.value.type !== 'HOTEL') {
+    if (!isServiceHotel(serviceResult.value)) {
       return left(new ConflictError('No-show is only available for hotel bookings'))
     }
 

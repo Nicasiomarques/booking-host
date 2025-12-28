@@ -83,3 +83,98 @@ export interface ListBookingsOptions extends ListOptions {
   status?: BookingStatus
 }
 
+// Domain methods
+import type { Either } from '#shared/domain/index.js'
+import { ConflictError } from '#shared/domain/index.js'
+import { left, right } from '#shared/domain/index.js'
+
+export function bookingBelongsToUser(booking: Booking, userId: string): boolean {
+  return booking.userId === userId
+}
+
+export function validateHotelDates(checkInDate: Date, checkOutDate: Date): Either<ConflictError, { numberOfNights: number }> {
+  const today = new Date()
+  today.setUTCHours(0, 0, 0, 0)
+
+  if (checkInDate < today) {
+    return left(new ConflictError('checkInDate cannot be in the past'))
+  }
+
+  if (checkInDate >= checkOutDate) {
+    return left(new ConflictError('checkOutDate must be after checkInDate'))
+  }
+
+  const diffTime = checkOutDate.getTime() - checkInDate.getTime()
+  const numberOfNights = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  if (numberOfNights < 1) {
+    return left(new ConflictError('Minimum stay is 1 night'))
+  }
+
+  return right({ numberOfNights })
+}
+
+export function canBookingBeCancelled(booking: Booking): Either<ConflictError, void> {
+  if (booking.status === 'CANCELLED') {
+    return left(new ConflictError('Booking is already cancelled'))
+  }
+  return right(undefined)
+}
+
+export function canBookingBeConfirmed(booking: Booking): Either<ConflictError, void> {
+  if (booking.status === 'CONFIRMED') {
+    return left(new ConflictError('Booking is already confirmed'))
+  }
+  if (booking.status === 'CANCELLED') {
+    return left(new ConflictError('Cannot confirm a cancelled booking'))
+  }
+  return right(undefined)
+}
+
+export function canBookingBeCheckedIn(booking: Booking): Either<ConflictError, void> {
+  if (booking.status === 'CHECKED_IN') {
+    return left(new ConflictError('Booking is already checked in'))
+  }
+  if (booking.status === 'CHECKED_OUT') {
+    return left(new ConflictError('Cannot check in a booking that has already been checked out'))
+  }
+  if (booking.status === 'CANCELLED') {
+    return left(new ConflictError('Cannot check in a cancelled booking'))
+  }
+  if (booking.status === 'NO_SHOW') {
+    return left(new ConflictError('Cannot check in a no-show booking'))
+  }
+  return right(undefined)
+}
+
+export function canBookingBeCheckedOut(booking: Booking): Either<ConflictError, void> {
+  if (booking.status === 'CHECKED_OUT') {
+    return left(new ConflictError('Booking is already checked out'))
+  }
+  if (booking.status === 'CANCELLED') {
+    return left(new ConflictError('Cannot check out a cancelled booking'))
+  }
+  if (booking.status === 'NO_SHOW') {
+    return left(new ConflictError('Cannot check out a no-show booking'))
+  }
+  return right(undefined)
+}
+
+// Helper function for ownership data (partial booking data)
+export function canBookingStatusBeCancelled(status: BookingStatus): Either<ConflictError, void> {
+  if (status === 'CANCELLED') {
+    return left(new ConflictError('Booking is already cancelled'))
+  }
+  return right(undefined)
+}
+
+export function canBookingStatusBeConfirmed(status: BookingStatus): Either<ConflictError, void> {
+  if (status === 'CONFIRMED') {
+    return left(new ConflictError('Booking is already confirmed'))
+  }
+  if (status === 'CANCELLED') {
+    return left(new ConflictError('Cannot confirm a cancelled booking'))
+  }
+  return right(undefined)
+}
+

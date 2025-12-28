@@ -48,3 +48,23 @@ export interface Service {
   updatedAt: Date
 }
 
+// Domain methods
+import type { Either } from '#shared/domain/index.js'
+import { ConflictError } from '#shared/domain/index.js'
+import { left, right } from '#shared/domain/index.js'
+
+export function isServiceActive(service: Service): boolean {
+  return service.active
+}
+
+export function isServiceHotel(service: Service): boolean {
+  return service.type === 'HOTEL'
+}
+
+export function canServiceBeBooked(service: Service): Either<ConflictError, void> {
+  if (!isServiceActive(service)) {
+    return left(new ConflictError('Service is not active'))
+  }
+  return right(undefined)
+}
+

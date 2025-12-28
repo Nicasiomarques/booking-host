@@ -1,4 +1,5 @@
 import type { Availability, CreateAvailabilityData, UpdateAvailabilityData } from '../domain/index.js'
+import { validateAvailabilityTimeRange } from '../domain/index.js'
 import { ConflictError } from '#shared/domain/index.js'
 import type { DomainError, Either } from '#shared/domain/index.js'
 import { left, right, isLeft } from '#shared/domain/index.js'
@@ -32,6 +33,11 @@ export const createAvailabilityService = (deps: {
       entityName: 'Availability',
       action: 'create availability slots',
       validateBeforeCreate: async (_service, data) => {
+        const timeRangeResult = validateAvailabilityTimeRange(data.startTime, data.endTime)
+        if (isLeft(timeRangeResult)) {
+          return timeRangeResult
+        }
+
         const overlapResult = await deps.repository.checkOverlap(
           serviceId,
           data.date,
@@ -83,6 +89,11 @@ export const createAvailabilityService = (deps: {
       const newDate = data.date ?? availability.date
       const newStartTime = data.startTime ?? availability.startTime
       const newEndTime = data.endTime ?? availability.endTime
+
+      const timeRangeResult = validateAvailabilityTimeRange(newStartTime, newEndTime)
+      if (isLeft(timeRangeResult)) {
+        return timeRangeResult
+      }
 
       const overlapResult = await deps.repository.checkOverlap(
         availability.serviceId,
