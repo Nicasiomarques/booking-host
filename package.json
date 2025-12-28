@@ -17,8 +17,9 @@
     "test:coverage": "vitest run --config vitest.config.ts --coverage",
     "db:generate": "prisma generate --schema=src/adapters/outbound/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --config=src/adapters/outbound/prisma/prisma.config.ts",
-    "db:push": "prisma db push --schema=src/adapters/outbound/prisma/schema.prisma",
-    "db:studio": "prisma studio --schema=src/adapters/outbound/prisma/schema.prisma",
+    "db:push": "tsx -r dotenv/config scripts/db-push.ts",
+    "db:reset": "tsx -r dotenv/config scripts/db-reset.ts",
+    "db:studio": "tsx -r dotenv/config scripts/db-studio.ts",
     "db:seed": "tsx src/adapters/outbound/prisma/seed.ts"
   },
   "keywords": [

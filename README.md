@@ -6,7 +6,7 @@ API de gestao de reservas para estabelecimentos multi-tenant.
 
 Esta API permite que estabelecimentos:
 
-- Registem servicos reservaveis (SERVICE, HOTEL, CINEMA)
+- Registem servicos reservaveis (SERVICE, HOTEL)
 - Definam disponibilidade por data/horario
 - Oferecem itens extras opcionais
 - Recebam e gerenciem reservas
@@ -142,7 +142,7 @@ erDiagram
         decimal basePrice
         int durationMinutes
         int capacity
-        enum type "SERVICE | HOTEL | CINEMA"
+        enum type "SERVICE | HOTEL"
         boolean active
         datetime createdAt
         datetime updatedAt
