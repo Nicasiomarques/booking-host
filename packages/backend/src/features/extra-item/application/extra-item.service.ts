@@ -6,6 +6,7 @@ import type {
 } from '#shared/application/ports/index.js'
 import { requireOwnerRole } from '#shared/application/utils/authorization.helper.js'
 import { requireEntity } from '#shared/application/utils/validation.helper.js'
+import { updateWithAuthorization, deleteWithAuthorization } from '#shared/application/services/crud-helpers.js'
 
 export class ExtraItemService {
   constructor(
@@ -56,35 +57,29 @@ export class ExtraItemService {
     data: UpdateExtraItemData,
     userId: string
   ): Promise<ExtraItem> {
-    const extraItem = requireEntity(
-      await this.repository.findByIdWithService(id),
-      'ExtraItem'
-    )
-
-    await requireOwnerRole(
-      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
-      userId,
-      extraItem.service.establishmentId,
-      'update extra items'
-    )
-
-    return this.repository.update(id, data)
+    return updateWithAuthorization(id, data, userId, {
+      repository: {
+        ...this.repository,
+        findByIdWithService: (id) => this.repository.findByIdWithService(id),
+      },
+      entityName: 'ExtraItem',
+      getEstablishmentId: (extraItem: any) => extraItem.service.establishmentId,
+      getUserRole: (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      action: 'update extra items',
+    })
   }
 
   async delete(id: string, userId: string): Promise<ExtraItem> {
-    const extraItem = requireEntity(
-      await this.repository.findByIdWithService(id),
-      'ExtraItem'
-    )
-
-    await requireOwnerRole(
-      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
-      userId,
-      extraItem.service.establishmentId,
-      'delete extra items'
-    )
-
-    return this.repository.softDelete(id)
+    return deleteWithAuthorization(id, userId, {
+      repository: {
+        ...this.repository,
+        findByIdWithService: (id) => this.repository.findByIdWithService(id),
+      },
+      entityName: 'ExtraItem',
+      getEstablishmentId: (extraItem: any) => extraItem.service.establishmentId,
+      getUserRole: (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      action: 'delete extra items',
+    })
   }
 }
 

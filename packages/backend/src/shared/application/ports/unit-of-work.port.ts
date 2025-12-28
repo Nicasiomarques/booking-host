@@ -2,10 +2,10 @@ import type {
   Booking,
   CreateBookingData,
   BookingExtraItemData,
-  BookingStatus,
 } from '#features/booking/domain/index.js'
 import type { Availability } from '#features/availability/domain/index.js'
-import type { Room, RoomStatus } from '#features/room/domain/index.js'
+import type { Room } from '#features/room/domain/index.js'
+import type { BookingStatus, RoomStatus } from '#shared/domain/index.js'
 
 /**
  * Transactional booking repository - operations that run within a transaction

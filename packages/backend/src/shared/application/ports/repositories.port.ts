@@ -3,8 +3,8 @@ import type {
   CreateEstablishmentData,
   UpdateEstablishmentData,
   EstablishmentWithRole,
-  Role,
 } from '#features/establishment/domain/index.js'
+import type { Role } from '#shared/domain/index.js'
 import type {
   Service,
   CreateServiceData,

@@ -3,8 +3,8 @@ import type {
   CreateEstablishmentData,
   UpdateEstablishmentData,
   EstablishmentWithRole,
-  Role,
 } from '../domain/index.js'
+import type { Role } from '#shared/domain/index.js'
 import type { EstablishmentRepositoryPort } from '#shared/application/ports/index.js'
 import { requireOwnerRole } from '#shared/application/utils/authorization.helper.js'
 import { requireEntity } from '#shared/application/utils/validation.helper.js'

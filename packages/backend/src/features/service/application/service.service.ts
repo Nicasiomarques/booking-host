@@ -1,8 +1,8 @@
 import type { Service, CreateServiceData, UpdateServiceData } from '../domain/index.js'
-import { ConflictError } from '#shared/domain/index.js'
 import type { ServiceRepositoryPort, EstablishmentRepositoryPort } from '#shared/application/ports/index.js'
 import { requireOwnerRole } from '#shared/application/utils/authorization.helper.js'
 import { requireEntity } from '#shared/application/utils/validation.helper.js'
+import { updateWithAuthorization, deleteWithAuthorization } from '#shared/application/services/crud-helpers.js'
 
 export class ServiceService {
   constructor(
@@ -47,39 +47,28 @@ export class ServiceService {
     data: UpdateServiceData,
     userId: string
   ): Promise<Service> {
-    const service = requireEntity(
-      await this.repository.findById(id),
-      'Service'
-    )
-
-    await requireOwnerRole(
-      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
-      userId,
-      service.establishmentId,
-      'update services'
-    )
-
-    return this.repository.update(id, data)
+    return updateWithAuthorization(id, data, userId, {
+      repository: this.repository,
+      entityName: 'Service',
+      getEstablishmentId: (service) => service.establishmentId,
+      getUserRole: (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      action: 'update services',
+    })
   }
 
   async delete(id: string, userId: string): Promise<Service> {
-    const service = requireEntity(
-      await this.repository.findById(id),
-      'Service'
-    )
-
-    await requireOwnerRole(
-      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
-      userId,
-      service.establishmentId,
-      'delete services'
-    )
-
-    const hasBookings = await this.repository.hasActiveBookings(id)
-
-    if (hasBookings) throw new ConflictError('Cannot delete service with active bookings')
-
-    return this.repository.softDelete(id)
+    return deleteWithAuthorization(id, userId, {
+      repository: {
+        ...this.repository,
+        hasActiveBookings: (id) => this.repository.hasActiveBookings(id),
+      },
+      entityName: 'Service',
+      getEstablishmentId: (service) => service.establishmentId,
+      getUserRole: (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      action: 'delete services',
+      checkDependencies: true,
+      dependencyErrorMessage: 'Cannot delete service with active bookings',
+    })
   }
 }
 
