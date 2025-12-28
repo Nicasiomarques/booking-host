@@ -1,7 +1,7 @@
 import { PrismaClient, Service as PrismaService, Prisma } from '@prisma/client'
 import type { Service, CreateServiceData, UpdateServiceData } from '../../domain/index.js'
 import type { ExtraItem } from '#features/extra-item/domain/index.js'
-import { toDecimal, handleArrayFieldForCreate, handleArrayFieldForUpdate, createSoftDeleteData } from '#shared/adapters/outbound/prisma/base-repository.js'
+import { toDecimal, handleArrayFieldForCreate, createSoftDeleteData, processUpdateData } from '#shared/adapters/outbound/prisma/base-repository.js'
 
 export type { Service, CreateServiceData, UpdateServiceData }
 
@@ -86,15 +86,10 @@ export class ServiceRepository {
   }
 
   async update(id: string, data: UpdateServiceData): Promise<Service> {
-    const updateData: any = {
-      ...data,
-      basePrice: data.basePrice !== undefined ? toDecimal(data.basePrice) : undefined,
-    }
-    
-    // Handle images array explicitly
-    if (data.images !== undefined) {
-      updateData.images = handleArrayFieldForUpdate(data.images)
-    }
+    const updateData = processUpdateData(data, {
+      decimalFields: ['basePrice'],
+      arrayFields: ['images'],
+    })
     
     const result = await this.prisma.service.update({
       where: { id },

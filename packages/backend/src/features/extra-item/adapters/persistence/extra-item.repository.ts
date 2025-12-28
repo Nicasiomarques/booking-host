@@ -1,6 +1,6 @@
 import { PrismaClient, ExtraItem as PrismaExtraItem } from '@prisma/client'
 import type { ExtraItem, CreateExtraItemData, UpdateExtraItemData } from '../../domain/index.js'
-import { toDecimal, createSoftDeleteData } from '#shared/adapters/outbound/prisma/base-repository.js'
+import { toDecimal, createSoftDeleteData, processUpdateData } from '#shared/adapters/outbound/prisma/base-repository.js'
 
 export type { ExtraItem, CreateExtraItemData, UpdateExtraItemData }
 
@@ -70,12 +70,13 @@ export class ExtraItemRepository {
   }
 
   async update(id: string, data: UpdateExtraItemData): Promise<ExtraItem> {
+    const updateData = processUpdateData(data, {
+      decimalFields: ['price'],
+    })
+    
     const result = await this.prisma.extraItem.update({
       where: { id },
-      data: {
-        ...data,
-        price: data.price !== undefined ? toDecimal(data.price) : undefined,
-      },
+      data: updateData,
     })
     return toExtraItem(result)
   }

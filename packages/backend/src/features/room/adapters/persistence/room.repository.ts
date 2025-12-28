@@ -1,7 +1,7 @@
 import { PrismaClient, Room as PrismaRoom } from '@prisma/client'
 import type { Room, CreateRoomData, UpdateRoomData } from '../../domain/index.js'
 import type { RoomStatus, RoomType } from '#shared/domain/index.js'
-import { handleArrayFieldForCreate, handleArrayFieldForUpdate } from '#shared/adapters/outbound/prisma/base-repository.js'
+import { handleArrayFieldForCreate, processUpdateData } from '#shared/adapters/outbound/prisma/base-repository.js'
 
 export type { Room, CreateRoomData, UpdateRoomData }
 
@@ -95,14 +95,16 @@ export class RoomRepository {
     if (data.capacity !== undefined) updateData.capacity = data.capacity ?? null
     if (data.roomType !== undefined) updateData.roomType = data.roomType ?? null
     if (data.bedType !== undefined) updateData.bedType = data.bedType ?? null
-    if (data.amenities !== undefined) {
-      updateData.amenities = handleArrayFieldForUpdate(data.amenities)
-    }
     if (data.maxOccupancy !== undefined) updateData.maxOccupancy = data.maxOccupancy ?? null
+    
+    // Process array fields
+    const processedData = processUpdateData(updateData, {
+      arrayFields: ['amenities'],
+    })
     
     const result = await this.prisma.room.update({
       where: { id },
-      data: updateData,
+      data: processedData,
     })
     return toRoom(result)
   }

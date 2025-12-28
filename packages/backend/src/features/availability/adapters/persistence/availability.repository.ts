@@ -98,6 +98,7 @@ export class AvailabilityRepository {
   async update(id: string, data: UpdateAvailabilityData): Promise<Availability> {
     const updateData: any = { ...data }
     
+    // Handle price conversion (can be number, null, or undefined)
     if (data.price !== undefined) {
       updateData.price = data.price !== null ? new Prisma.Decimal(data.price) : null
     }
