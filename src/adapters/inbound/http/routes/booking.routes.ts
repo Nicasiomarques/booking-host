@@ -10,6 +10,7 @@ import {
 } from '../schemas/index.js'
 import { ErrorResponseSchema, buildRouteSchema } from '../openapi/index.js'
 import { validate, validateQuery, authenticate } from '../middleware/index.js'
+import { formatDate, formatDecimal } from '../utils/response-formatters.js'
 import type { BookingStatus } from '#domain/index.js'
 
 const idParamSchema = z.object({
@@ -34,14 +35,6 @@ function formatBookingResponse<T extends {
   guestEmail?: string | null
   guestDocument?: string | null
 }>(booking: T) {
-  // Format date to YYYY-MM-DD string if it's a Date object
-  const formatDate = (date: Date | string): string => {
-    if (date instanceof Date) {
-      return date.toISOString().split('T')[0]
-    }
-    return date
-  }
-
   // Extract extraItems and transform to extras format
   const { extraItems, ...rest } = booking as T & { extraItems?: Array<{ 
     quantity: number
@@ -51,17 +44,17 @@ function formatBookingResponse<T extends {
 
   return {
     ...rest,
-    totalPrice: typeof booking.totalPrice === 'string' ? parseFloat(booking.totalPrice) : booking.totalPrice,
+    totalPrice: formatDecimal(booking.totalPrice) ?? 0,
     ...(booking.service && {
       service: {
         ...booking.service,
-        basePrice: typeof booking.service.basePrice === 'string' ? parseFloat(booking.service.basePrice) : booking.service.basePrice,
+        basePrice: formatDecimal(booking.service.basePrice) ?? 0,
       },
     }),
     ...(booking.availability && {
       availability: {
         ...booking.availability,
-        date: formatDate(booking.availability.date),
+        date: formatDate(booking.availability.date) ?? '',
       },
     }),
     extras: extraItems && extraItems.length > 0
@@ -69,7 +62,7 @@ function formatBookingResponse<T extends {
           id: item.extraItem.id,
           extraItemId: item.extraItem.id,
           quantity: item.quantity,
-          priceAtBooking: typeof item.priceAtBooking === 'string' ? parseFloat(item.priceAtBooking) : item.priceAtBooking,
+          priceAtBooking: formatDecimal(item.priceAtBooking) ?? 0,
           extraItem: {
             name: item.extraItem.name,
           },
@@ -80,10 +73,10 @@ function formatBookingResponse<T extends {
     }),
     // Hotel-specific fields
     ...(booking.checkInDate !== undefined && {
-      checkInDate: booking.checkInDate ? formatDate(booking.checkInDate) : null,
+      checkInDate: formatDate(booking.checkInDate),
     }),
     ...(booking.checkOutDate !== undefined && {
-      checkOutDate: booking.checkOutDate ? formatDate(booking.checkOutDate) : null,
+      checkOutDate: formatDate(booking.checkOutDate),
     }),
     ...(booking.roomId !== undefined && { roomId: booking.roomId }),
     ...(booking.numberOfNights !== undefined && { numberOfNights: booking.numberOfNights }),
@@ -94,7 +87,7 @@ function formatBookingResponse<T extends {
 }
 
 function formatPaginatedBookings<T extends { 
-  data: Array<{ totalPrice: string | number; service?: { basePrice: string | number }; extraItems?: Array<{ priceAtBooking: string | number }> }>
+  data: Array<{ totalPrice: string | number; service?: { basePrice: string | number }; extraItems?: Array<{ quantity: number; priceAtBooking: string | number; extraItem: { id: string; name: string } }>; user?: { name: string; email: string }; availability?: { date: Date | string; startTime: string; endTime: string }; checkInDate?: Date | string | null; checkOutDate?: Date | string | null; roomId?: string | null; numberOfNights?: number | null; guestName?: string | null; guestEmail?: string | null; guestDocument?: string | null }>
   total: number
   page: number
   limit: number

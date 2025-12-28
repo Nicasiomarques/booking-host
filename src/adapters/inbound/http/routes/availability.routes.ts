@@ -12,22 +12,11 @@ import {
 } from '../schemas/index.js'
 import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '../openapi/index.js'
 import { validate, validateQuery, authenticate } from '../middleware/index.js'
+import { formatAvailabilityResponse } from '../utils/response-formatters.js'
 
 const idParamSchema = z.object({
   id: z.string().uuid(),
 })
-
-function formatAvailabilityResponse<T extends { date: Date | string }>(availability: T) {
-  const dateValue = availability.date instanceof Date
-    ? availability.date.toISOString().split('T')[0]
-    : typeof availability.date === 'string' && availability.date.includes('T')
-      ? availability.date.split('T')[0]
-      : availability.date
-  return {
-    ...availability,
-    date: dateValue,
-  }
-}
 
 export default async function availabilityRoutes(fastify: FastifyInstance) {
   const { availability: service } = fastify.services
@@ -64,6 +53,9 @@ export default async function availabilityRoutes(fastify: FastifyInstance) {
           startTime: request.body.startTime,
           endTime: request.body.endTime,
           capacity: request.body.capacity,
+          price: request.body.price,
+          notes: request.body.notes,
+          isRecurring: request.body.isRecurring,
         },
         request.user.userId
       )
@@ -126,7 +118,15 @@ export default async function availabilityRoutes(fastify: FastifyInstance) {
     async (
       request: FastifyRequest<{ Params: { id: string }; Body: UpdateAvailabilityInput }>
     ) => {
-      const updateData: { date?: Date; startTime?: string; endTime?: string; capacity?: number } = {}
+      const updateData: {
+        date?: Date;
+        startTime?: string; 
+        endTime?: string; 
+        capacity?: number;
+        price?: number;
+        notes?: string;
+        isRecurring?: boolean;
+      } = {}
       if (request.body.date) {
         updateData.date = new Date(request.body.date)
       }
@@ -138,6 +138,15 @@ export default async function availabilityRoutes(fastify: FastifyInstance) {
       }
       if (request.body.capacity !== undefined) {
         updateData.capacity = request.body.capacity
+      }
+      if (request.body.price !== undefined && request.body.price !== null) {
+        updateData.price = request.body.price
+      }
+      if (request.body.notes !== undefined) {
+        updateData.notes = request.body.notes
+      }
+      if (request.body.isRecurring !== undefined) {
+        updateData.isRecurring = request.body.isRecurring
       }
       const result = await service.update(request.params.id, updateData, request.user.userId)
       return formatAvailabilityResponse(result)

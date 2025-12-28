@@ -10,6 +10,7 @@ import {
 } from '../schemas/index.js'
 import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '../openapi/index.js'
 import { validate, authenticate, requireRole } from '../middleware/index.js'
+import { formatServiceResponse } from '../utils/response-formatters.js'
 
 const idParamSchema = z.object({
   id: z.string().uuid(),
@@ -20,13 +21,6 @@ const listServicesQuerySchema = z.object({
     description: 'Filter by active status',
   }),
 })
-
-function formatServiceResponse<T extends { basePrice: string | number }>(service: T) {
-  return {
-    ...service,
-    basePrice: typeof service.basePrice === 'string' ? parseFloat(service.basePrice) : service.basePrice,
-  }
-}
 
 export default async function serviceRoutes(fastify: FastifyInstance) {
   const { service } = fastify.services
