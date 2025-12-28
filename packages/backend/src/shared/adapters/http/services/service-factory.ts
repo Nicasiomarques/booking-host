@@ -71,25 +71,29 @@ export function createCompositionRoot(prisma: PrismaClient): CompositionRoot {
     repositoryErrorHandler: adapters.repositoryErrorHandler,
   })
 
-  const establishmentComposition = createEstablishmentComposition(prisma)
+  const establishmentComposition = createEstablishmentComposition(prisma, adapters.repositoryErrorHandler)
 
   const serviceComposition = createServiceComposition(prisma, {
     establishmentRepository: establishmentComposition.repository,
+    errorHandler: adapters.repositoryErrorHandler,
   })
 
   const extraItemComposition = createExtraItemComposition(prisma, {
     serviceRepository: serviceComposition.repository,
     establishmentRepository: establishmentComposition.repository,
+    errorHandler: adapters.repositoryErrorHandler,
   })
 
   const availabilityComposition = createAvailabilityComposition(prisma, {
     serviceRepository: serviceComposition.repository,
     establishmentRepository: establishmentComposition.repository,
+    errorHandler: adapters.repositoryErrorHandler,
   })
 
   const roomComposition = createRoomComposition(prisma, {
     serviceRepository: serviceComposition.repository,
     establishmentRepository: establishmentComposition.repository,
+    errorHandler: adapters.repositoryErrorHandler,
   })
 
   const bookingComposition = createBookingComposition(prisma, {
@@ -99,6 +103,7 @@ export function createCompositionRoot(prisma: PrismaClient): CompositionRoot {
     extraItemRepository: extraItemComposition.repository,
     establishmentRepository: establishmentComposition.repository,
     roomRepository: roomComposition.repository,
+    errorHandler: adapters.repositoryErrorHandler,
   })
 
   return {

@@ -5,6 +5,7 @@ import type {
   ServiceRepositoryPort,
   EstablishmentRepositoryPort,
   AvailabilityRepositoryPort,
+  RepositoryErrorHandlerPort,
 } from '#shared/application/ports/index.js'
 
 export interface AvailabilityComposition {
@@ -17,9 +18,10 @@ export function createAvailabilityComposition(
   dependencies: {
     serviceRepository: ServiceRepositoryPort
     establishmentRepository: EstablishmentRepositoryPort
+    errorHandler: RepositoryErrorHandlerPort
   }
 ): AvailabilityComposition {
-  const repository = createAvailabilityRepository(prisma)
+  const repository = createAvailabilityRepository(prisma, dependencies.errorHandler)
   const service = createAvailabilityService({
     repository,
     serviceRepository: dependencies.serviceRepository,

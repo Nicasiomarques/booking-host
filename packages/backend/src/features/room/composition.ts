@@ -5,6 +5,7 @@ import type {
   ServiceRepositoryPort,
   EstablishmentRepositoryPort,
   RoomRepositoryPort,
+  RepositoryErrorHandlerPort,
 } from '#shared/application/ports/index.js'
 
 export interface RoomComposition {
@@ -17,9 +18,10 @@ export function createRoomComposition(
   dependencies: {
     serviceRepository: ServiceRepositoryPort
     establishmentRepository: EstablishmentRepositoryPort
+    errorHandler: RepositoryErrorHandlerPort
   }
 ): RoomComposition {
-  const repository = createRoomRepository(prisma)
+  const repository = createRoomRepository(prisma, dependencies.errorHandler)
   const service = createRoomService({
     repository,
     serviceRepository: dependencies.serviceRepository,

@@ -21,7 +21,7 @@ export function createAuthComposition(
     repositoryErrorHandler: RepositoryErrorHandlerPort
   }
 ): AuthComposition {
-  const repository = createUserRepository(prisma)
+  const repository = createUserRepository(prisma, adapters.repositoryErrorHandler)
   const service = createAuthService({
     userRepository: repository,
     passwordHasher: adapters.passwordHasher,

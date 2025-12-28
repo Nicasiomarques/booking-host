@@ -9,6 +9,7 @@ import type {
   EstablishmentRepositoryPort,
   RoomRepositoryPort,
   BookingRepositoryPort,
+  RepositoryErrorHandlerPort,
 } from '#shared/application/ports/index.js'
 
 export interface BookingComposition {
@@ -25,9 +26,10 @@ export function createBookingComposition(
     extraItemRepository: ExtraItemRepositoryPort
     establishmentRepository: EstablishmentRepositoryPort
     roomRepository: RoomRepositoryPort
+    errorHandler: RepositoryErrorHandlerPort
   }
 ): BookingComposition {
-  const repository = createBookingRepository(prisma)
+  const repository = createBookingRepository(prisma, dependencies.errorHandler)
   const service = createBookingService({
     unitOfWork: dependencies.unitOfWork,
     bookingRepository: repository,

@@ -5,6 +5,7 @@ import type {
   ServiceRepositoryPort,
   EstablishmentRepositoryPort,
   ExtraItemRepositoryPort,
+  RepositoryErrorHandlerPort,
 } from '#shared/application/ports/index.js'
 
 export interface ExtraItemComposition {
@@ -17,9 +18,10 @@ export function createExtraItemComposition(
   dependencies: {
     serviceRepository: ServiceRepositoryPort
     establishmentRepository: EstablishmentRepositoryPort
+    errorHandler: RepositoryErrorHandlerPort
   }
 ): ExtraItemComposition {
-  const repository = createExtraItemRepository(prisma)
+  const repository = createExtraItemRepository(prisma, dependencies.errorHandler)
   const service = createExtraItemService({
     repository,
     serviceRepository: dependencies.serviceRepository,
