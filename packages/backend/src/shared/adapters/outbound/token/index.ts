@@ -1,1 +1,1 @@
-export { JwtTokenProviderAdapter } from './jwt-token-provider.adapter.js'
+export { createTokenProvider } from './jwt-token-provider.adapter.js'

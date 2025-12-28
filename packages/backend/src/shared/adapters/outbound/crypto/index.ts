@@ -1,1 +1,1 @@
-export { Argon2PasswordHasherAdapter } from './argon2-password-hasher.adapter.js'
+export { createPasswordHasher } from './argon2-password-hasher.adapter.js'

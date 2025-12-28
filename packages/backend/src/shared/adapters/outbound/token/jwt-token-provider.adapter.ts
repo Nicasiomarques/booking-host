@@ -7,7 +7,7 @@ import { UnauthorizedError } from '#shared/domain/index.js'
  * JWT implementation of the TokenProviderPort.
  * Uses jsonwebtoken library with configuration from config/jwt.config.ts
  */
-export class JwtTokenProviderAdapter implements TokenProviderPort {
+export const createTokenProvider = (): TokenProviderPort => ({
   generateAccessToken(payload: TokenPayload): string {
     const options: SignOptions = {
       expiresIn: jwtConfig.accessExpiresIn as jwt.SignOptions['expiresIn'],
@@ -15,7 +15,7 @@ export class JwtTokenProviderAdapter implements TokenProviderPort {
       audience: jwtConfig.audience,
     }
     return jwt.sign(payload, jwtConfig.accessSecret, options)
-  }
+  },
 
   generateRefreshToken(userId: string): string {
     const options: SignOptions = {
@@ -24,7 +24,7 @@ export class JwtTokenProviderAdapter implements TokenProviderPort {
       audience: jwtConfig.audience,
     }
     return jwt.sign({ userId, type: 'refresh' }, jwtConfig.refreshSecret, options)
-  }
+  },
 
   verifyAccessToken(token: string): TokenPayload {
     try {
@@ -45,7 +45,7 @@ export class JwtTokenProviderAdapter implements TokenProviderPort {
       }
       throw new UnauthorizedError('Invalid token')
     }
-  }
+  },
 
   verifyRefreshToken(token: string): { userId: string } {
     try {
@@ -66,5 +66,5 @@ export class JwtTokenProviderAdapter implements TokenProviderPort {
       }
       throw new UnauthorizedError('Invalid refresh token')
     }
-  }
-}
+  },
+})

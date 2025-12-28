@@ -180,11 +180,9 @@ function createTransactionalRoomRepository(
  * Prisma implementation of the UnitOfWorkPort.
  * Wraps Prisma interactive transactions.
  */
-export class PrismaUnitOfWorkAdapter implements UnitOfWorkPort {
-  constructor(private readonly prisma: PrismaClient) {}
-
+export const createUnitOfWork = (prisma: PrismaClient): UnitOfWorkPort => ({
   async execute<T>(work: (context: UnitOfWorkContext) => Promise<T>): Promise<T> {
-    return this.prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
       const context: UnitOfWorkContext = {
         bookingRepository: createTransactionalBookingRepository(tx),
         availabilityRepository: createTransactionalAvailabilityRepository(tx),
@@ -192,5 +190,5 @@ export class PrismaUnitOfWorkAdapter implements UnitOfWorkPort {
       }
       return work(context)
     })
-  }
-}
+  },
+})

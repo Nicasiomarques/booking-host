@@ -2,5 +2,5 @@
 export { prisma } from './prisma.client.js'
 
 // Port Adapters
-export { PrismaUnitOfWorkAdapter } from './prisma-unit-of-work.adapter.js'
-export { PrismaRepositoryErrorHandlerAdapter } from './prisma-repository-error-handler.adapter.js'
+export { createUnitOfWork } from './prisma-unit-of-work.adapter.js'
+export { createRepositoryErrorHandler } from './prisma-repository-error-handler.adapter.js'

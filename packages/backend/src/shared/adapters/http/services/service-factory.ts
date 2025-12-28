@@ -6,11 +6,11 @@ import type {
   UnitOfWorkPort,
 } from '#shared/application/ports/index.js'
 import {
-  PrismaUnitOfWorkAdapter,
-  PrismaRepositoryErrorHandlerAdapter,
+  createUnitOfWork,
+  createRepositoryErrorHandler,
 } from '#shared/adapters/outbound/prisma/index.js'
-import { Argon2PasswordHasherAdapter } from '#shared/adapters/outbound/crypto/index.js'
-import { JwtTokenProviderAdapter } from '#shared/adapters/outbound/token/index.js'
+import { createPasswordHasher } from '#shared/adapters/outbound/crypto/index.js'
+import { createTokenProvider } from '#shared/adapters/outbound/token/index.js'
 import { createAuthComposition, type AuthComposition } from '#features/auth/composition.js'
 import { createEstablishmentComposition, type EstablishmentComposition } from '#features/establishment/composition.js'
 import { createServiceComposition, type ServiceComposition } from '#features/service/composition.js'
@@ -54,10 +54,10 @@ export interface CompositionRoot {
 
 function createAdapters(prisma: PrismaClient): Adapters {
   return {
-    passwordHasher: new Argon2PasswordHasherAdapter(),
-    tokenProvider: new JwtTokenProviderAdapter(),
-    repositoryErrorHandler: new PrismaRepositoryErrorHandlerAdapter(),
-    unitOfWork: new PrismaUnitOfWorkAdapter(prisma),
+    passwordHasher: createPasswordHasher(),
+    tokenProvider: createTokenProvider(),
+    repositoryErrorHandler: createRepositoryErrorHandler(),
+    unitOfWork: createUnitOfWork(prisma),
   }
 }
 

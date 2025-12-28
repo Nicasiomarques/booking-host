@@ -9,7 +9,7 @@ import { DatabaseErrorType } from '#shared/application/ports/index.js'
  * Prisma implementation of the RepositoryErrorHandlerPort.
  * Translates Prisma-specific errors to normalized database errors.
  */
-export class PrismaRepositoryErrorHandlerAdapter implements RepositoryErrorHandlerPort {
+export const createRepositoryErrorHandler = (): RepositoryErrorHandlerPort => ({
   analyze(error: unknown): DatabaseErrorInfo | null {
     if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
       return null
@@ -47,12 +47,12 @@ export class PrismaRepositoryErrorHandlerAdapter implements RepositoryErrorHandl
           message: error.message,
         }
     }
-  }
+  },
 
   isUniqueConstraintViolation(error: unknown): boolean {
     if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
       return false
     }
     return error.code === 'P2002'
-  }
-}
+  },
+})
