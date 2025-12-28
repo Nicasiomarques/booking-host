@@ -60,6 +60,9 @@ export class UserRepository {
         email: data.email.toLowerCase(),
         passwordHash: data.passwordHash,
         name: data.name,
+        phone: data.phone ?? null,
+        birthDate: data.birthDate ?? null,
+        address: data.address ?? null,
       },
       include: {
         establishmentUsers: {

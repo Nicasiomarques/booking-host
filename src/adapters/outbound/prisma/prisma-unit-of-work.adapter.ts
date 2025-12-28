@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma, Booking as PrismaBooking, Room as PrismaRoom, RoomStatus } from '@prisma/client'
+import { PrismaClient, Prisma, Booking as PrismaBooking, Room as PrismaRoom, RoomStatus, Availability as PrismaAvailability } from '@prisma/client'
 import type {
   UnitOfWorkPort,
   UnitOfWorkContext,
@@ -13,6 +13,7 @@ import type {
   BookingStatus,
   Availability,
   Room,
+  RoomType,
 } from '#domain/index.js'
 
 function toBooking(prismaBooking: PrismaBooking): Booking {
@@ -24,9 +25,17 @@ function toBooking(prismaBooking: PrismaBooking): Booking {
     checkOutDate: prismaBooking.checkOutDate,
     roomId: prismaBooking.roomId,
     numberOfNights: prismaBooking.numberOfNights,
+    numberOfGuests: prismaBooking.numberOfGuests,
     guestName: prismaBooking.guestName,
     guestEmail: prismaBooking.guestEmail,
+    guestPhone: prismaBooking.guestPhone,
     guestDocument: prismaBooking.guestDocument,
+    notes: prismaBooking.notes,
+    confirmedAt: prismaBooking.confirmedAt,
+    cancelledAt: prismaBooking.cancelledAt,
+    cancellationReason: prismaBooking.cancellationReason,
+    checkedInAt: prismaBooking.checkedInAt,
+    checkedOutAt: prismaBooking.checkedOutAt,
   }
 }
 
@@ -55,9 +64,13 @@ function createTransactionalBookingRepository(
           checkOutDate: data.checkOutDate ?? null,
           roomId: data.roomId ?? null,
           numberOfNights: data.numberOfNights ?? null,
+          numberOfGuests: data.numberOfGuests ?? null,
           guestName: data.guestName ?? null,
           guestEmail: data.guestEmail ?? null,
+          guestPhone: data.guestPhone ?? null,
           guestDocument: data.guestDocument ?? null,
+          notes: data.notes ?? null,
+          confirmedAt: data.status === 'CONFIRMED' ? new Date() : null,
           extraItems: {
             create: extras.map((e) => ({
               extraItemId: e.extraItemId,
@@ -70,10 +83,35 @@ function createTransactionalBookingRepository(
       return toBooking(result)
     },
 
-    async updateStatus(id: string, status: BookingStatus): Promise<Booking> {
+    async updateStatus(id: string, status: BookingStatus, cancellationReason?: string | null): Promise<Booking> {
+      const updateData: any = { status }
+      
+      // Automatically set confirmedAt when status changes to CONFIRMED
+      if (status === 'CONFIRMED') {
+        updateData.confirmedAt = new Date()
+      }
+      
+      // Automatically set cancelledAt when status changes to CANCELLED
+      if (status === 'CANCELLED') {
+        updateData.cancelledAt = new Date()
+        if (cancellationReason !== undefined) {
+          updateData.cancellationReason = cancellationReason
+        }
+      }
+      
+      // Automatically set checkedInAt when status changes to CHECKED_IN
+      if (status === 'CHECKED_IN') {
+        updateData.checkedInAt = new Date()
+      }
+      
+      // Automatically set checkedOutAt when status changes to CHECKED_OUT
+      if (status === 'CHECKED_OUT') {
+        updateData.checkedOutAt = new Date()
+      }
+      
       const result = await tx.booking.update({
         where: { id },
-        data: { status },
+        data: updateData,
       })
       return toBooking(result)
     },
@@ -86,19 +124,28 @@ function createTransactionalBookingRepository(
 function createTransactionalAvailabilityRepository(
   tx: Prisma.TransactionClient
 ): TransactionalAvailabilityRepository {
+  function toAvailability(prismaAvailability: PrismaAvailability): Availability {
+    return {
+      ...prismaAvailability,
+      price: prismaAvailability.price ? prismaAvailability.price.toString() : null,
+    }
+  }
+  
   return {
     async decrementCapacity(id: string, quantity: number): Promise<Availability> {
-      return tx.availability.update({
+      const result = await tx.availability.update({
         where: { id },
         data: { capacity: { decrement: quantity } },
       })
+      return toAvailability(result)
     },
 
     async incrementCapacity(id: string, quantity: number): Promise<Availability> {
-      return tx.availability.update({
+      const result = await tx.availability.update({
         where: { id },
         data: { capacity: { increment: quantity } },
       })
+      return toAvailability(result)
     },
   }
 }
@@ -107,6 +154,8 @@ function toRoom(prismaRoom: PrismaRoom): Room {
   return {
     ...prismaRoom,
     status: prismaRoom.status as RoomStatus,
+    roomType: prismaRoom.roomType as RoomType | null,
+    amenities: prismaRoom.amenities ? (prismaRoom.amenities as string[]) : null,
   }
 }
 

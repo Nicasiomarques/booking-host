@@ -27,9 +27,17 @@ function toBooking(prismaBooking: PrismaBooking): Booking {
     checkOutDate: prismaBooking.checkOutDate,
     roomId: prismaBooking.roomId,
     numberOfNights: prismaBooking.numberOfNights,
+    numberOfGuests: prismaBooking.numberOfGuests,
     guestName: prismaBooking.guestName,
     guestEmail: prismaBooking.guestEmail,
+    guestPhone: prismaBooking.guestPhone,
     guestDocument: prismaBooking.guestDocument,
+    notes: prismaBooking.notes,
+    confirmedAt: prismaBooking.confirmedAt,
+    cancelledAt: prismaBooking.cancelledAt,
+    cancellationReason: prismaBooking.cancellationReason,
+    checkedInAt: prismaBooking.checkedInAt,
+    checkedOutAt: prismaBooking.checkedOutAt,
   }
 }
 
@@ -81,9 +89,13 @@ export class BookingRepository {
         checkOutDate: data.checkOutDate ?? null,
         roomId: data.roomId ?? null,
         numberOfNights: data.numberOfNights ?? null,
+        numberOfGuests: data.numberOfGuests ?? null,
         guestName: data.guestName ?? null,
         guestEmail: data.guestEmail ?? null,
+        guestPhone: data.guestPhone ?? null,
         guestDocument: data.guestDocument ?? null,
+        notes: data.notes ?? null,
+        confirmedAt: data.status === 'CONFIRMED' ? new Date() : null,
         extraItems: {
           create: extras.map((e) => ({
             extraItemId: e.extraItemId,
@@ -271,12 +283,38 @@ export class BookingRepository {
   async updateStatus(
     id: string,
     status: BookingStatus,
+    cancellationReason?: string | null,
     tx?: Prisma.TransactionClient
   ): Promise<Booking> {
     const client = tx ?? this.prisma
+    const updateData: any = { status }
+    
+    // Automatically set confirmedAt when status changes to CONFIRMED
+    if (status === 'CONFIRMED') {
+      updateData.confirmedAt = new Date()
+    }
+    
+    // Automatically set cancelledAt when status changes to CANCELLED
+    if (status === 'CANCELLED') {
+      updateData.cancelledAt = new Date()
+      if (cancellationReason !== undefined) {
+        updateData.cancellationReason = cancellationReason
+      }
+    }
+    
+    // Automatically set checkedInAt when status changes to CHECKED_IN
+    if (status === 'CHECKED_IN') {
+      updateData.checkedInAt = new Date()
+    }
+    
+    // Automatically set checkedOutAt when status changes to CHECKED_OUT
+    if (status === 'CHECKED_OUT') {
+      updateData.checkedOutAt = new Date()
+    }
+    
     const result = await client.booking.update({
       where: { id },
-      data: { status },
+      data: updateData,
     })
     return toBooking(result)
   }

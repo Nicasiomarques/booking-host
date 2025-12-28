@@ -1,5 +1,5 @@
 import { PrismaClient, Service as PrismaService, Prisma } from '@prisma/client'
-import type { Service, CreateServiceData, UpdateServiceData, ExtraItem, ServiceType } from '#domain/entities/index.js'
+import type { Service, CreateServiceData, UpdateServiceData, ExtraItem } from '#domain/entities/index.js'
 
 export type { Service, CreateServiceData, UpdateServiceData }
 
@@ -8,10 +8,11 @@ function toService(prismaService: PrismaService): Service {
     ...prismaService,
     basePrice: prismaService.basePrice.toString(),
     type: prismaService.type as Service['type'],
+    images: prismaService.images ? (prismaService.images as string[]) : null,
   }
 }
 
-function toExtraItem(prismaExtraItem: { id: string; serviceId: string; name: string; price: Prisma.Decimal; maxQuantity: number; active: boolean; createdAt: Date; updatedAt: Date }): ExtraItem {
+function toExtraItem(prismaExtraItem: { id: string; serviceId: string; name: string; description: string | null; price: Prisma.Decimal; image: string | null; maxQuantity: number; active: boolean; createdAt: Date; updatedAt: Date }): ExtraItem {
   return {
     ...prismaExtraItem,
     price: prismaExtraItem.price.toString(),
@@ -35,6 +36,11 @@ export class ServiceRepository {
         durationMinutes: data.durationMinutes,
         capacity: data.capacity ?? 1,
         type: data.type ?? 'SERVICE',
+        images: data.images && data.images.length > 0 ? data.images : Prisma.DbNull,
+        cancellationPolicy: data.cancellationPolicy ?? null,
+        minimumAdvanceBooking: data.minimumAdvanceBooking ?? null,
+        maximumAdvanceBooking: data.maximumAdvanceBooking ?? null,
+        requiresConfirmation: data.requiresConfirmation ?? false,
       },
     })
     return toService(result)
@@ -78,12 +84,19 @@ export class ServiceRepository {
   }
 
   async update(id: string, data: UpdateServiceData): Promise<Service> {
+    const updateData: any = {
+      ...data,
+      basePrice: data.basePrice !== undefined ? new Prisma.Decimal(data.basePrice) : undefined,
+    }
+    
+    // Handle images array explicitly
+    if (data.images !== undefined) {
+      updateData.images = data.images.length > 0 ? data.images : Prisma.DbNull
+    }
+    
     const result = await this.prisma.service.update({
       where: { id },
-      data: {
-        ...data,
-        basePrice: data.basePrice !== undefined ? new Prisma.Decimal(data.basePrice) : undefined,
-      },
+      data: updateData,
     })
     return toService(result)
   }

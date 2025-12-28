@@ -24,6 +24,8 @@ export class ExtraItemRepository {
         name: data.name,
         price: new Prisma.Decimal(data.price),
         maxQuantity: data.maxQuantity ?? 1,
+        description: data.description ?? null,
+        image: data.image ?? null,
       },
     })
     return toExtraItem(result)

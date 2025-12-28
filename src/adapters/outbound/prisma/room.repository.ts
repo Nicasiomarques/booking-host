@@ -1,5 +1,5 @@
 import { PrismaClient, Room as PrismaRoom, Prisma } from '@prisma/client'
-import type { Room, CreateRoomData, UpdateRoomData, RoomStatus } from '#domain/entities/index.js'
+import type { Room, CreateRoomData, UpdateRoomData, RoomStatus, RoomType } from '#domain/entities/index.js'
 
 export type { Room, CreateRoomData, UpdateRoomData }
 
@@ -7,6 +7,8 @@ function toRoom(prismaRoom: PrismaRoom): Room {
   return {
     ...prismaRoom,
     status: prismaRoom.status as RoomStatus,
+    roomType: prismaRoom.roomType as RoomType | null,
+    amenities: prismaRoom.amenities ? (prismaRoom.amenities as string[]) : null,
   }
 }
 
@@ -21,6 +23,11 @@ export class RoomRepository {
         floor: data.floor ?? null,
         description: data.description ?? null,
         status: 'AVAILABLE',
+        capacity: data.capacity ?? null,
+        roomType: data.roomType ?? null,
+        bedType: data.bedType ?? null,
+        amenities: data.amenities && data.amenities.length > 0 ? data.amenities : Prisma.DbNull,
+        maxOccupancy: data.maxOccupancy ?? null,
       },
     })
     return toRoom(result)
@@ -77,14 +84,23 @@ export class RoomRepository {
   }
 
   async update(id: string, data: UpdateRoomData): Promise<Room> {
+    const updateData: any = {}
+    
+    if (data.number !== undefined) updateData.number = data.number
+    if (data.floor !== undefined) updateData.floor = data.floor ?? null
+    if (data.description !== undefined) updateData.description = data.description ?? null
+    if (data.status !== undefined) updateData.status = data.status
+    if (data.capacity !== undefined) updateData.capacity = data.capacity ?? null
+    if (data.roomType !== undefined) updateData.roomType = data.roomType ?? null
+    if (data.bedType !== undefined) updateData.bedType = data.bedType ?? null
+    if (data.amenities !== undefined) {
+      updateData.amenities = data.amenities.length > 0 ? data.amenities : Prisma.DbNull
+    }
+    if (data.maxOccupancy !== undefined) updateData.maxOccupancy = data.maxOccupancy ?? null
+    
     const result = await this.prisma.room.update({
       where: { id },
-      data: {
-        ...(data.number !== undefined && { number: data.number }),
-        ...(data.floor !== undefined && { floor: data.floor ?? null }),
-        ...(data.description !== undefined && { description: data.description ?? null }),
-        ...(data.status !== undefined && { status: data.status }),
-      },
+      data: updateData,
     })
     return toRoom(result)
   }

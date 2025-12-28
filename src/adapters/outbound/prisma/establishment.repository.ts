@@ -30,6 +30,12 @@ export class EstablishmentRepository {
         description: data.description,
         address: data.address,
         timezone: data.timezone ?? 'UTC',
+        phone: data.phone ?? null,
+        email: data.email ?? null,
+        city: data.city ?? null,
+        state: data.state ?? null,
+        website: data.website ?? null,
+        taxId: data.taxId ?? null,
         users: {
           create: {
             userId: ownerId,

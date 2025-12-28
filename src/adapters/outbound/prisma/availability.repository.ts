@@ -1,10 +1,13 @@
-import { PrismaClient, Availability as PrismaAvailability } from '@prisma/client'
+import { PrismaClient, Availability as PrismaAvailability, Prisma } from '@prisma/client'
 import type { Availability, CreateAvailabilityData, UpdateAvailabilityData } from '#domain/entities/index.js'
 
 export type { Availability, CreateAvailabilityData, UpdateAvailabilityData }
 
 function toAvailability(prismaAvailability: PrismaAvailability): Availability {
-  return { ...prismaAvailability }
+  return {
+    ...prismaAvailability,
+    price: prismaAvailability.price ? prismaAvailability.price.toString() : null,
+  }
 }
 
 export interface AvailabilityWithEstablishment extends Availability {
@@ -22,6 +25,9 @@ export class AvailabilityRepository {
         startTime: data.startTime,
         endTime: data.endTime,
         capacity: data.capacity,
+        price: data.price !== undefined ? new Prisma.Decimal(data.price) : null,
+        notes: data.notes ?? null,
+        isRecurring: data.isRecurring ?? false,
       },
     })
     return toAvailability(result)
@@ -90,9 +96,15 @@ export class AvailabilityRepository {
   }
 
   async update(id: string, data: UpdateAvailabilityData): Promise<Availability> {
+    const updateData: any = { ...data }
+    
+    if (data.price !== undefined) {
+      updateData.price = data.price !== null ? new Prisma.Decimal(data.price) : null
+    }
+    
     const result = await this.prisma.availability.update({
       where: { id },
-      data,
+      data: updateData,
     })
     return toAvailability(result)
   }
