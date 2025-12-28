@@ -4,6 +4,8 @@ import { buildRouteSchema, ErrorResponseSchema } from '../openapi/index.js'
 import { authenticate, validate } from '../middleware/index.js'
 import { idParamSchema } from '../schemas/common.schema.js'
 import { getByIdResponses, updateResponses, deleteResponses, createResponses } from './crud-helpers.js'
+import { handleEitherAsync } from './either-handler.js'
+import type { DomainError, Either } from '#shared/domain/index.js'
 
 /**
  * Helper to register a GET by ID endpoint
@@ -16,7 +18,7 @@ export function registerGetByIdEndpoint<TEntity>(
     entityName: string
     responseSchema: z.ZodSchema
     service: {
-      findById: (id: string) => Promise<TEntity>
+      findById: (id: string) => Promise<Either<DomainError, TEntity>>
     }
     formatter?: (entity: TEntity) => any
     description?: string
@@ -37,9 +39,12 @@ export function registerGetByIdEndpoint<TEntity>(
       }),
       preHandler: requiresAuth ? [authenticate] : [],
     },
-    async (request: FastifyRequest<{ Params: { id: string } }>) => {
-      const result = await service.findById(request.params.id)
-      return formatter ? formatter(result) : result
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      return handleEitherAsync(
+        service.findById(request.params.id),
+        reply,
+        (result) => formatter ? formatter(result) : result
+      )
     }
   )
 }
@@ -56,7 +61,7 @@ export function registerUpdateEndpoint<TEntity, TUpdateInput>(
     updateSchema: z.ZodSchema
     responseSchema: z.ZodSchema
     service: {
-      update: (id: string, data: TUpdateInput, userId: string) => Promise<TEntity>
+      update: (id: string, data: TUpdateInput, userId: string) => Promise<Either<DomainError, TEntity>>
     }
     formatter?: (entity: TEntity) => any
     description?: string
@@ -92,9 +97,11 @@ export function registerUpdateEndpoint<TEntity, TUpdateInput>(
       preHandler: [authenticate, validate(updateSchema), ...preHandler],
     },
     async (request: FastifyRequest<{ Params: { id: string }; Body: TUpdateInput }>, reply: FastifyReply) => {
-      const result = await service.update(request.params.id, request.body as TUpdateInput, request.user.userId)
-      const formatted = formatter ? formatter(result) : result
-      return reply.status(200).send(formatted)
+      return handleEitherAsync(
+        service.update(request.params.id, request.body as TUpdateInput, request.user.userId),
+        reply,
+        (result) => formatter ? formatter(result) : result
+      )
     }
   )
 }
@@ -109,7 +116,7 @@ export function registerDeleteEndpoint<TEntity>(
     tags: string[]
     entityName: string
     service: {
-      delete: (id: string, userId: string) => Promise<TEntity>
+      delete: (id: string, userId: string) => Promise<Either<DomainError, TEntity>>
     }
     description?: string
     additionalResponses?: Record<number, { description: string; schema: z.ZodSchema }>
@@ -134,8 +141,11 @@ export function registerDeleteEndpoint<TEntity>(
       preHandler: [authenticate, ...preHandler],
     },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-      await service.delete(request.params.id, request.user.userId)
-      return reply.status(200).send({ success: true })
+      return handleEitherAsync(
+        service.delete(request.params.id, request.user.userId),
+        reply,
+        () => ({ success: true })
+      )
     }
   )
 }
@@ -153,7 +163,7 @@ export function registerCreateEndpoint<TEntity, TCreateInput, TParams extends Re
     responseSchema: z.ZodSchema
     paramsSchema?: z.ZodSchema
     service: {
-      create: (params: TParams, data: TCreateInput, userId: string) => Promise<TEntity>
+      create: (params: TParams, data: TCreateInput, userId: string) => Promise<Either<DomainError, TEntity>>
     }
     formatter?: (entity: TEntity) => any
     description?: string
@@ -196,9 +206,12 @@ export function registerCreateEndpoint<TEntity, TCreateInput, TParams extends Re
       reply: FastifyReply
     ) => {
       const params = extractParams ? extractParams(request) : ({} as TParams)
-      const result = await service.create(params, request.body as TCreateInput, request.user.userId)
-      const formatted = formatter ? formatter(result) : result
-      return reply.status(201).send(formatted)
+      return handleEitherAsync(
+        service.create(params, request.body as TCreateInput, request.user.userId),
+        reply,
+        (result) => formatter ? formatter(result) : result,
+        201
+      )
     }
   )
 }
@@ -216,7 +229,7 @@ export function registerListEndpoint<TEntity, TQuery extends Record<string, any>
     paramsSchema?: z.ZodSchema
     querySchema?: z.ZodSchema
     service: {
-      findByX: (params: Record<string, string>, query: TQuery) => Promise<TEntity[]>
+      findByX: (params: Record<string, string>, query: TQuery) => Promise<Either<DomainError, TEntity[]>>
     }
     formatter?: (entity: TEntity) => any
     description?: string
@@ -256,11 +269,14 @@ export function registerListEndpoint<TEntity, TQuery extends Record<string, any>
       }),
       preHandler: requiresAuth ? [authenticate] : [],
     },
-    async (request: FastifyRequest<{ Params: Record<string, string>; Querystring: Record<string, any> }>) => {
+    async (request: FastifyRequest<{ Params: Record<string, string>; Querystring: Record<string, any> }>, reply: FastifyReply) => {
       const params = extractParams ? extractParams(request) : request.params
       const query = extractQuery ? extractQuery(request) : (request.query as TQuery)
-      const results = await service.findByX(params, query)
-      return results.map((item) => (formatter ? formatter(item) : item))
+      return handleEitherAsync(
+        service.findByX(params, query),
+        reply,
+        (results) => results.map((item) => (formatter ? formatter(item) : item))
+      )
     }
   )
 }
