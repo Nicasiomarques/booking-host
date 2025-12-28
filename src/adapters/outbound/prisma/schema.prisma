@@ -11,6 +11,9 @@ model User {
   email        String   @unique
   passwordHash String   @map("password_hash")
   name         String
+  phone        String?
+  birthDate    DateTime? @map("birth_date") @db.Date
+  address      String?
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -27,6 +30,12 @@ model Establishment {
   address     String
   timezone    String   @default("UTC")
   active      Boolean  @default(true)
+  phone       String?
+  email       String?
+  city        String?
+  state       String?
+  website     String?
+  taxId       String?  @map("tax_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -34,6 +43,8 @@ model Establishment {
   services Service[]
   bookings Booking[]
 
+  @@index([city])
+  @@index([state])
   @@map("establishments")
 }
 
@@ -57,7 +68,6 @@ enum Role {
 enum ServiceType {
   SERVICE
   HOTEL
-  CINEMA
 }
 
 enum RoomStatus {
@@ -68,18 +78,32 @@ enum RoomStatus {
   BLOCKED
 }
 
+enum RoomType {
+  SINGLE
+  DOUBLE
+  TWIN
+  SUITE
+  FAMILY
+  OTHER
+}
+
 model Service {
-  id              String      @id @default(uuid())
-  establishmentId String      @map("establishment_id")
-  name            String
-  description     String?
-  basePrice       Decimal     @map("base_price") @db.Decimal(10, 2)
-  durationMinutes Int         @map("duration_minutes")
-  capacity        Int         @default(1)
-  type            ServiceType @default(SERVICE)
-  active          Boolean     @default(true)
-  createdAt       DateTime    @default(now()) @map("created_at")
-  updatedAt       DateTime    @updatedAt @map("updated_at")
+  id                    String      @id @default(uuid())
+  establishmentId       String      @map("establishment_id")
+  name                  String
+  description           String?
+  basePrice             Decimal     @map("base_price") @db.Decimal(10, 2)
+  durationMinutes       Int         @map("duration_minutes")
+  capacity              Int         @default(1)
+  type                  ServiceType @default(SERVICE)
+  active                Boolean     @default(true)
+  images                Json?       // Array of image URLs
+  cancellationPolicy    String?     @map("cancellation_policy")
+  minimumAdvanceBooking Int?        @map("minimum_advance_booking") // in hours
+  maximumAdvanceBooking Int?        @map("maximum_advance_booking") // in days
+  requiresConfirmation  Boolean     @default(false) @map("requires_confirmation")
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
 
   establishment  Establishment  @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
   extraItems     ExtraItem[]
@@ -96,7 +120,9 @@ model ExtraItem {
   id          String   @id @default(uuid())
   serviceId   String   @map("service_id")
   name        String
+  description String?
   price       Decimal  @db.Decimal(10, 2)
+  image       String?
   maxQuantity Int      @default(1) @map("max_quantity")
   active      Boolean  @default(true)
   createdAt   DateTime @default(now()) @map("created_at")
@@ -110,14 +136,17 @@ model ExtraItem {
 }
 
 model Availability {
-  id        String   @id @default(uuid())
-  serviceId String   @map("service_id")
-  date      DateTime @db.Date
-  startTime String   @map("start_time")
-  endTime   String   @map("end_time")
-  capacity  Int
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String    @id @default(uuid())
+  serviceId  String    @map("service_id")
+  date       DateTime  @db.Date
+  startTime  String    @map("start_time")
+  endTime    String    @map("end_time")
+  capacity   Int
+  price      Decimal?  @db.Decimal(10, 2) // Dynamic price for this slot
+  notes      String?
+  isRecurring Boolean  @default(false) @map("is_recurring")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
   service  Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   bookings Booking[]
@@ -134,6 +163,11 @@ model Room {
   floor       Int?
   description String?
   status      RoomStatus @default(AVAILABLE)
+  capacity    Int?
+  roomType    RoomType?  @map("room_type")
+  bedType     String?    @map("bed_type")
+  amenities   Json?      // Array of strings
+  maxOccupancy Int?      @map("max_occupancy")
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
 
@@ -147,24 +181,32 @@ model Room {
 }
 
 model Booking {
-  id              String        @id @default(uuid())
-  userId          String        @map("user_id")
-  establishmentId String        @map("establishment_id")
-  serviceId       String        @map("service_id")
-  availabilityId  String        @map("availability_id")
-  quantity        Int
-  totalPrice      Decimal       @map("total_price") @db.Decimal(10, 2)
-  status          BookingStatus @default(PENDING)
+  id                String        @id @default(uuid())
+  userId            String        @map("user_id")
+  establishmentId   String        @map("establishment_id")
+  serviceId         String        @map("service_id")
+  availabilityId    String        @map("availability_id")
+  quantity          Int
+  totalPrice        Decimal       @map("total_price") @db.Decimal(10, 2)
+  status            BookingStatus @default(PENDING)
   // Hotel-specific fields
-  checkInDate     DateTime?     @map("check_in_date") @db.Date
-  checkOutDate    DateTime?       @map("check_out_date") @db.Date
-  roomId          String?         @map("room_id")
-  numberOfNights  Int?            @map("number_of_nights")
-  guestName       String?         @map("guest_name")
-  guestEmail      String?         @map("guest_email")
-  guestDocument   String?         @map("guest_document")
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
+  checkInDate       DateTime?     @map("check_in_date") @db.Date
+  checkOutDate      DateTime?     @map("check_out_date") @db.Date
+  roomId            String?       @map("room_id")
+  numberOfNights    Int?          @map("number_of_nights")
+  numberOfGuests    Int?          @map("number_of_guests")
+  guestName         String?       @map("guest_name")
+  guestEmail        String?       @map("guest_email")
+  guestPhone        String?       @map("guest_phone")
+  guestDocument     String?       @map("guest_document")
+  notes             String?
+  confirmedAt       DateTime?     @map("confirmed_at")
+  cancelledAt       DateTime?     @map("cancelled_at")
+  cancellationReason String?      @map("cancellation_reason")
+  checkedInAt       DateTime?     @map("checked_in_at")
+  checkedOutAt      DateTime?     @map("checked_out_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
 
   user          User               @relation(fields: [userId], references: [id])
   establishment Establishment      @relation(fields: [establishmentId], references: [id])
@@ -179,6 +221,8 @@ model Booking {
   @@index([roomId])
   @@index([checkInDate])
   @@index([checkOutDate])
+  @@index([confirmedAt])
+  @@index([cancelledAt])
   @@map("bookings")
 }
 
