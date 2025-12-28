@@ -19,7 +19,7 @@ export const paginationSchema = z.object({
   }),
 }).openapi('PaginationQuery')
 
-export const emailSchema = z.string().email().transform(s => s.toLowerCase().trim()).openapi({
+export const emailSchema = z.email().transform(s => s.toLowerCase().trim()).openapi({
   description: 'Email address',
   example: 'user@example.com',
 })

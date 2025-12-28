@@ -24,7 +24,7 @@ export const createEstablishmentSchema = z.object({
     description: 'Contact phone number',
     example: '+55 11 98765-4321',
   }),
-  email: z.string().email().trim().max(255).optional().openapi({
+  email: z.email().trim().max(255).optional().openapi({
     description: 'Contact email address',
     example: 'contato@spa.com.br',
   }),
@@ -78,7 +78,7 @@ export const updateEstablishmentSchema = z.object({
     description: 'Contact phone number',
     example: '+55 11 98765-4321',
   }),
-  email: z.string().email().trim().max(255).optional().openapi({
+  email: z.email().trim().max(255).optional().openapi({
     description: 'Contact email address',
     example: 'contato@spa.com.br',
   }),
@@ -116,13 +116,13 @@ export const establishmentResponseSchema = z.object({
   timezone: z.string().openapi({ example: 'America/Sao_Paulo' }),
   active: z.boolean().openapi({ example: true }),
   phone: z.string().nullable().optional().openapi({ example: '+55 11 98765-4321' }),
-  email: z.string().email().nullable().optional().openapi({ example: 'contato@spa.com.br' }),
+  email: z.email().nullable().optional().openapi({ example: 'contato@spa.com.br' }),
   city: z.string().nullable().optional().openapi({ example: 'São Paulo' }),
   state: z.string().nullable().optional().openapi({ example: 'SP' }),
   website: z.string().url().nullable().optional().openapi({ example: 'https://www.spa.com.br' }),
   taxId: z.string().nullable().optional().openapi({ example: '12.345.678/0001-90' }),
-  createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
-  updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
+  createdAt: z.iso.datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
+  updatedAt: z.iso.datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
 }).openapi('EstablishmentResponse', {
   example: {
     id: '550e8400-e29b-41d4-a716-446655440000',

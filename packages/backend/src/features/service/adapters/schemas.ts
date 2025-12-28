@@ -131,8 +131,8 @@ export const serviceResponseSchema = z.object({
   minimumAdvanceBooking: z.number().int().nullable().optional().openapi({ example: 2 }),
   maximumAdvanceBooking: z.number().int().nullable().optional().openapi({ example: 90 }),
   requiresConfirmation: z.boolean().openapi({ example: false }),
-  createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
-  updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
+  createdAt: z.iso.datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
+  updatedAt: z.iso.datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
 }).openapi('ServiceResponse', {
   example: {
     id: '550e8400-e29b-41d4-a716-446655440000',

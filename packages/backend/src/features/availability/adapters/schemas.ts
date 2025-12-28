@@ -106,8 +106,8 @@ export const availabilityResponseSchema = z.object({
   price: z.number().nullable().optional().openapi({ example: 250.00 }),
   notes: z.string().nullable().optional().openapi({ example: 'Horário com desconto promocional' }),
   isRecurring: z.boolean().openapi({ example: false }),
-  createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
-  updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
+  createdAt: z.iso.datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
+  updatedAt: z.iso.datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
 }).openapi('AvailabilityResponse', {
   example: {
     id: '550e8400-e29b-41d4-a716-446655440000',

@@ -44,7 +44,7 @@ export const createBookingSchema = z.object({
     description: 'Guest name (for third-party bookings)',
     example: 'John Doe',
   }),
-  guestEmail: z.string().email().optional().openapi({
+  guestEmail: z.email().optional().openapi({
     description: 'Guest email (for third-party bookings)',
     example: 'guest@example.com',
   }),
@@ -121,17 +121,17 @@ export const bookingResponseSchema = z.object({
   numberOfNights: z.number().int().nullable().optional().openapi({ example: 4 }),
   numberOfGuests: z.number().int().nullable().optional().openapi({ example: 2 }),
   guestName: z.string().nullable().optional().openapi({ example: 'John Doe' }),
-  guestEmail: z.string().email().nullable().optional().openapi({ example: 'guest@example.com' }),
+  guestEmail: z.email().nullable().optional().openapi({ example: 'guest@example.com' }),
   guestPhone: z.string().nullable().optional().openapi({ example: '+55 11 98765-4321' }),
   guestDocument: z.string().nullable().optional().openapi({ example: '12345678900' }),
   notes: z.string().nullable().optional().openapi({ example: 'Cliente prefere quarto no térreo' }),
-  confirmedAt: z.string().datetime().nullable().optional().openapi({ example: '2025-01-15T14:30:00.000Z' }),
-  cancelledAt: z.string().datetime().nullable().optional().openapi({ example: '2025-01-16T10:00:00.000Z' }),
+  confirmedAt: z.iso.datetime().nullable().optional().openapi({ example: '2025-01-15T14:30:00.000Z' }),
+  cancelledAt: z.iso.datetime().nullable().optional().openapi({ example: '2025-01-16T10:00:00.000Z' }),
   cancellationReason: z.string().nullable().optional().openapi({ example: 'Mudança de planos do cliente' }),
-  checkedInAt: z.string().datetime().nullable().optional().openapi({ example: '2025-02-01T15:30:00.000Z' }),
-  checkedOutAt: z.string().datetime().nullable().optional().openapi({ example: '2025-02-05T11:00:00.000Z' }),
-  createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
-  updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
+  checkedInAt: z.iso.datetime().nullable().optional().openapi({ example: '2025-02-01T15:30:00.000Z' }),
+  checkedOutAt: z.iso.datetime().nullable().optional().openapi({ example: '2025-02-05T11:00:00.000Z' }),
+  createdAt: z.iso.datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
+  updatedAt: z.iso.datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
   service: z.object({
     name: z.string().openapi({ example: 'Deep Tissue Massage' }),
     durationMinutes: z.number().int().openapi({ example: 60 }),
@@ -146,7 +146,7 @@ export const bookingResponseSchema = z.object({
   }),
   user: z.object({
     name: z.string().openapi({ example: 'John Doe' }),
-    email: z.string().email().openapi({ example: 'john.doe@example.com' }),
+    email: z.email().openapi({ example: 'john.doe@example.com' }),
   }).optional(),
   extras: z.array(bookingExtraResponseSchema),
 }).openapi('BookingResponse', {

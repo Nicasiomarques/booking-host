@@ -74,8 +74,8 @@ export const extraItemResponseSchema = z.object({
   image: z.string().url().nullable().optional().openapi({ example: 'https://cdn.example.com/extra1.jpg' }),
   maxQuantity: z.number().int().openapi({ example: 2 }),
   active: z.boolean().openapi({ example: true }),
-  createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
-  updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
+  createdAt: z.iso.datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
+  updatedAt: z.iso.datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
 }).openapi('ExtraItemResponse', {
   example: {
     id: '550e8400-e29b-41d4-a716-446655440000',

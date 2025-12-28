@@ -100,8 +100,8 @@ export const roomResponseSchema = z
     bedType: z.string().nullable().optional(),
     amenities: z.array(z.string()).nullable().optional(),
     maxOccupancy: z.number().int().nullable().optional(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   })
   .openapi({
     title: 'RoomResponse',

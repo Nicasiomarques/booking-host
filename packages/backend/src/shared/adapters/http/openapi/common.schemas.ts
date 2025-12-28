@@ -34,8 +34,8 @@ export const PaginationMetaSchema = z.object({
 }).openapi('PaginationMeta')
 
 export const TimestampFieldsSchema = z.object({
-  createdAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
-  updatedAt: z.string().datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
+  createdAt: z.iso.datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
+  updatedAt: z.iso.datetime().openapi({ example: '2025-01-15T10:30:00.000Z' }),
 })
 
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>
