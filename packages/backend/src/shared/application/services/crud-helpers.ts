@@ -4,6 +4,51 @@ import { requireOwnerRole } from '../utils/authorization.helper.js'
 import { requireEntity } from '../utils/validation.helper.js'
 
 /**
+ * Helper for create operations that require service validation and authorization
+ * Pattern: find service → check permissions → (validate business rules) → create
+ */
+export async function createWithServiceAuthorization<TEntity, TCreateData, TService>(
+  serviceId: string,
+  createData: TCreateData,
+  userId: string,
+  options: {
+    serviceRepository: {
+      findById: (id: string) => Promise<TService | null>
+    }
+    entityRepository: {
+      create: (data: TCreateData & { serviceId: string }) => Promise<TEntity>
+    }
+    getUserRole: (userId: string, establishmentId: string) => Promise<Role | null>
+    getEstablishmentId: (service: TService) => string
+    entityName: string
+    action?: string
+    validateBeforeCreate?: (service: TService, data: TCreateData) => Promise<void>
+  }
+): Promise<TEntity> {
+  const service = requireEntity(
+    await options.serviceRepository.findById(serviceId),
+    'Service'
+  )
+
+  await requireOwnerRole(
+    options.getUserRole,
+    userId,
+    options.getEstablishmentId(service),
+    options.action || `create ${options.entityName.toLowerCase()}`
+  )
+
+  // Run custom validation if provided
+  if (options.validateBeforeCreate) {
+    await options.validateBeforeCreate(service, createData)
+  }
+
+  return options.entityRepository.create({
+    ...createData,
+    serviceId,
+  } as TCreateData & { serviceId: string })
+}
+
+/**
  * Helper for update operations with authorization
  * Pattern: find entity → check permissions → update
  */
@@ -18,7 +63,7 @@ export async function updateWithAuthorization<TEntity, TUpdateData>(
       update: (id: string, data: TUpdateData) => Promise<TEntity>
     }
     entityName: string
-    getEstablishmentId: (entity: TEntity) => string
+    getEstablishmentId: (entity: TEntity) => string | Promise<string>
     getUserRole: (userId: string, establishmentId: string) => Promise<Role | null>
     action?: string
   }
@@ -34,10 +79,12 @@ export async function updateWithAuthorization<TEntity, TUpdateData>(
     options.entityName
   )
 
+  const establishmentId = await Promise.resolve(options.getEstablishmentId(entity))
+
   await requireOwnerRole(
     options.getUserRole,
     userId,
-    options.getEstablishmentId(entity),
+    establishmentId,
     options.action || `update ${options.entityName.toLowerCase()}`
   )
 
@@ -60,7 +107,7 @@ export async function deleteWithAuthorization<TEntity>(
       hasActiveBookings?: (id: string) => Promise<boolean>
     }
     entityName: string
-    getEstablishmentId: (entity: TEntity) => string
+    getEstablishmentId: (entity: TEntity) => string | Promise<string>
     getUserRole: (userId: string, establishmentId: string) => Promise<Role | null>
     action?: string
     checkDependencies?: boolean
@@ -78,10 +125,12 @@ export async function deleteWithAuthorization<TEntity>(
     options.entityName
   )
 
+  const establishmentId = await Promise.resolve(options.getEstablishmentId(entity))
+
   await requireOwnerRole(
     options.getUserRole,
     userId,
-    options.getEstablishmentId(entity),
+    establishmentId,
     options.action || `delete ${options.entityName.toLowerCase()}`
   )
 

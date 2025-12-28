@@ -51,3 +51,37 @@ export function createSoftDeleteData() {
   return { active: false }
 }
 
+/**
+ * Process update data for Prisma operations
+ * Automatically converts Decimal fields and array fields
+ */
+export function processUpdateData<T extends Record<string, any>>(
+  data: Partial<T>,
+  options: {
+    decimalFields?: Array<keyof T>
+    arrayFields?: Array<keyof T>
+  } = {}
+): Partial<T> {
+  const processed: any = { ...data }
+
+  // Process decimal fields
+  if (options.decimalFields) {
+    for (const field of options.decimalFields) {
+      if (field in processed && processed[field] !== undefined) {
+        processed[field] = toDecimal(processed[field])
+      }
+    }
+  }
+
+  // Process array fields
+  if (options.arrayFields) {
+    for (const field of options.arrayFields) {
+      if (field in processed && processed[field] !== undefined) {
+        processed[field] = handleArrayFieldForUpdate(processed[field])
+      }
+    }
+  }
+
+  return processed
+}
+
