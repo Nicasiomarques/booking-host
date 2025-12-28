@@ -1,0 +1,12 @@
+import type { UserWithRoles, CreateUserData } from '#shared/domain/index.js'
+
+/**
+ * Port interface for User repository operations
+ */
+export interface UserRepositoryPort {
+  findById(id: string): Promise<UserWithRoles | null>
+  findByEmail(email: string): Promise<UserWithRoles | null>
+  create(data: CreateUserData): Promise<UserWithRoles>
+  update(id: string, data: Partial<{ name: string; passwordHash: string }>): Promise<UserWithRoles | null>
+}
+
