@@ -1,8 +1,8 @@
 import type { Room, CreateRoomData, UpdateRoomData } from '../domain/index.js'
 import { ConflictError } from '#shared/domain/index.js'
 import type { RoomRepositoryPort, ServiceRepositoryPort, EstablishmentRepositoryPort } from '#shared/application/ports/index.js'
-import { requireOwnerRole } from '#shared/application/utils/authorization.helper.js'
 import { requireEntity } from '#shared/application/utils/validation.helper.js'
+import { updateWithAuthorization, deleteWithAuthorization, createWithServiceAuthorization } from '#shared/application/services/crud-helpers.js'
 
 export class RoomService {
   constructor(
@@ -12,27 +12,24 @@ export class RoomService {
   ) {}
 
   async create(serviceId: string, data: Omit<CreateRoomData, 'serviceId'>, userId: string): Promise<Room> {
-    const service = requireEntity(
-      await this.serviceRepository.findById(serviceId),
-      'Service'
-    )
-
-    await requireOwnerRole(
-      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
-      userId,
-      service.establishmentId,
-      'create rooms'
-    )
-
-    // Check if room number already exists for this service
-    const existingRooms = await this.repository.findByService(serviceId)
-    if (existingRooms.some((r) => r.number === data.number)) {
-      throw new ConflictError(`Room number ${data.number} already exists for this service`)
-    }
-
-    return this.repository.create({
-      ...data,
-      serviceId,
+    return createWithServiceAuthorization(serviceId, data, userId, {
+      serviceRepository: {
+        findById: (id) => this.serviceRepository.findById(id),
+      },
+      entityRepository: {
+        create: (data) => this.repository.create(data),
+      },
+      getUserRole: (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      getEstablishmentId: (service) => service.establishmentId,
+      entityName: 'Room',
+      action: 'create rooms',
+      validateBeforeCreate: async (_service, data) => {
+        // Check if room number already exists for this service
+        const existingRooms = await this.repository.findByService(serviceId)
+        if (existingRooms.some((r) => r.number === data.number)) {
+          throw new ConflictError(`Room number ${data.number} already exists for this service`)
+        }
+      },
     })
   }
 
@@ -52,21 +49,15 @@ export class RoomService {
   }
 
   async update(id: string, data: UpdateRoomData, userId: string): Promise<Room> {
+    // We need to get the room first to validate business rules
     const room = requireEntity(
       await this.repository.findById(id),
       'Room'
     )
 
-    const service = requireEntity(
+    requireEntity(
       await this.serviceRepository.findById(room.serviceId),
       'Service'
-    )
-
-    await requireOwnerRole(
-      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
-      userId,
-      service.establishmentId,
-      'update rooms'
     )
 
     // If updating number, check for conflicts
@@ -85,7 +76,23 @@ export class RoomService {
       }
     }
 
-    return this.repository.update(id, data)
+    return updateWithAuthorization(id, data, userId, {
+      repository: {
+        findById: (id) => this.repository.findById(id),
+        update: (id, data) => this.repository.update(id, data),
+      },
+      entityName: 'Room',
+      getEstablishmentId: async (room) => {
+        // Room doesn't have establishmentId directly, need to fetch service
+        const roomService = await this.serviceRepository.findById(room.serviceId)
+        if (!roomService) {
+          throw new Error('Service not found for room')
+        }
+        return roomService.establishmentId
+      },
+      getUserRole: (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      action: 'update rooms',
+    })
   }
 
   async delete(id: string, userId: string): Promise<Room> {
@@ -94,25 +101,31 @@ export class RoomService {
       'Room'
     )
 
-    const service = requireEntity(
+    requireEntity(
       await this.serviceRepository.findById(room.serviceId),
       'Service'
     )
 
-    await requireOwnerRole(
-      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
-      userId,
-      service.establishmentId,
-      'delete rooms'
-    )
-
-    // Check if room has active bookings
-    const hasActiveBookings = await this.repository.hasActiveBookings(id)
-    if (hasActiveBookings) {
-      throw new ConflictError('Cannot delete room with active bookings')
-    }
-
-    return this.repository.delete(id)
+    return deleteWithAuthorization(id, userId, {
+      repository: {
+        findById: (id) => this.repository.findById(id),
+        delete: (id) => this.repository.delete(id),
+        hasActiveBookings: (id) => this.repository.hasActiveBookings(id),
+      },
+      entityName: 'Room',
+      getEstablishmentId: async (room) => {
+        // Room doesn't have establishmentId directly, need to fetch service
+        const roomService = await this.serviceRepository.findById(room.serviceId)
+        if (!roomService) {
+          throw new Error('Service not found for room')
+        }
+        return roomService.establishmentId
+      },
+      getUserRole: (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      action: 'delete rooms',
+      checkDependencies: true,
+      dependencyErrorMessage: 'Cannot delete room with active bookings',
+    })
   }
 }
 

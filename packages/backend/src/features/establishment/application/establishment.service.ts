@@ -6,8 +6,8 @@ import type {
 } from '../domain/index.js'
 import type { Role } from '#shared/domain/index.js'
 import type { EstablishmentRepositoryPort } from '#shared/application/ports/index.js'
-import { requireOwnerRole } from '#shared/application/utils/authorization.helper.js'
 import { requireEntity } from '#shared/application/utils/validation.helper.js'
+import { updateWithAuthorization } from '#shared/application/services/crud-helpers.js'
 
 export class EstablishmentService {
   constructor(private readonly repository: EstablishmentRepositoryPort) {}
@@ -35,19 +35,16 @@ export class EstablishmentService {
     data: UpdateEstablishmentData,
     userId: string
   ): Promise<Establishment> {
-    await requireOwnerRole(
-      (uid, eid) => this.repository.getUserRole(uid, eid),
-      userId,
-      id,
-      'update establishments'
-    )
-
-    requireEntity(
-      await this.repository.findById(id),
-      'Establishment'
-    )
-
-    return this.repository.update(id, data)
+    return updateWithAuthorization(id, data, userId, {
+      repository: {
+        findById: (id) => this.repository.findById(id),
+        update: (id, data) => this.repository.update(id, data),
+      },
+      entityName: 'Establishment',
+      getEstablishmentId: (establishment) => establishment.id,
+      getUserRole: (uid, eid) => this.repository.getUserRole(uid, eid),
+      action: 'update establishments',
+    })
   }
 
   async getUserRole(userId: string, establishmentId: string): Promise<Role | null> {

@@ -4,9 +4,8 @@ import type {
   ServiceRepositoryPort,
   EstablishmentRepositoryPort,
 } from '#shared/application/ports/index.js'
-import { requireOwnerRole } from '#shared/application/utils/authorization.helper.js'
 import { requireEntity } from '#shared/application/utils/validation.helper.js'
-import { updateWithAuthorization, deleteWithAuthorization } from '#shared/application/services/crud-helpers.js'
+import { updateWithAuthorization, deleteWithAuthorization, createWithServiceAuthorization } from '#shared/application/services/crud-helpers.js'
 
 export class ExtraItemService {
   constructor(
@@ -20,21 +19,17 @@ export class ExtraItemService {
     data: Omit<CreateExtraItemData, 'serviceId'>,
     userId: string
   ): Promise<ExtraItem> {
-    const service = requireEntity(
-      await this.serviceRepository.findById(serviceId),
-      'Service'
-    )
-
-    await requireOwnerRole(
-      (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
-      userId,
-      service.establishmentId,
-      'create extra items'
-    )
-
-    return this.repository.create({
-      ...data,
-      serviceId,
+    return createWithServiceAuthorization(serviceId, data, userId, {
+      serviceRepository: {
+        findById: (id) => this.serviceRepository.findById(id),
+      },
+      entityRepository: {
+        create: (data) => this.repository.create(data),
+      },
+      getUserRole: (uid, eid) => this.establishmentRepository.getUserRole(uid, eid),
+      getEstablishmentId: (service) => service.establishmentId,
+      entityName: 'ExtraItem',
+      action: 'create extra items',
     })
   }
 
