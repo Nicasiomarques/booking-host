@@ -30,9 +30,8 @@ export interface ExtraItem {
 }
 
 // Domain methods
-import type { Either } from '#shared/domain/index.js'
-import { ConflictError, NotFoundError } from '#shared/domain/index.js'
-import { left, right } from '#shared/domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
 
 export function isExtraItemActive(extraItem: ExtraItem): boolean {
   return extraItem.active
@@ -42,25 +41,25 @@ export function extraItemBelongsToService(extraItem: ExtraItem, serviceId: strin
   return extraItem.serviceId === serviceId
 }
 
-export function extraItemCanAccommodateQuantity(extraItem: ExtraItem, quantity: number): Either<ConflictError, void> {
+export function extraItemCanAccommodateQuantity(extraItem: ExtraItem, quantity: number): Domain.Either<DomainValues.ConflictError, void> {
   if (quantity > extraItem.maxQuantity) {
-    return left(new ConflictError(
+    return DomainValues.left(new DomainValues.ConflictError(
       `Extra item ${extraItem.name} quantity exceeds maximum of ${extraItem.maxQuantity}`
     ))
   }
-  return right(undefined)
+  return DomainValues.right(undefined)
 }
 
-export function validateExtraItemForBooking(extraItem: ExtraItem | null, serviceId: string): Either<NotFoundError | ConflictError, ExtraItem> {
+export function validateExtraItemForBooking(extraItem: ExtraItem | null, serviceId: string): Domain.Either<DomainValues.NotFoundError | DomainValues.ConflictError, ExtraItem> {
   if (!extraItem) {
-    return left(new NotFoundError('ExtraItem'))
+    return DomainValues.left(new DomainValues.NotFoundError('ExtraItem'))
   }
   if (!extraItem.active) {
-    return left(new NotFoundError('ExtraItem'))
+    return DomainValues.left(new DomainValues.NotFoundError('ExtraItem'))
   }
   if (!extraItemBelongsToService(extraItem, serviceId)) {
-    return left(new ConflictError(`Extra item ${extraItem.id} does not belong to the service`))
+    return DomainValues.left(new DomainValues.ConflictError(`Extra item ${extraItem.id} does not belong to the service`))
   }
-  return right(extraItem)
+  return DomainValues.right(extraItem)
 }
 

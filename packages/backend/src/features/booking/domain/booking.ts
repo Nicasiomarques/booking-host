@@ -1,4 +1,4 @@
-import type { BookingStatus, ListOptions } from '#shared/domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
 
 export interface CreateBookingData {
   userId: string
@@ -7,7 +7,7 @@ export interface CreateBookingData {
   availabilityId: string
   quantity: number
   totalPrice: number
-  status?: BookingStatus
+  status?: Domain.BookingStatus
   // Hotel-specific fields
   checkInDate?: Date
   checkOutDate?: Date
@@ -35,7 +35,7 @@ export interface Booking {
   availabilityId: string
   quantity: number
   totalPrice: string
-  status: BookingStatus
+  status: Domain.BookingStatus
   // Hotel-specific fields (optional for backward compatibility)
   checkInDate: Date | null
   checkOutDate: Date | null
@@ -79,102 +79,100 @@ export interface BookingWithDetails extends Booking {
   }>
 }
 
-export interface ListBookingsOptions extends ListOptions {
-  status?: BookingStatus
+export interface ListBookingsOptions extends Domain.ListOptions {
+  status?: Domain.BookingStatus
 }
 
 // Domain methods
-import type { Either } from '#shared/domain/index.js'
-import { ConflictError } from '#shared/domain/index.js'
-import { left, right } from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
 
 export function bookingBelongsToUser(booking: Booking, userId: string): boolean {
   return booking.userId === userId
 }
 
-export function validateHotelDates(checkInDate: Date, checkOutDate: Date): Either<ConflictError, { numberOfNights: number }> {
+export function validateHotelDates(checkInDate: Date, checkOutDate: Date): Domain.Either<DomainValues.ConflictError, { numberOfNights: number }> {
   const today = new Date()
   today.setUTCHours(0, 0, 0, 0)
 
   if (checkInDate < today) {
-    return left(new ConflictError('checkInDate cannot be in the past'))
+    return DomainValues.left(new DomainValues.ConflictError('checkInDate cannot be in the past'))
   }
 
   if (checkInDate >= checkOutDate) {
-    return left(new ConflictError('checkOutDate must be after checkInDate'))
+    return DomainValues.left(new DomainValues.ConflictError('checkOutDate must be after checkInDate'))
   }
 
   const diffTime = checkOutDate.getTime() - checkInDate.getTime()
   const numberOfNights = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
   if (numberOfNights < 1) {
-    return left(new ConflictError('Minimum stay is 1 night'))
+    return DomainValues.left(new DomainValues.ConflictError('Minimum stay is 1 night'))
   }
 
-  return right({ numberOfNights })
+  return DomainValues.right({ numberOfNights })
 }
 
-export function canBookingBeCancelled(booking: Booking): Either<ConflictError, void> {
+export function canBookingBeCancelled(booking: Booking): Domain.Either<DomainValues.ConflictError, void> {
   if (booking.status === 'CANCELLED') {
-    return left(new ConflictError('Booking is already cancelled'))
+    return DomainValues.left(new DomainValues.ConflictError('Booking is already cancelled'))
   }
-  return right(undefined)
+  return DomainValues.right(undefined)
 }
 
-export function canBookingBeConfirmed(booking: Booking): Either<ConflictError, void> {
+export function canBookingBeConfirmed(booking: Booking): Domain.Either<DomainValues.ConflictError, void> {
   if (booking.status === 'CONFIRMED') {
-    return left(new ConflictError('Booking is already confirmed'))
+    return DomainValues.left(new DomainValues.ConflictError('Booking is already confirmed'))
   }
   if (booking.status === 'CANCELLED') {
-    return left(new ConflictError('Cannot confirm a cancelled booking'))
+    return DomainValues.left(new DomainValues.ConflictError('Cannot confirm a cancelled booking'))
   }
-  return right(undefined)
+  return DomainValues.right(undefined)
 }
 
-export function canBookingBeCheckedIn(booking: Booking): Either<ConflictError, void> {
+export function canBookingBeCheckedIn(booking: Booking): Domain.Either<DomainValues.ConflictError, void> {
   if (booking.status === 'CHECKED_IN') {
-    return left(new ConflictError('Booking is already checked in'))
+    return DomainValues.left(new DomainValues.ConflictError('Booking is already checked in'))
   }
   if (booking.status === 'CHECKED_OUT') {
-    return left(new ConflictError('Cannot check in a booking that has already been checked out'))
+    return DomainValues.left(new DomainValues.ConflictError('Cannot check in a booking that has already been checked out'))
   }
   if (booking.status === 'CANCELLED') {
-    return left(new ConflictError('Cannot check in a cancelled booking'))
+    return DomainValues.left(new DomainValues.ConflictError('Cannot check in a cancelled booking'))
   }
   if (booking.status === 'NO_SHOW') {
-    return left(new ConflictError('Cannot check in a no-show booking'))
+    return DomainValues.left(new DomainValues.ConflictError('Cannot check in a no-show booking'))
   }
-  return right(undefined)
+  return DomainValues.right(undefined)
 }
 
-export function canBookingBeCheckedOut(booking: Booking): Either<ConflictError, void> {
+export function canBookingBeCheckedOut(booking: Booking): Domain.Either<DomainValues.ConflictError, void> {
   if (booking.status === 'CHECKED_OUT') {
-    return left(new ConflictError('Booking is already checked out'))
+    return DomainValues.left(new DomainValues.ConflictError('Booking is already checked out'))
   }
   if (booking.status === 'CANCELLED') {
-    return left(new ConflictError('Cannot check out a cancelled booking'))
+    return DomainValues.left(new DomainValues.ConflictError('Cannot check out a cancelled booking'))
   }
   if (booking.status === 'NO_SHOW') {
-    return left(new ConflictError('Cannot check out a no-show booking'))
+    return DomainValues.left(new DomainValues.ConflictError('Cannot check out a no-show booking'))
   }
-  return right(undefined)
+  return DomainValues.right(undefined)
 }
 
 // Helper function for ownership data (partial booking data)
-export function canBookingStatusBeCancelled(status: BookingStatus): Either<ConflictError, void> {
+export function canBookingStatusBeCancelled(status: Domain.BookingStatus): Domain.Either<DomainValues.ConflictError, void> {
   if (status === 'CANCELLED') {
-    return left(new ConflictError('Booking is already cancelled'))
+    return DomainValues.left(new DomainValues.ConflictError('Booking is already cancelled'))
   }
-  return right(undefined)
+  return DomainValues.right(undefined)
 }
 
-export function canBookingStatusBeConfirmed(status: BookingStatus): Either<ConflictError, void> {
+export function canBookingStatusBeConfirmed(status: Domain.BookingStatus): Domain.Either<DomainValues.ConflictError, void> {
   if (status === 'CONFIRMED') {
-    return left(new ConflictError('Booking is already confirmed'))
+    return DomainValues.left(new DomainValues.ConflictError('Booking is already confirmed'))
   }
   if (status === 'CANCELLED') {
-    return left(new ConflictError('Cannot confirm a cancelled booking'))
+    return DomainValues.left(new DomainValues.ConflictError('Cannot confirm a cancelled booking'))
   }
-  return right(undefined)
+  return DomainValues.right(undefined)
 }
 

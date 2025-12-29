@@ -1,4 +1,4 @@
-import type { ServiceType } from '#shared/domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
 
 export interface CreateServiceData {
   establishmentId: string
@@ -7,7 +7,7 @@ export interface CreateServiceData {
   basePrice: number
   durationMinutes: number
   capacity?: number
-  type?: ServiceType
+  type?: Domain.ServiceType
   images?: string[]
   cancellationPolicy?: string
   minimumAdvanceBooking?: number
@@ -37,7 +37,7 @@ export interface Service {
   basePrice: string
   durationMinutes: number
   capacity: number
-  type: ServiceType
+  type: Domain.ServiceType
   active: boolean
   images: string[] | null
   cancellationPolicy: string | null
@@ -49,9 +49,7 @@ export interface Service {
 }
 
 // Domain methods
-import type { Either } from '#shared/domain/index.js'
-import { ConflictError } from '#shared/domain/index.js'
-import { left, right } from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
 
 export function isServiceActive(service: Service): boolean {
   return service.active
@@ -61,10 +59,10 @@ export function isServiceHotel(service: Service): boolean {
   return service.type === 'HOTEL'
 }
 
-export function canServiceBeBooked(service: Service): Either<ConflictError, void> {
+export function canServiceBeBooked(service: Service): Domain.Either<DomainValues.ConflictError, void> {
   if (!isServiceActive(service)) {
-    return left(new ConflictError('Service is not active'))
+    return DomainValues.left(new DomainValues.ConflictError('Service is not active'))
   }
-  return right(undefined)
+  return DomainValues.right(undefined)
 }
 

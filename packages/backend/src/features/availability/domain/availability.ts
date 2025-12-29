@@ -34,25 +34,24 @@ export interface Availability {
 }
 
 // Domain methods
-import type { Either } from '#shared/domain/index.js'
-import { ConflictError } from '#shared/domain/index.js'
-import { left, right } from '#shared/domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
 
 export function availabilityBelongsToService(availability: Availability, serviceId: string): boolean {
   return availability.serviceId === serviceId
 }
 
-export function availabilityHasCapacity(availability: Availability, quantity: number): Either<ConflictError, void> {
+export function availabilityHasCapacity(availability: Availability, quantity: number): Domain.Either<DomainValues.ConflictError, void> {
   if (availability.capacity < quantity) {
-    return left(new ConflictError('No available capacity for the requested quantity'))
+    return DomainValues.left(new DomainValues.ConflictError('No available capacity for the requested quantity'))
   }
-  return right(undefined)
+  return DomainValues.right(undefined)
 }
 
-export function validateAvailabilityTimeRange(startTime: string, endTime: string): Either<ConflictError, void> {
+export function validateAvailabilityTimeRange(startTime: string, endTime: string): Domain.Either<DomainValues.ConflictError, void> {
   if (startTime >= endTime) {
-    return left(new ConflictError('Start time must be before end time'))
+    return DomainValues.left(new DomainValues.ConflictError('Start time must be before end time'))
   }
-  return right(undefined)
+  return DomainValues.right(undefined)
 }
 

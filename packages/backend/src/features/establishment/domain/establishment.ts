@@ -1,4 +1,4 @@
-import type { Role } from '#shared/domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
 
 export interface CreateEstablishmentData {
   name: string
@@ -45,6 +45,6 @@ export interface Establishment {
 }
 
 export interface EstablishmentWithRole extends Establishment {
-  role: Role
+  role: Domain.Role
 }
 
