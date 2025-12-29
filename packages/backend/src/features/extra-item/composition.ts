@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { createExtraItemService } from './application/extra-item.service.js'
-import { createExtraItemRepository } from './adapters/persistence/extra-item.repository.js'
+import { createExtraItemRepository } from './adapters/repository.js'
 import type * as Ports from '#shared/application/ports/index.js'
 
 export interface ExtraItemComposition {

@@ -11,7 +11,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     'room',
   ] as const
   
-  const routeModules = features.map((feature) => () => import(`#features/${feature}/adapters/http/index.js`))
+  const routeModules = features.map((feature) => () => import(`#features/${feature}/adapters/http.js`))
   await Promise.all(routeModules.map(async (loadRoute) => {
     const mod = await loadRoute()
     await app.register(mod.default)

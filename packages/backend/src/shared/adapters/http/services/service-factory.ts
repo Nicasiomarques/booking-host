@@ -66,7 +66,9 @@ export function createCompositionRoot(prisma: PrismaClient): CompositionRoot {
     repositoryErrorHandler: adapters.repositoryErrorHandler,
   })
 
-  const establishmentComposition = createEstablishmentComposition(prisma, adapters.repositoryErrorHandler)
+  const establishmentComposition = createEstablishmentComposition(prisma, {
+    errorHandler: adapters.repositoryErrorHandler,
+  })
 
   const serviceComposition = createServiceComposition(prisma, {
     establishmentRepository: establishmentComposition.repository,

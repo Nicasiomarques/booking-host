@@ -1,5 +1,5 @@
 import { PrismaClient, Booking as PrismaBooking, Prisma } from '@prisma/client'
-import type * as BookingDomain from '../../domain/index.js'
+import type * as BookingDomain from '../domain/index.js'
 import type * as Domain from '#shared/domain/index.js'
 import * as DomainValues from '#shared/domain/index.js'
 import type * as Ports from '#shared/application/ports/index.js'
@@ -11,7 +11,7 @@ export type {
   BookingExtraItemData,
   BookingWithDetails,
   ListBookingsOptions,
-} from '../../domain/index.js'
+} from '../domain/index.js'
 export type { PaginatedResult } from '#shared/domain/index.js'
 
 function toBooking(prismaBooking: PrismaBooking): BookingDomain.Booking {

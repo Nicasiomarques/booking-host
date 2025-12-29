@@ -1,11 +1,11 @@
 import { PrismaClient, Availability as PrismaAvailability, Prisma } from '@prisma/client'
-import type * as AvailabilityDomain from '../../domain/index.js'
+import type * as AvailabilityDomain from '../domain/index.js'
 import type * as Domain from '#shared/domain/index.js'
 import * as DomainValues from '#shared/domain/index.js'
 import type * as Ports from '#shared/application/ports/index.js'
 import { DatabaseErrorType } from '#shared/application/ports/index.js'
 
-export type { Availability, CreateAvailabilityData, UpdateAvailabilityData } from '../../domain/index.js'
+export type { Availability, CreateAvailabilityData, UpdateAvailabilityData } from '../domain/index.js'
 
 function toAvailability(prismaAvailability: PrismaAvailability): AvailabilityDomain.Availability {
   return {

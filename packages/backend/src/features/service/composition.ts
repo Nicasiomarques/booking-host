@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { createServiceService } from './application/service.service.js'
-import { createServiceRepository } from './adapters/persistence/service.repository.js'
+import { createServiceRepository } from './adapters/repository.js'
 import type * as Ports from '#shared/application/ports/index.js'
 
 export interface ServiceComposition {

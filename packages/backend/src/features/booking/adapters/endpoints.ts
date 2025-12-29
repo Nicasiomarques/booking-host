@@ -10,7 +10,7 @@ import {
 import { ErrorResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
 import { validate, validateQuery, authenticate } from '#shared/adapters/http/middleware/index.js'
 import type * as Domain from '#shared/domain/index.js'
-import { formatBookingResponse, formatPaginatedBookings } from './http/mappers.js'
+import { formatBookingResponse, formatPaginatedBookings } from './mappers.js'
 import { idParamSchema } from '#shared/adapters/http/schemas/common.schema.js'
 import { handleEitherAsync } from '#shared/adapters/http/utils/either-handler.js'
 

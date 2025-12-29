@@ -1,5 +1,5 @@
 import { PrismaClient, Service as PrismaService, Prisma } from '@prisma/client'
-import type * as ServiceDomain from '../../domain/index.js'
+import type * as ServiceDomain from '../domain/index.js'
 import type * as ExtraItemDomain from '#features/extra-item/domain/index.js'
 import { toDecimal, handleArrayFieldForCreate, createSoftDeleteData, processUpdateData } from '#shared/adapters/outbound/prisma/base-repository.js'
 import type * as Domain from '#shared/domain/index.js'
@@ -7,7 +7,7 @@ import * as DomainValues from '#shared/domain/index.js'
 import type * as Ports from '#shared/application/ports/index.js'
 import { DatabaseErrorType } from '#shared/application/ports/index.js'
 
-export type { Service, CreateServiceData, UpdateServiceData } from '../../domain/index.js'
+export type { Service, CreateServiceData, UpdateServiceData } from '../domain/index.js'
 
 function toService(prismaService: PrismaService): ServiceDomain.Service {
   return {

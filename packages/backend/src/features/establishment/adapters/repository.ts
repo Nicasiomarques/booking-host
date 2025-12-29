@@ -1,5 +1,5 @@
 import { PrismaClient, Establishment as PrismaEstablishment } from '@prisma/client'
-import type * as EstablishmentDomain from '../../domain/index.js'
+import type * as EstablishmentDomain from '../domain/index.js'
 import type * as Domain from '#shared/domain/index.js'
 import * as DomainValues from '#shared/domain/index.js'
 import type * as Ports from '#shared/application/ports/index.js'
@@ -10,7 +10,7 @@ export type {
   CreateEstablishmentData,
   UpdateEstablishmentData,
   EstablishmentWithRole,
-} from '../../domain/index.js'
+} from '../domain/index.js'
 
 function toEstablishment(prismaEstablishment: PrismaEstablishment): EstablishmentDomain.Establishment {
   return { ...prismaEstablishment }

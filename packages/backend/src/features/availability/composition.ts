@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { createAvailabilityService } from './application/availability.service.js'
-import { createAvailabilityRepository } from './adapters/persistence/availability.repository.js'
+import { createAvailabilityRepository } from './adapters/repository.js'
 import type * as Ports from '#shared/application/ports/index.js'
 
 export interface AvailabilityComposition {

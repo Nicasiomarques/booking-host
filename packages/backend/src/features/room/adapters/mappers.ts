@@ -1,3 +1,5 @@
+import { formatDate } from '#shared/adapters/http/utils/response-formatters.js'
+
 export function formatRoomResponse(room: {
   id: string
   serviceId: string
@@ -10,8 +12,8 @@ export function formatRoomResponse(room: {
 }) {
   return {
     ...room,
-    createdAt: room.createdAt.toISOString(),
-    updatedAt: room.updatedAt.toISOString(),
+    createdAt: formatDate(room.createdAt) ?? '',
+    updatedAt: formatDate(room.updatedAt) ?? '',
   }
 }
 

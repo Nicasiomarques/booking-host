@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { createEstablishmentService } from './application/establishment.service.js'
-import { createEstablishmentRepository } from './adapters/persistence/establishment.repository.js'
+import { createEstablishmentRepository } from './adapters/repository.js'
 import type * as Ports from '#shared/application/ports/index.js'
 
 export interface EstablishmentComposition {
@@ -10,9 +10,11 @@ export interface EstablishmentComposition {
 
 export function createEstablishmentComposition(
   prisma: PrismaClient,
-  errorHandler: Ports.RepositoryErrorHandlerPort
+  dependencies: {
+    errorHandler: Ports.RepositoryErrorHandlerPort
+  }
 ): EstablishmentComposition {
-  const repository = createEstablishmentRepository(prisma, errorHandler)
+  const repository = createEstablishmentRepository(prisma, dependencies.errorHandler)
   const service = createEstablishmentService({ repository })
 
   return { repository, service }

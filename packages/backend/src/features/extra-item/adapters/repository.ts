@@ -1,12 +1,12 @@
 import { PrismaClient, ExtraItem as PrismaExtraItem } from '@prisma/client'
-import type * as ExtraItemDomain from '../../domain/index.js'
+import type * as ExtraItemDomain from '../domain/index.js'
 import { toDecimal, createSoftDeleteData, processUpdateData } from '#shared/adapters/outbound/prisma/base-repository.js'
 import type * as Domain from '#shared/domain/index.js'
 import * as DomainValues from '#shared/domain/index.js'
 import type * as Ports from '#shared/application/ports/index.js'
 import { DatabaseErrorType } from '#shared/application/ports/index.js'
 
-export type { ExtraItem, CreateExtraItemData, UpdateExtraItemData } from '../../domain/index.js'
+export type { ExtraItem, CreateExtraItemData, UpdateExtraItemData } from '../domain/index.js'
 
 function toExtraItem(prismaExtraItem: PrismaExtraItem): ExtraItemDomain.ExtraItem {
   return {

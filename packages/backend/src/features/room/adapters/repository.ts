@@ -1,12 +1,12 @@
 import { PrismaClient, Room as PrismaRoom } from '@prisma/client'
-import type * as RoomDomain from '../../domain/index.js'
+import type * as RoomDomain from '../domain/index.js'
 import type * as Domain from '#shared/domain/index.js'
 import * as DomainValues from '#shared/domain/index.js'
 import { handleArrayFieldForCreate, processUpdateData } from '#shared/adapters/outbound/prisma/base-repository.js'
 import type * as Ports from '#shared/application/ports/index.js'
 import { DatabaseErrorType } from '#shared/application/ports/index.js'
 
-export type { Room, CreateRoomData, UpdateRoomData } from '../../domain/index.js'
+export type { Room, CreateRoomData, UpdateRoomData } from '../domain/index.js'
 
 function toRoom(prismaRoom: PrismaRoom): RoomDomain.Room {
   return {

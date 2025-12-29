@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { createRoomService } from './application/room.service.js'
-import { createRoomRepository } from './adapters/persistence/room.repository.js'
+import { createRoomRepository } from './adapters/repository.js'
 import type * as Ports from '#shared/application/ports/index.js'
 
 export interface RoomComposition {

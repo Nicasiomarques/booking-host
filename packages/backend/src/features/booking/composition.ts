@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { createBookingService } from './application/booking.service.js'
-import { createBookingRepository } from './adapters/persistence/booking.repository.js'
+import { createBookingRepository } from './adapters/repository.js'
 import type * as Ports from '#shared/application/ports/index.js'
 
 export interface BookingComposition {

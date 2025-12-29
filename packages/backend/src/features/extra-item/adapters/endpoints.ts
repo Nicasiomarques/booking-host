@@ -8,7 +8,7 @@ import {
 } from './schemas.js'
 import type { ExtraItem } from '../domain/index.js'
 import { serviceIdParamSchema } from '#features/service/adapters/schemas.js'
-import { formatExtraItemResponse } from './http/mappers.js'
+import { formatExtraItemResponse } from './mappers.js'
 import { activeQuerySchema } from '#shared/adapters/http/schemas/common.schema.js'
 import { registerUpdateEndpoint, registerDeleteEndpoint, registerCreateEndpoint, registerListEndpoint } from '#shared/adapters/http/utils/endpoint-helpers.js'
 

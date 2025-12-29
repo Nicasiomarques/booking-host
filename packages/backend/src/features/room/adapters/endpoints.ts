@@ -8,9 +8,9 @@ import {
 } from './schemas.js'
 import type * as RoomDomain from '../domain/index.js'
 import { ErrorResponseSchema } from '#shared/adapters/http/openapi/index.js'
-import { requireRole, requireRoleViaRoom } from '#shared/adapters/http/middleware/index.js'
+import { requireRole } from '#shared/adapters/http/middleware/index.js'
 import { serviceIdParamSchema } from '#features/service/adapters/schemas.js'
-import { formatRoomResponse } from './http/mappers.js'
+import { formatRoomResponse } from './mappers.js'
 import { registerGetByIdEndpoint, registerUpdateEndpoint, registerDeleteEndpoint, registerCreateEndpoint, registerListEndpoint } from '#shared/adapters/http/utils/endpoint-helpers.js'
 
 export default async function roomEndpoints(fastify: FastifyInstance) {
@@ -70,7 +70,6 @@ export default async function roomEndpoints(fastify: FastifyInstance) {
     additionalResponses: {
       409: { description: 'Room number already exists or room has active bookings', schema: ErrorResponseSchema },
     },
-    preHandler: [requireRoleViaRoom('OWNER')],
   })
 
   registerDeleteEndpoint(fastify, {
@@ -82,7 +81,6 @@ export default async function roomEndpoints(fastify: FastifyInstance) {
     additionalResponses: {
       409: { description: 'Room has active bookings', schema: ErrorResponseSchema },
     },
-    preHandler: [requireRoleViaRoom('OWNER')],
   })
 }
 
