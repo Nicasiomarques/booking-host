@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { FastifyInstance } from 'fastify'
 import * as T from './helpers/test-client.js'
+import type { ErrorResponse } from './helpers/http.js'
 import { futureDate, futureCheckOutDate } from './helpers/factories.js'
 import { prisma } from '../../src/shared/adapters/outbound/prisma/prisma.client.js'
 
@@ -149,7 +150,7 @@ describe('Hotel Booking E2E @critical', () => {
       }
 
       // Act
-      const response = await T.post(sut, '/v1/bookings', {
+      const response = await T.post<ErrorResponse>(sut, '/v1/bookings', {
         token: customer.accessToken,
         payload: bookingData,
       })
@@ -171,7 +172,7 @@ describe('Hotel Booking E2E @critical', () => {
       }
 
       // Act
-      const response = await T.post(sut, '/v1/bookings', {
+      const response = await T.post<ErrorResponse>(sut, '/v1/bookings', {
         token: customer.accessToken,
         payload: bookingData,
       })
@@ -214,7 +215,7 @@ describe('Hotel Booking E2E @critical', () => {
       }
 
       // Act
-      const response = await T.post(sut, '/v1/bookings', {
+      const response = await T.post<ErrorResponse>(sut, '/v1/bookings', {
         token: customer.accessToken,
         payload: bookingData,
       })
@@ -516,7 +517,7 @@ describe('Hotel Booking E2E @critical', () => {
       }
 
       // Act
-      const response = await T.post(sut, '/v1/bookings', {
+      const response = await T.post<ErrorResponse>(sut, '/v1/bookings', {
         token: customer.accessToken,
         payload: bookingData,
       })
@@ -548,7 +549,7 @@ describe('Hotel Booking E2E @critical', () => {
       }
 
       // Act
-      const response = await T.post(sut, '/v1/bookings', {
+      const response = await T.post<ErrorResponse>(sut, '/v1/bookings', {
         token: customer.accessToken,
         payload: bookingData,
       })
@@ -580,7 +581,7 @@ describe('Hotel Booking E2E @critical', () => {
       }
 
       // Act
-      const response = await T.post(sut, '/v1/bookings', {
+      const response = await T.post<ErrorResponse>(sut, '/v1/bookings', {
         token: customer.accessToken,
         payload: bookingData,
       })
@@ -733,9 +734,13 @@ describe('Hotel Booking E2E @critical', () => {
       })
 
       // Act - try to check in again
-      const response = await T.put(sut, `/v1/bookings/${booking.id}/check-in`, {
-        token: owner.accessToken,
-      })
+      const response = await T.put<ErrorResponse>(
+        sut,
+        `/v1/bookings/${booking.id}/check-in`,
+        {
+          token: owner.accessToken,
+        }
+      )
 
       // Assert
       T.expectError(response, 409, 'CONFLICT')
@@ -794,12 +799,141 @@ describe('Hotel Booking E2E @critical', () => {
       })
 
       // Act - try to check in a non-hotel booking
-      const response = await T.put(sut, `/v1/bookings/${regularBooking.id}/check-in`, {
-        token: owner.accessToken,
-      })
+      const response = await T.put<ErrorResponse>(
+        sut,
+        `/v1/bookings/${regularBooking.id}/check-in`,
+        {
+          token: owner.accessToken,
+        }
+      )
 
       // Assert
       T.expectError(response, 409, 'CONFLICT')
+    })
+
+    it('check-in hotel booking - cancelled booking - returns 409 conflict', async () => {
+      // Arrange
+      const testRoom = await prisma.room.create({
+        data: {
+          serviceId: hotelServiceId,
+          number: '1004',
+          floor: 10,
+          status: 'AVAILABLE',
+        },
+      })
+
+      const checkInDate = futureDate(140)
+      const checkOutDate = futureCheckOutDate(checkInDate, 4)
+      const booking = await T.createTestBooking(sut, customer.accessToken, {
+        serviceId: hotelServiceId,
+        availabilityId: availabilityId,
+        checkInDate,
+        checkOutDate,
+        roomId: testRoom.id,
+      })
+
+      // Cancel booking
+      await T.put(sut, `/v1/bookings/${booking.id}/cancel`, {
+        token: customer.accessToken,
+      })
+
+      // Act - try to check in cancelled booking
+      const response = await T.put<ErrorResponse>(
+        sut,
+        `/v1/bookings/${booking.id}/check-in`,
+        {
+          token: owner.accessToken,
+        }
+      )
+
+      // Assert
+      T.expectError(response, 409, 'CONFLICT')
+      expect(response.body.error?.message).toContain('cancelled')
+    })
+
+    it('check-in hotel booking - no-show booking - returns 409 conflict', async () => {
+      // Arrange
+      const testRoom = await prisma.room.create({
+        data: {
+          serviceId: hotelServiceId,
+          number: '1005',
+          floor: 10,
+          status: 'AVAILABLE',
+        },
+      })
+
+      const checkInDate = futureDate(150)
+      const checkOutDate = futureCheckOutDate(checkInDate, 4)
+      const booking = await T.createTestBooking(sut, customer.accessToken, {
+        serviceId: hotelServiceId,
+        availabilityId: availabilityId,
+        checkInDate,
+        checkOutDate,
+        roomId: testRoom.id,
+      })
+
+      // Mark as no-show
+      await T.put(sut, `/v1/bookings/${booking.id}/no-show`, {
+        token: owner.accessToken,
+      })
+
+      // Act - try to check in no-show booking
+      const response = await T.put<ErrorResponse>(
+        sut,
+        `/v1/bookings/${booking.id}/check-in`,
+        {
+          token: owner.accessToken,
+        }
+      )
+
+      // Assert
+      T.expectError(response, 409, 'CONFLICT')
+      expect(response.body.error?.message).toContain('no-show')
+    })
+
+    it('check-in hotel booking - already checked out - returns 409 conflict', async () => {
+      // Arrange
+      const testRoom = await prisma.room.create({
+        data: {
+          serviceId: hotelServiceId,
+          number: '1006',
+          floor: 10,
+          status: 'AVAILABLE',
+        },
+      })
+
+      const checkInDate = futureDate(160)
+      const checkOutDate = futureCheckOutDate(checkInDate, 4)
+      const booking = await T.createTestBooking(sut, customer.accessToken, {
+        serviceId: hotelServiceId,
+        availabilityId: availabilityId,
+        checkInDate,
+        checkOutDate,
+        roomId: testRoom.id,
+      })
+
+      // Check in first
+      await T.put(sut, `/v1/bookings/${booking.id}/check-in`, {
+        token: owner.accessToken,
+      })
+
+      // Check out
+      await T.put(sut, `/v1/bookings/${booking.id}/check-out`, {
+        token: owner.accessToken,
+      })
+
+      // Act - try to check in again after check-out
+      const response = await T.put<ErrorResponse>(
+        sut,
+        `/v1/bookings/${booking.id}/check-in`,
+        {
+          token: owner.accessToken,
+        }
+      )
+
+      // Assert
+      T.expectError(response, 409, 'CONFLICT')
+      expect(response.body.error?.message).toContain('checked out')
     })
   })
 
@@ -853,7 +987,7 @@ describe('Hotel Booking E2E @critical', () => {
       expect(roomAfter?.status).toBe('AVAILABLE')
     })
 
-    it('check-out hotel booking - without check-in - returns 200 (allows direct check-out)', async () => {
+    it('check-out hotel booking - without check-in - returns 409 conflict', async () => {
       // Arrange
       const testRoom = await prisma.room.create({
         data: {
@@ -874,18 +1008,18 @@ describe('Hotel Booking E2E @critical', () => {
         roomId: testRoom.id,
       })
 
-      // Act - check out without checking in first (should be allowed)
-      const response = await T.put<HotelBooking>(sut, `/v1/bookings/${booking.id}/check-out`, {
-        token: owner.accessToken,
-      })
+      // Act - try to check out without checking in first (should fail)
+      const response = await T.put<ErrorResponse>(
+        sut,
+        `/v1/bookings/${booking.id}/check-out`,
+        {
+          token: owner.accessToken,
+        }
+      )
 
       // Assert
-      const body = T.expectStatus(response, 200)
-      expect(body.status).toBe('CHECKED_OUT')
-
-      // Verify room is AVAILABLE
-      const roomAfter = await prisma.room.findUnique({ where: { id: testRoom.id } })
-      expect(roomAfter?.status).toBe('AVAILABLE')
+      T.expectError(response, 409, 'CONFLICT')
+      expect(response.body.error?.message).toContain('must be checked in')
     })
 
     it('check-out hotel booking - already checked out - returns 409 conflict', async () => {
@@ -915,9 +1049,13 @@ describe('Hotel Booking E2E @critical', () => {
       })
 
       // Act - try to check out again
-      const response = await T.put(sut, `/v1/bookings/${booking.id}/check-out`, {
-        token: owner.accessToken,
-      })
+      const response = await T.put<ErrorResponse>(
+        sut,
+        `/v1/bookings/${booking.id}/check-out`,
+        {
+          token: owner.accessToken,
+        }
+      )
 
       // Assert
       T.expectError(response, 409, 'CONFLICT')
@@ -951,6 +1089,41 @@ describe('Hotel Booking E2E @critical', () => {
 
       // Assert
       T.expectStatus(response, 403)
+    })
+
+    it('check-out hotel booking - not checked in - returns 409 conflict', async () => {
+      // Arrange
+      const testRoom = await prisma.room.create({
+        data: {
+          serviceId: hotelServiceId,
+          number: '1105',
+          floor: 11,
+          status: 'AVAILABLE',
+        },
+      })
+      
+      const checkInDate = futureDate(170)
+      const checkOutDate = futureCheckOutDate(checkInDate, 4)
+      const booking = await T.createTestBooking(sut, customer.accessToken, {
+        serviceId: hotelServiceId,
+        availabilityId: availabilityId,
+        checkInDate,
+        checkOutDate,
+        roomId: testRoom.id,
+      })
+
+      // Act - try to check out without checking in first
+      const response = await T.put<ErrorResponse>(
+        sut,
+        `/v1/bookings/${booking.id}/check-out`,
+        {
+          token: owner.accessToken,
+        }
+      )
+
+      // Assert
+      T.expectError(response, 409, 'CONFLICT')
+      expect(response.body.error?.message).toContain('must be checked in')
     })
   })
 
@@ -1024,9 +1197,13 @@ describe('Hotel Booking E2E @critical', () => {
       })
 
       // Act - try to mark as no-show
-      const response = await T.put(sut, `/v1/bookings/${booking.id}/no-show`, {
-        token: owner.accessToken,
-      })
+      const response = await T.put<ErrorResponse>(
+        sut,
+        `/v1/bookings/${booking.id}/no-show`,
+        {
+          token: owner.accessToken,
+        }
+      )
 
       // Assert
       T.expectError(response, 409, 'CONFLICT')

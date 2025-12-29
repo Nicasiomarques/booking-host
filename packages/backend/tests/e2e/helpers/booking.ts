@@ -17,12 +17,56 @@ export interface BookingData {
 
 export interface BookingResponse {
   id: string
-  status: string
-  totalPrice: number
-  quantity: number
+  userId: string
+  establishmentId: string
   serviceId: string
   availabilityId: string
-  service?: unknown
+  quantity: number
+  totalPrice: number
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'NO_SHOW'
+  // Hotel-specific fields
+  checkInDate?: string | null
+  checkOutDate?: string | null
+  roomId?: string | null
+  numberOfNights?: number | null
+  numberOfGuests?: number | null
+  guestName?: string | null
+  guestEmail?: string | null
+  guestPhone?: string | null
+  guestDocument?: string | null
+  notes?: string | null
+  confirmedAt?: string | null
+  cancelledAt?: string | null
+  cancellationReason?: string | null
+  checkedInAt?: string | null
+  checkedOutAt?: string | null
+  createdAt: string
+  updatedAt: string
+  service?: {
+    name: string
+    durationMinutes: number
+  }
+  availability?: {
+    date: string
+    startTime: string
+    endTime: string
+  }
+  establishment?: {
+    name: string
+  }
+  user?: {
+    name: string
+    email: string
+  }
+  extras?: Array<{
+    id: string
+    extraItemId: string
+    quantity: number
+    priceAtBooking: number
+    extraItem: {
+      name: string
+    }
+  }>
 }
 
 export async function createTestBooking(

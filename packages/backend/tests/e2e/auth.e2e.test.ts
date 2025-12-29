@@ -269,4 +269,46 @@ describe('Auth E2E @smoke @critical', () => {
       expect(clearedCookie?.value).toBe('')
     })
   })
+
+  describe('GET /v1/auth/me', () => {
+    it('get current user - with valid token - returns 200 with user details', async () => {
+      // Arrange
+      const userData = {
+        email: T.uniqueEmail('me-success'),
+        password: 'Test1234!',
+        name: 'Current User',
+      }
+      const registerResponse = await T.post<AuthResponse>(sut, '/v1/auth/register', {
+        payload: userData,
+      })
+      const accessToken = registerResponse.body.accessToken
+
+      // Act
+      const response = await T.get<{ id: string; email: string; name: string }>(
+        sut,
+        '/v1/auth/me',
+        {
+          token: accessToken,
+        }
+      )
+
+      // Assert
+      const body = T.expectStatus(response, 200)
+      expect(body).toMatchObject({
+        id: expect.any(String),
+        email: userData.email,
+        name: userData.name,
+      })
+    })
+
+    it('get current user - without authentication - returns 401 unauthorized', async () => {
+      // Arrange - no token
+
+      // Act
+      const response = await T.get(sut, '/v1/auth/me')
+
+      // Assert
+      T.expectStatus(response, 401)
+    })
+  })
 })

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { FastifyInstance } from 'fastify'
 import * as T from './helpers/test-client.js'
+import type { ErrorResponse } from './helpers/http.js'
 
 interface Booking {
   id: string
@@ -147,7 +148,7 @@ describe('Booking E2E @critical', () => {
       }
 
       // Act
-      const response = await T.post<{ error?: { code?: string } }>(sut, '/v1/bookings', {
+      const response = await T.post<ErrorResponse>(sut, '/v1/bookings', {
         token: customer.accessToken,
         payload: bookingData,
       })
@@ -189,6 +190,98 @@ describe('Booking E2E @critical', () => {
 
       // Assert
       T.expectStatus(response, 404)
+    })
+
+    it('create booking - non-existent availability - returns 404 not found', async () => {
+      // Arrange
+      const bookingData = {
+        serviceId: setup.serviceId,
+        availabilityId: '00000000-0000-0000-0000-000000000000',
+        quantity: 1,
+      }
+
+      // Act
+      const response = await T.post(sut, '/v1/bookings', {
+        token: customer.accessToken,
+        payload: bookingData,
+      })
+
+      // Assert
+      T.expectStatus(response, 404)
+    })
+
+    it('create booking - availability does not belong to service - returns 409 conflict', async () => {
+      // Arrange - create another service and availability
+      const otherSetup = await T.setupTestEstablishment(sut, 'other-service')
+      const bookingData = {
+        serviceId: setup.serviceId,
+        availabilityId: otherSetup.availabilityId, // Availability from different service
+        quantity: 1,
+      }
+
+      // Act
+      const response = await T.post(sut, '/v1/bookings', {
+        token: customer.accessToken,
+        payload: bookingData,
+      })
+
+      // Assert
+      T.expectError(response, 409, 'CONFLICT')
+      expect(response.body.error?.message).toContain('Availability does not belong')
+    })
+
+    it('create booking - inactive service - returns 409 conflict', async () => {
+      // Arrange - create and deactivate a service
+      const inactiveService = await T.createTestService(sut, setup.owner.accessToken, setup.establishmentId, {
+        name: 'Inactive Service',
+        basePrice: 50,
+        durationMinutes: 60,
+      })
+      await T.del(sut, `/v1/services/${inactiveService.id}`, {
+        token: setup.owner.accessToken,
+      })
+      const availability = await T.createTestAvailability(sut, setup.owner.accessToken, inactiveService.id, {
+        date: '2025-12-01',
+        startTime: '09:00',
+        endTime: '10:00',
+        capacity: 1,
+      })
+
+      const bookingData = {
+        serviceId: inactiveService.id,
+        availabilityId: availability.id,
+        quantity: 1,
+      }
+
+      // Act
+      const response = await T.post(sut, '/v1/bookings', {
+        token: customer.accessToken,
+        payload: bookingData,
+      })
+
+      // Assert
+      T.expectError(response, 409, 'CONFLICT')
+      expect(response.body.error?.message).toContain('not active')
+    })
+
+    it('create booking - extra item quantity exceeds maxQuantity - returns 409 conflict', async () => {
+      // Arrange
+      const bookingData = {
+        serviceId: setup.serviceId,
+        availabilityId: setup.availabilityId,
+        quantity: 1,
+        extras: [{ extraItemId: setup.extraItemId, quantity: 100 }], // More than maxQuantity
+      }
+
+      // Act
+      const response = await T.post(sut, '/v1/bookings', {
+        token: customer.accessToken,
+        payload: bookingData,
+      })
+
+      // Assert
+      T.expectError(response, 409, 'CONFLICT')
+      expect(response.body.error?.message).toContain('exceeds maximum')
     })
   })
 

@@ -155,6 +155,9 @@ export function canBookingBeCheckedOut(booking: Booking): Domain.Either<DomainVa
   if (booking.status === 'NO_SHOW') {
     return DomainValues.left(new DomainValues.ConflictError('Cannot check out a no-show booking'))
   }
+  if (booking.status !== 'CHECKED_IN') {
+    return DomainValues.left(new DomainValues.ConflictError('Booking must be checked in before check-out'))
+  }
   return DomainValues.right(undefined)
 }
 

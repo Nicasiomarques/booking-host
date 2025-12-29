@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { FastifyInstance } from 'fastify'
 import * as T from './helpers/test-client.js'
+import type { ErrorResponse } from './helpers/http.js'
 import { futureDate, futureCheckOutDate } from './helpers/factories.js'
 import { prisma } from '../../src/shared/adapters/outbound/prisma/prisma.client.js'
 
@@ -90,20 +91,24 @@ describe('Booking No-Show Edge Cases E2E', () => {
         roomId: testRoom.id,
       })
 
-      // Check out first
+      // Check in first (required before check-out)
+      await T.put(sut, `/v1/bookings/${booking.id}/check-in`, {
+        token: owner.accessToken,
+      })
+
+      // Check out
       await T.put(sut, `/v1/bookings/${booking.id}/check-out`, {
         token: owner.accessToken,
       })
 
       // Act - try to mark as no-show
-      const response = await T.put<{ error?: { code?: string; message?: string } }>(sut, `/v1/bookings/${booking.id}/no-show`, {
+      const response = await T.put<ErrorResponse>(sut, `/v1/bookings/${booking.id}/no-show`, {
         token: owner.accessToken,
       })
 
       // Assert
       T.expectError(response, 409, 'CONFLICT')
-      const body = response.body as any
-      expect(body.error?.message).toContain('checked-out')
+      expect(response.body.error?.message).toContain('checked-out')
     })
 
     it('mark no-show - already marked as no-show - returns 409 conflict', async () => {

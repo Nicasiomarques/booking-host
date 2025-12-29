@@ -230,6 +230,11 @@ describe('Hotel Booking Edge Cases E2E', () => {
         roomId: room1.id,
       })
 
+      // Check in first (required before check-out)
+      await T.put(sut, `/v1/bookings/${firstBooking.id}/check-in`, {
+        token: owner.accessToken,
+      })
+
       // Check out the first booking
       await T.put(sut, `/v1/bookings/${firstBooking.id}/check-out`, {
         token: owner.accessToken,
@@ -402,6 +407,11 @@ describe('Hotel Booking Edge Cases E2E', () => {
         roomId: testRoom.id,
       })
 
+      // Check in first (required before check-out)
+      await T.put(sut, `/v1/bookings/${firstBooking.id}/check-in`, {
+        token: owner.accessToken,
+      })
+
       // Check out the first booking (room becomes AVAILABLE again)
       await T.put(sut, `/v1/bookings/${firstBooking.id}/check-out`, {
         token: owner.accessToken,
@@ -435,6 +445,152 @@ describe('Hotel Booking Edge Cases E2E', () => {
       const body = T.expectStatus(response, 201)
       expect(body.checkInDate).toBe(checkInDate2Str)
       expect(body.roomId).toBe(testRoom.id)
+    })
+
+    it('create hotel booking - missing checkInDate - returns 409 conflict', async () => {
+      // Arrange
+      const testRoom = await prisma.room.create({
+        data: {
+          serviceId: hotelServiceId,
+          number: '991',
+          floor: 9,
+          status: 'AVAILABLE',
+        },
+      })
+
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 10)
+      const checkOutDate = futureDate.toISOString().split('T')[0]
+
+      const bookingData = {
+        serviceId: hotelServiceId,
+        availabilityId: availabilityId,
+        quantity: 1,
+        checkOutDate, // Missing checkInDate
+        roomId: testRoom.id,
+      }
+
+      // Act
+      const response = await T.post<{ error?: { code?: string; message?: string } }>(sut, '/v1/bookings', {
+        token: customer.accessToken,
+        payload: bookingData,
+      })
+
+      // Assert
+      T.expectError(response, 409, 'CONFLICT')
+      const body = response.body as any
+      expect(body.error?.message).toContain('checkInDate')
+    })
+
+    it('create hotel booking - missing checkOutDate - returns 409 conflict', async () => {
+      // Arrange
+      const testRoom = await prisma.room.create({
+        data: {
+          serviceId: hotelServiceId,
+          number: '990',
+          floor: 9,
+          status: 'AVAILABLE',
+        },
+      })
+
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 10)
+      const checkInDate = futureDate.toISOString().split('T')[0]
+
+      const bookingData = {
+        serviceId: hotelServiceId,
+        availabilityId: availabilityId,
+        quantity: 1,
+        checkInDate, // Missing checkOutDate
+        roomId: testRoom.id,
+      }
+
+      // Act
+      const response = await T.post<{ error?: { code?: string; message?: string } }>(sut, '/v1/bookings', {
+        token: customer.accessToken,
+        payload: bookingData,
+      })
+
+      // Assert
+      T.expectError(response, 409, 'CONFLICT')
+      const body = response.body as any
+      expect(body.error?.message).toContain('checkOutDate')
+    })
+
+    it('create hotel booking - checkInDate equals checkOutDate - returns 409 conflict', async () => {
+      // Arrange
+      const testRoom = await prisma.room.create({
+        data: {
+          serviceId: hotelServiceId,
+          number: '989',
+          floor: 9,
+          status: 'AVAILABLE',
+        },
+      })
+
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 10)
+      const sameDate = futureDate.toISOString().split('T')[0]
+
+      const bookingData = {
+        serviceId: hotelServiceId,
+        availabilityId: availabilityId,
+        quantity: 1,
+        checkInDate: sameDate,
+        checkOutDate: sameDate, // Same as checkInDate
+        roomId: testRoom.id,
+      }
+
+      // Act
+      const response = await T.post<{ error?: { code?: string; message?: string } }>(sut, '/v1/bookings', {
+        token: customer.accessToken,
+        payload: bookingData,
+      })
+
+      // Assert
+      T.expectError(response, 409, 'CONFLICT')
+      const body = response.body as any
+      expect(body.error?.message).toContain('checkOutDate must be after checkInDate')
+    })
+
+    it('create hotel booking - checkInDate after checkOutDate - returns 409 conflict', async () => {
+      // Arrange
+      const testRoom = await prisma.room.create({
+        data: {
+          serviceId: hotelServiceId,
+          number: '988',
+          floor: 9,
+          status: 'AVAILABLE',
+        },
+      })
+
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 10)
+      const checkInDate = futureDate.toISOString().split('T')[0]
+      
+      const pastDate = new Date(futureDate)
+      pastDate.setDate(pastDate.getDate() - 2)
+      const checkOutDate = pastDate.toISOString().split('T')[0] // Before checkInDate
+
+      const bookingData = {
+        serviceId: hotelServiceId,
+        availabilityId: availabilityId,
+        quantity: 1,
+        checkInDate,
+        checkOutDate, // Before checkInDate
+        roomId: testRoom.id,
+      }
+
+      // Act
+      const response = await T.post<{ error?: { code?: string; message?: string } }>(sut, '/v1/bookings', {
+        token: customer.accessToken,
+        payload: bookingData,
+      })
+
+      // Assert
+      T.expectError(response, 409, 'CONFLICT')
+      const body = response.body as any
+      expect(body.error?.message).toContain('checkOutDate must be after checkInDate')
     })
   })
 })

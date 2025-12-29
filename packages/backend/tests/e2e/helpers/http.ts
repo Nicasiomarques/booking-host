@@ -87,8 +87,15 @@ export function expectSuccess<T>(response: TestResponse<T>): T {
   return response.body
 }
 
+export interface ErrorResponse {
+  error?: {
+    code?: string
+    message?: string
+  }
+}
+
 export function expectError(
-  response: TestResponse<{ error?: { code?: string } }>,
+  response: TestResponse<ErrorResponse>,
   expectedStatus: number,
   expectedCode?: string
 ): void {
