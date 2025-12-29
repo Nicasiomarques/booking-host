@@ -145,6 +145,13 @@ export const createBookingStatusService = (deps: {
       const updateResult = await ctx.bookingRepository.updateStatus(id, 'CHECKED_OUT')
       if (Validation.isLeft(updateResult)) return updateResult;
 
+      // Restore availability capacity when checking out
+      const capacityResult = await ctx.availabilityRepository.incrementCapacity(
+        booking.availabilityId,
+        booking.quantity
+      )
+      if (Validation.isLeft(capacityResult)) return capacityResult;
+
       if (booking.roomId) {
         const roomStatusResult = await ctx.roomRepository.updateStatus(booking.roomId, 'AVAILABLE')
         if (Validation.isLeft(roomStatusResult)) return roomStatusResult;
@@ -202,6 +209,12 @@ export const createBookingStatusService = (deps: {
       const updateResult = await ctx.bookingRepository.updateStatus(id, 'NO_SHOW')
       if (Validation.isLeft(updateResult)) return updateResult
       
+      // Restore availability capacity when marking as no-show
+      const capacityResult = await ctx.availabilityRepository.incrementCapacity(
+        booking.availabilityId,
+        booking.quantity
+      )
+      if (Validation.isLeft(capacityResult)) return capacityResult;
 
       if (booking.roomId) {
         const roomStatusResult = await ctx.roomRepository.updateStatus(booking.roomId, 'AVAILABLE')

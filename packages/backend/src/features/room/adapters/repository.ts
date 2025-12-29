@@ -79,29 +79,52 @@ export const createRoomRepository = (
     checkOutDate: Date
   ): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room[]>> {
     try {
+      // Fetch all AVAILABLE rooms with their active bookings
+      // Filter in memory to ensure consistent logic with isRoomAvailable
       const results = await prisma.room.findMany({
         where: {
           serviceId,
           status: 'AVAILABLE',
-          NOT: {
-            bookings: {
-              some: {
-                status: {
-                  notIn: ['CANCELLED', 'CHECKED_OUT', 'NO_SHOW'],
-                },
-                checkInDate: {
-                  lte: checkOutDate,
-                },
-                checkOutDate: {
-                  gte: checkInDate,
-                },
+        },
+        include: {
+          bookings: {
+            where: {
+              status: {
+                notIn: ['CANCELLED', 'CHECKED_OUT', 'NO_SHOW'],
               },
             },
           },
         },
         orderBy: [{ floor: 'asc' }, { number: 'asc' }],
       })
-      return DomainValues.right(results.map(toRoom))
+      
+      // Normalize dates to start of day (midnight UTC) for accurate comparison
+      const newCheckInStr = checkInDate.toISOString().split('T')[0]
+      const newCheckOutStr = checkOutDate.toISOString().split('T')[0]
+      const newCheckIn = new Date(newCheckInStr + 'T00:00:00.000Z')
+      const newCheckOut = new Date(newCheckOutStr + 'T00:00:00.000Z')
+      
+      // Filter rooms that have no conflicting bookings
+      // Two date ranges [A, B] and [C, D] overlap if: A < D AND B > C
+      // Using < and > allows same-day check-out/check-in (no overlap when dates are equal)
+      const availableRooms = results.filter((room) => {
+        const hasConflict = room.bookings.some((booking) => {
+          if (!booking.checkInDate || !booking.checkOutDate) return false
+          
+          const existingCheckInStr = booking.checkInDate.toISOString().split('T')[0]
+          const existingCheckOutStr = booking.checkOutDate.toISOString().split('T')[0]
+          const existingCheckIn = new Date(existingCheckInStr + 'T00:00:00.000Z')
+          const existingCheckOut = new Date(existingCheckOutStr + 'T00:00:00.000Z')
+          
+          // Overlap occurs if: existing.checkInDate < new.checkOutDate AND existing.checkOutDate > new.checkInDate
+          // This allows same-day check-out/check-in (no overlap when dates are equal)
+          return existingCheckIn < newCheckOut && existingCheckOut > newCheckIn
+        })
+        
+        return !hasConflict
+      })
+      
+      return DomainValues.right(availableRooms.map(toRoom))
     } catch (error) {
       return DomainValues.left(new DomainValues.ConflictError('Failed to find available rooms'))
     }

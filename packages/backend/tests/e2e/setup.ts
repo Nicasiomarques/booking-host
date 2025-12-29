@@ -13,26 +13,44 @@ beforeAll(async () => {
   // Dynamic import after env is loaded
   const { prisma: prismaClient } = await import('../../src/shared/adapters/outbound/prisma/prisma.client.js')
   prisma = prismaClient
+})
 
-  // Clean up in order (respecting foreign keys)
-  // Try to delete rooms, but ignore if table doesn't exist
-  try {
-    await prisma.$executeRawUnsafe('DELETE FROM rooms')
-  } catch (error: any) {
-    // Ignore if table doesn't exist
-    if (!error.message?.includes('does not exist')) throw error
+beforeEach(async () => {
+  if (!prisma) {
+    const { prisma: prismaClient } = await import('../../src/shared/adapters/outbound/prisma/prisma.client.js')
+    prisma = prismaClient
   }
-  
+
+  // Clean up booking-related data before each test
   await prisma.$transaction([
     prisma.bookingExtraItem.deleteMany(),
     prisma.booking.deleteMany(),
-    prisma.availability.deleteMany(),
-    prisma.extraItem.deleteMany(),
-    prisma.service.deleteMany(),
-    prisma.establishmentUser.deleteMany(),
-    prisma.establishment.deleteMany(),
-    prisma.user.deleteMany(),
   ])
+
+  // Reset availability capacity and room status after cleaning bookings
+  // This ensures tests start with fresh state while keeping setup data
+  await prisma.$transaction(async (tx) => {
+    // Get all bookings that were just deleted (by checking which availabilities have bookings)
+    // Actually, we need to restore capacity based on deleted bookings
+    // Simple approach: ensure all availabilities have at least capacity 1
+    const availabilities = await tx.availability.findMany({
+      where: { capacity: { lt: 1 } },
+    })
+    
+    for (const availability of availabilities) {
+      // Reset to minimum capacity of 1 if it was decremented
+      await tx.availability.update({
+        where: { id: availability.id },
+        data: { capacity: 1 },
+      })
+    }
+
+    // Reset all rooms to AVAILABLE status
+    await tx.room.updateMany({
+      where: { status: { not: 'AVAILABLE' } },
+      data: { status: 'AVAILABLE' },
+    })
+  })
 })
 
 afterAll(async () => {

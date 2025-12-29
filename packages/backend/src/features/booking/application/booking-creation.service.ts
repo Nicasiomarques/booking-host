@@ -96,7 +96,8 @@ export const createBookingCreationService = (deps: BookingCreationServiceDepende
         )
         if (Validation.isLeft(availableRoomsResult)) return availableRoomsResult;
 
-        if (!availableRoomsResult.value.find((r) => r.id === input.roomId)) {
+        const selectedRoom = availableRoomsResult.value.find((r) => r.id === input.roomId)
+        if (!selectedRoom) {
           return DomainValues.left(new DomainValues.ConflictError('Room is not available for the selected dates'))
         }
 
@@ -155,15 +156,30 @@ export const createBookingCreationService = (deps: BookingCreationServiceDepende
     }
 
     const bookingResult = await deps.unitOfWork.execute(async (ctx) => {
+      // Capacity validation happens inside transaction in decrementCapacity method
       const capacityResult = await ctx.availabilityRepository.decrementCapacity(input.availabilityId, input.quantity)
-      if (Validation.isLeft(capacityResult)) return capacityResult;
-
-      if (isHotelBooking && roomId) {
-        const roomStatusResult = await ctx.roomRepository.updateStatus(roomId, 'OCCUPIED')
-        if (Validation.isLeft(roomStatusResult)) return roomStatusResult;
+      if (Validation.isLeft(capacityResult)) {
+        return capacityResult;
       }
 
-      return ctx.bookingRepository.create(
+      // Verify room availability inside transaction for ALL hotel bookings to prevent race conditions
+      // This check must happen inside the transaction to ensure atomicity and prevent double-booking
+      if (isHotelBooking && roomId && checkInDate && checkOutDate) {
+        const roomAvailabilityResult = await ctx.roomRepository.isRoomAvailable(roomId, checkInDate, checkOutDate)
+        if (Validation.isLeft(roomAvailabilityResult)) {
+          return roomAvailabilityResult;
+        }
+        if (!roomAvailabilityResult.value) {
+          return DomainValues.left(new DomainValues.ConflictError('Room is not available for the selected dates'))
+        }
+        
+        const roomStatusResult = await ctx.roomRepository.updateStatus(roomId, 'OCCUPIED')
+        if (Validation.isLeft(roomStatusResult)) {
+          return roomStatusResult;
+        }
+      }
+
+      const createResult = ctx.bookingRepository.create(
         {
           userId,
           establishmentId: service.establishmentId,
@@ -185,6 +201,7 @@ export const createBookingCreationService = (deps: BookingCreationServiceDepende
         },
         extrasData
       )
+      return createResult
     })
 
     return bookingResult

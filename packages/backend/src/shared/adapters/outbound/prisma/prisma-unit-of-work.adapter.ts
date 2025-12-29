@@ -128,6 +128,15 @@ function createTransactionalAvailabilityRepository(
   
   return {
     async decrementCapacity(id: string, quantity: number): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability>> {
+      const currentAvailability = await tx.availability.findUnique({where:{id},select:{capacity:true}});
+      if (!currentAvailability) {
+        return DomainValues.left(new DomainValues.NotFoundError('Availability'))
+      }
+      
+      if (currentAvailability.capacity < quantity) {
+        return DomainValues.left(new DomainValues.ConflictError('No available capacity for the requested quantity'))
+      }
+      
       return DomainValues.fromPromise(
         tx.availability.update({
           where: { id },
@@ -173,6 +182,63 @@ function createTransactionalRoomRepository(
         }),
         () => new DomainValues.NotFoundError('Room')
       ).then((either) => either.map(toRoom))
+    },
+    
+    async isRoomAvailable(id: string, checkInDate: Date, checkOutDate: Date): Promise<Domain.Either<Domain.DomainError, boolean>> {
+      try {
+        // Query active bookings separately to ensure fresh data within transaction
+        const room = await tx.room.findUnique({
+          where: { id },
+        })
+        
+        if (!room) {
+          return DomainValues.left(new DomainValues.NotFoundError('Room'))
+        }
+        
+        // Fetch active bookings for this room in a separate query for better isolation
+        const activeBookings = await tx.booking.findMany({
+          where: {
+            roomId: id,
+            status: {
+              notIn: ['CANCELLED', 'CHECKED_OUT', 'NO_SHOW'],
+            },
+          },
+        })
+        
+        // Check for date overlap in memory to allow same-day check-out/check-in
+        // Two date ranges [A, B] and [C, D] overlap if: A < D AND B > C
+        // Using < and > allows same-day check-out/check-in (business rule):
+        // - Check-in on same day as previous check-out is allowed (D2 = D2, no overlap)
+        // - Check-out on same day as next check-in is allowed (D2 = D2, no overlap)
+        const conflictingBookings = activeBookings.filter((booking) => {
+          if (!booking.checkInDate || !booking.checkOutDate) return false
+          // Normalize dates to start of day (midnight UTC) for accurate comparison
+          // Extract date part only (YYYY-MM-DD) to avoid timezone issues
+          const existingCheckInStr = booking.checkInDate.toISOString().split('T')[0]
+          const existingCheckOutStr = booking.checkOutDate.toISOString().split('T')[0]
+          const newCheckInStr = checkInDate.toISOString().split('T')[0]
+          const newCheckOutStr = checkOutDate.toISOString().split('T')[0]
+          
+          // Convert back to Date objects at midnight UTC for comparison
+          const existingCheckIn = new Date(existingCheckInStr + 'T00:00:00.000Z')
+          const existingCheckOut = new Date(existingCheckOutStr + 'T00:00:00.000Z')
+          const newCheckIn = new Date(newCheckInStr + 'T00:00:00.000Z')
+          const newCheckOut = new Date(newCheckOutStr + 'T00:00:00.000Z')
+          
+          // Overlap occurs if: existing.checkInDate < new.checkOutDate AND existing.checkOutDate > new.checkInDate
+          // This allows same-day check-out/check-in (no overlap when dates are equal)
+          const hasOverlap = existingCheckIn < newCheckOut && existingCheckOut > newCheckIn
+          return hasOverlap
+        })
+        
+        // Only check for conflicting bookings, not room status
+        // Room status is checked before transaction, but we need to verify
+        // no conflicting bookings exist within the transaction to prevent race conditions
+        const isAvailable = conflictingBookings.length === 0
+        return DomainValues.right(isAvailable)
+      } catch (error) {
+        return DomainValues.left(new DomainValues.ConflictError('Failed to check room availability'))
+      }
     },
   }
 }

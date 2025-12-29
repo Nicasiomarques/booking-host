@@ -24,6 +24,7 @@ export interface TransactionalAvailabilityRepository {
  */
 export interface TransactionalRoomRepository {
   updateStatus(id: string, status: Domain.RoomStatus): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room>>
+  isRoomAvailable(id: string, checkInDate: Date, checkOutDate: Date): Promise<Domain.Either<Domain.DomainError, boolean>>
 }
 
 /**
