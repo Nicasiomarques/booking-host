@@ -1,15 +1,14 @@
 import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken'
-import type { TokenProviderPort, TokenPayload } from '#shared/application/ports/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
 import { jwtConfig } from '#config/index.js'
-import { UnauthorizedError } from '#shared/domain/index.js'
-import { left, right } from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
 
 /**
  * JWT implementation of the TokenProviderPort.
  * Uses jsonwebtoken library with configuration from config/jwt.config.ts
  */
-export const createTokenProvider = (): TokenProviderPort => ({
-  generateAccessToken(payload: TokenPayload): string {
+export const createTokenProvider = (): Ports.TokenProviderPort => ({
+  generateAccessToken(payload: Ports.TokenPayload): string {
     const options: SignOptions = {
       expiresIn: jwtConfig.accessExpiresIn as jwt.SignOptions['expiresIn'],
       issuer: jwtConfig.issuer,
@@ -33,18 +32,18 @@ export const createTokenProvider = (): TokenProviderPort => ({
         issuer: jwtConfig.issuer,
         audience: jwtConfig.audience,
         algorithms: ['HS256'],
-      }) as JwtPayload & TokenPayload
+      }) as JwtPayload & Ports.TokenPayload
 
-      return right({
+      return DomainValues.right({
         userId: decoded.userId,
         email: decoded.email,
         establishmentRoles: decoded.establishmentRoles,
       })
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        return left(new UnauthorizedError('Token expired'))
+        return DomainValues.left(new DomainValues.UnauthorizedError('Token expired'))
       }
-      return left(new UnauthorizedError('Invalid token'))
+      return DomainValues.left(new DomainValues.UnauthorizedError('Invalid token'))
     }
   },
 
@@ -57,15 +56,15 @@ export const createTokenProvider = (): TokenProviderPort => ({
       }) as JwtPayload & { userId: string; type: string }
 
       if (decoded.type !== 'refresh') {
-        return left(new UnauthorizedError('Invalid token type'))
+        return DomainValues.left(new DomainValues.UnauthorizedError('Invalid token type'))
       }
 
-      return right({ userId: decoded.userId })
+      return DomainValues.right({ userId: decoded.userId })
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        return left(new UnauthorizedError('Refresh token expired'))
+        return DomainValues.left(new DomainValues.UnauthorizedError('Refresh token expired'))
       }
-      return left(new UnauthorizedError('Invalid refresh token'))
+      return DomainValues.left(new DomainValues.UnauthorizedError('Invalid refresh token'))
     }
   },
 })

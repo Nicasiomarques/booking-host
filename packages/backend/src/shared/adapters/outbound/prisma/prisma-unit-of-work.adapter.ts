@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma, Booking as PrismaBooking, Room as PrismaRoom, RoomStatus, Availability as PrismaAvailability } from '@prisma/client'
+import { PrismaClient, Prisma, Booking as PrismaBooking, Room as PrismaRoom, Availability as PrismaAvailability } from '@prisma/client'
 import type {
   UnitOfWorkPort,
   UnitOfWorkContext,
@@ -6,23 +6,17 @@ import type {
   TransactionalAvailabilityRepository,
   TransactionalRoomRepository,
 } from '#shared/application/ports/index.js'
-import type {
-  Booking,
-  CreateBookingData,
-  BookingExtraItemData,
-} from '#features/booking/domain/index.js'
-import type { BookingStatus, DomainError, Either } from '#shared/domain/index.js'
-import { fromPromise } from '#shared/domain/index.js'
-import { ConflictError, NotFoundError } from '#shared/domain/index.js'
-import type { Availability } from '#features/availability/domain/index.js'
-import type { Room } from '#features/room/domain/index.js'
-import type { RoomType } from '#shared/domain/index.js'
+import type * as BookingDomain from '#features/booking/domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
+import type * as AvailabilityDomain from '#features/availability/domain/index.js'
+import type * as RoomDomain from '#features/room/domain/index.js'
 
-function toBooking(prismaBooking: PrismaBooking): Booking {
+function toBooking(prismaBooking: PrismaBooking): BookingDomain.Booking {
   return {
     ...prismaBooking,
     totalPrice: prismaBooking.totalPrice.toString(),
-    status: prismaBooking.status as BookingStatus,
+    status: prismaBooking.status as Domain.BookingStatus,
     checkInDate: prismaBooking.checkInDate,
     checkOutDate: prismaBooking.checkOutDate,
     roomId: prismaBooking.roomId,
@@ -49,10 +43,10 @@ function createTransactionalBookingRepository(
 ): TransactionalBookingRepository {
   return {
     async create(
-      data: CreateBookingData,
-      extras: BookingExtraItemData[]
-    ): Promise<Either<DomainError, Booking>> {
-      return fromPromise(
+      data: BookingDomain.CreateBookingData,
+      extras: BookingDomain.BookingExtraItemData[]
+    ): Promise<Domain.Either<Domain.DomainError, BookingDomain.Booking>> {
+      return DomainValues.fromPromise(
         tx.booking.create({
           data: {
             userId: data.userId,
@@ -82,11 +76,11 @@ function createTransactionalBookingRepository(
             },
           },
         }),
-        () => new ConflictError('Failed to create booking')
+        () => new DomainValues.ConflictError('Failed to create booking')
       ).then((either) => either.map(toBooking))
     },
 
-    async updateStatus(id: string, status: BookingStatus, cancellationReason?: string | null): Promise<Either<DomainError, Booking>> {
+    async updateStatus(id: string, status: Domain.BookingStatus, cancellationReason?: string | null): Promise<Domain.Either<Domain.DomainError, BookingDomain.Booking>> {
       const updateData: any = { status }
       
       if (status === 'CONFIRMED') {
@@ -108,12 +102,12 @@ function createTransactionalBookingRepository(
         updateData.checkedOutAt = new Date()
       }
       
-      return fromPromise(
+      return DomainValues.fromPromise(
         tx.booking.update({
           where: { id },
           data: updateData,
         }),
-        () => new NotFoundError('Booking')
+        () => new DomainValues.NotFoundError('Booking')
       ).then((either) => either.map(toBooking))
     },
   }
@@ -125,7 +119,7 @@ function createTransactionalBookingRepository(
 function createTransactionalAvailabilityRepository(
   tx: Prisma.TransactionClient
 ): TransactionalAvailabilityRepository {
-  function toAvailability(prismaAvailability: PrismaAvailability): Availability {
+  function toAvailability(prismaAvailability: PrismaAvailability): AvailabilityDomain.Availability {
     return {
       ...prismaAvailability,
       price: prismaAvailability.price ? prismaAvailability.price.toString() : null,
@@ -133,33 +127,33 @@ function createTransactionalAvailabilityRepository(
   }
   
   return {
-    async decrementCapacity(id: string, quantity: number): Promise<Either<DomainError, Availability>> {
-      return fromPromise(
+    async decrementCapacity(id: string, quantity: number): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability>> {
+      return DomainValues.fromPromise(
         tx.availability.update({
           where: { id },
           data: { capacity: { decrement: quantity } },
         }),
-        () => new NotFoundError('Availability')
+        () => new DomainValues.NotFoundError('Availability')
       ).then((either) => either.map(toAvailability))
     },
 
-    async incrementCapacity(id: string, quantity: number): Promise<Either<DomainError, Availability>> {
-      return fromPromise(
+    async incrementCapacity(id: string, quantity: number): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability>> {
+      return DomainValues.fromPromise(
         tx.availability.update({
           where: { id },
           data: { capacity: { increment: quantity } },
         }),
-        () => new NotFoundError('Availability')
+        () => new DomainValues.NotFoundError('Availability')
       ).then((either) => either.map(toAvailability))
     },
   }
 }
 
-function toRoom(prismaRoom: PrismaRoom): Room {
+function toRoom(prismaRoom: PrismaRoom): RoomDomain.Room {
   return {
     ...prismaRoom,
-    status: prismaRoom.status as RoomStatus,
-    roomType: prismaRoom.roomType as RoomType | null,
+    status: prismaRoom.status as Domain.RoomStatus,
+    roomType: prismaRoom.roomType as Domain.RoomType | null,
     amenities: prismaRoom.amenities ? (prismaRoom.amenities as string[]) : null,
   }
 }
@@ -171,13 +165,13 @@ function createTransactionalRoomRepository(
   tx: Prisma.TransactionClient
 ): TransactionalRoomRepository {
   return {
-    async updateStatus(id: string, status: RoomStatus): Promise<Either<DomainError, Room>> {
-      return fromPromise(
+    async updateStatus(id: string, status: Domain.RoomStatus): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room>> {
+      return DomainValues.fromPromise(
         tx.room.update({
           where: { id },
           data: { status },
         }),
-        () => new NotFoundError('Room')
+        () => new DomainValues.NotFoundError('Room')
       ).then((either) => either.map(toRoom))
     },
   }
