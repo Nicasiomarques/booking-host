@@ -21,35 +21,29 @@ beforeEach(async () => {
     prisma = prismaClient
   }
 
-  // Clean up booking-related data before each test
-  await prisma.$transaction([
-    prisma.bookingExtraItem.deleteMany(),
-    prisma.booking.deleteMany(),
-  ])
-
-  // Reset availability capacity and room status after cleaning bookings
-  // This ensures tests start with fresh state while keeping setup data
+  // Optimized: Single transaction with all cleanup operations
+  // This reduces database round-trips and improves performance
   await prisma.$transaction(async (tx) => {
-    // Get all bookings that were just deleted (by checking which availabilities have bookings)
-    // Actually, we need to restore capacity based on deleted bookings
-    // Simple approach: ensure all availabilities have at least capacity 1
-    const availabilities = await tx.availability.findMany({
-      where: { capacity: { lt: 1 } },
-    })
-    
-    for (const availability of availabilities) {
-      // Reset to minimum capacity of 1 if it was decremented
-      await tx.availability.update({
-        where: { id: availability.id },
-        data: { capacity: 1 },
-      })
-    }
+    // Clean up booking-related data
+    await Promise.all([
+      tx.bookingExtraItem.deleteMany(),
+      tx.booking.deleteMany(),
+    ])
 
-    // Reset all rooms to AVAILABLE status
-    await tx.room.updateMany({
-      where: { status: { not: 'AVAILABLE' } },
-      data: { status: 'AVAILABLE' },
-    })
+    // Reset availability capacity and room status in parallel
+    // Using updateMany directly is more efficient than findMany + loop
+    await Promise.all([
+      // Reset availabilities with capacity < 1 to minimum capacity of 1
+      tx.availability.updateMany({
+        where: { capacity: { lt: 1 } },
+        data: { capacity: 1 },
+      }),
+      // Reset all rooms to AVAILABLE status
+      tx.room.updateMany({
+        where: { status: { not: 'AVAILABLE' } },
+        data: { status: 'AVAILABLE' },
+      }),
+    ])
   })
 })
 
