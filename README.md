@@ -1,60 +1,62 @@
 # Booking Service
 
-Monorepo contendo a API de gestão de reservas e o backoffice para estabelecimentos multi-tenant.
+Monorepo containing the booking management API and backoffice for multi-tenant establishments.
 
-## Estrutura do Monorepo
+## Monorepo Structure
 
 ```
 booking-service/
 ├── packages/
-│   ├── backend/          # API Backend (Fastify + Prisma)
+│   ├── backend/          # Backend API (Fastify + Prisma)
 │   └── backoffice/       # Frontend Backoffice (SolidJS + Vite)
-├── docs/                 # Documentação
-│   └── MONOREPO_GUIDE.md # Guia completo de monorepos
+├── docs/                 # Documentation
+│   └── MONOREPO_GUIDE.md # Complete monorepo guide
 └── package.json          # Workspace root
 ```
 
-> 📖 **Novo em monorepos?** Leia o [Guia Completo de Monorepos](./docs/MONOREPO_GUIDE.md) para entender como funciona, vantagens, desvantagens e como usar.
+> 📖 **New to monorepos?** Read the [Complete Monorepo Guide](./docs/MONOREPO_GUIDE.md) to understand how it works, advantages, disadvantages, and how to use it.
+
+> 📋 **Development Practices:** See the [Development Practices Guide](./DEVELOPMENT_PRACTICES.md) to learn about naming conventions, imports, commits, code structure, and TypeScript patterns used in the project.
 
 ## Packages
 
 ### Backend (`packages/backend`)
-API de gestão de reservas para estabelecimentos multi-tenant.
+Booking management API for multi-tenant establishments.
 
-## Visao Geral
+## Overview
 
-Esta API permite que estabelecimentos:
+This API allows establishments to:
 
-- Registem servicos reservaveis (SERVICE, HOTEL)
-- Definam disponibilidade por data/horario
-- Oferecem itens extras opcionais
-- Recebam e gerenciem reservas
-- Gerenciem quartos para servicos de hotel (criar, atualizar, eliminar)
-- Realizem check-in/check-out de reservas de hotel
-- Controlem acessos via ACL (OWNER/STAFF)
+- Register bookable services (SERVICE, HOTEL)
+- Define availability by date/time
+- Offer optional extra items
+- Receive and manage bookings
+- Manage rooms for hotel services (create, update, delete)
+- Perform check-in/check-out for hotel bookings
+- Control access via ACL (OWNER/STAFF)
 
 ---
 
-## Stack Tecnologico
+## Technology Stack
 
-| Componente | Tecnologia | Versao |
-|------------|------------|--------|
+| Component | Technology | Version |
+|-----------|------------|---------|
 | Runtime | Node.js | 22+ |
 | Framework | Fastify | 5.x |
-| Linguagem | TypeScript | 5.x |
-| Base de Dados | PostgreSQL | - |
+| Language | TypeScript | 5.x |
+| Database | PostgreSQL | - |
 | ORM | Prisma | 7.x |
-| Validacao | Zod | 4.x |
+| Validation | Zod | 4.x |
 | Auth | JWT (jsonwebtoken) | 9.x |
 | Password | Argon2 | 0.44.x |
-| Testes | Vitest | 4.x |
+| Testing | Vitest | 4.x |
 | Docs | Swagger/OpenAPI | - |
 
 ---
 
-## Arquitetura
+## Architecture
 
-O projeto segue **Arquitetura Hexagonal (Ports & Adapters)**:
+The project follows **Hexagonal Architecture (Ports & Adapters)**:
 
 ```mermaid
 graph TB
@@ -78,7 +80,7 @@ graph TB
     end
 
     subgraph "Adapters Outbound"
-        PR[Prisma Repositories<br/>por Feature]
+        PR[Prisma Repositories<br/>per Feature]
         JWT[JWT Adapter]
         UOW[Unit of Work]
     end
@@ -94,31 +96,31 @@ graph TB
     PR --> DB
 ```
 
-### Estrutura de Diretorios
+### Directory Structure
 
-O projeto segue uma arquitetura modular por feature, onde cada feature é auto-contida:
+The project follows a modular feature architecture, where each feature is self-contained:
 
 ```
 src/
-├── features/                 # Features modulares (cada uma auto-contida)
+├── features/                 # Modular features (each self-contained)
 │   ├── auth/
 │   │   ├── adapters/
 │   │   │   ├── http/
-│   │   │   │   ├── endpoints.ts    # Rotas HTTP
-│   │   │   │   ├── index.ts        # Plugin Fastify
-│   │   │   │   └── schemas.ts      # Schemas Zod
+│   │   │   │   ├── endpoints.ts    # HTTP routes
+│   │   │   │   ├── index.ts        # Fastify plugin
+│   │   │   │   └── schemas.ts      # Zod schemas
 │   │   │   └── persistence/
-│   │   │       └── user.repository.ts  # Repositório Prisma
+│   │   │       └── user.repository.ts  # Prisma repository
 │   │   ├── application/
-│   │   │   └── auth.service.ts     # Lógica de negócio
+│   │   │   └── auth.service.ts     # Business logic
 │   │   ├── domain/
-│   │   │   └── auth.ts             # Entidades e interfaces
-│   │   └── composition.ts          # Módulo de composição (DI)
+│   │   │   └── auth.ts             # Entities and interfaces
+│   │   └── composition.ts          # Composition module (DI)
 │   ├── booking/
 │   │   ├── adapters/
 │   │   │   ├── http/
 │   │   │   │   ├── endpoints.ts
-│   │   │   │   ├── mappers.ts      # Formatação de respostas
+│   │   │   │   ├── mappers.ts      # Response formatting
 │   │   │   │   └── index.ts
 │   │   │   └── persistence/
 │   │   │       └── booking.repository.ts
@@ -127,39 +129,39 @@ src/
 │   │   ├── domain/
 │   │   │   └── booking.ts
 │   │   └── composition.ts
-│   └── [outras features: establishment, service, availability, extra-item, room]
-├── shared/                    # Código compartilhado
+│   └── [other features: establishment, service, availability, extra-item, room]
+├── shared/                    # Shared code
 │   ├── adapters/
 │   │   ├── http/
 │   │   │   ├── routes/
-│   │   │   │   └── index.ts        # Registro centralizado de rotas
+│   │   │   │   └── index.ts        # Centralized route registration
 │   │   │   ├── middleware/         # Auth, ACL, Validation
 │   │   │   ├── plugins/            # Prisma, Error Handler, Services
 │   │   │   └── services/
 │   │   │       └── service-factory.ts  # Composition Root
 │   │   └── outbound/
-│   │       ├── prisma/              # Adapters Prisma (UnitOfWork, ErrorHandler)
+│   │       ├── prisma/              # Prisma adapters (UnitOfWork, ErrorHandler)
 │   │       ├── crypto/              # Argon2 adapter
 │   │       └── token/               # JWT adapter
 │   ├── application/
 │   │   ├── ports/                  # Interfaces (Ports)
-│   │   └── utils/                  # Helpers compartilhados
+│   │   └── utils/                  # Shared helpers
 │   └── domain/
 │       ├── errors.ts               # DomainError, NotFoundError, etc.
-│       └── user.ts                 # Tipos compartilhados
-└── config/                        # Configurações
+│       └── user.ts                 # Shared types
+└── config/                        # Configuration
 ```
 
-**Princípios da Arquitetura Modular:**
+**Modular Architecture Principles:**
 
-- **Cada feature é auto-contida**: possui seus próprios repositórios, adapters, services e domain
-- **Módulos de composição**: cada feature tem um `composition.ts` que instancia suas dependências
-- **Separação de responsabilidades**: mappers separados dos endpoints, repositórios dentro das features
-- **Registro centralizado**: rotas registradas em `shared/adapters/http/routes/index.ts`
+- **Each feature is self-contained**: has its own repositories, adapters, services, and domain
+- **Composition modules**: each feature has a `composition.ts` that instantiates its dependencies
+- **Separation of concerns**: mappers separated from endpoints, repositories within features
+- **Centralized registration**: routes registered in `shared/adapters/http/routes/index.ts`
 
 ---
 
-## Modelo de Dados (ERD)
+## Data Model (ERD)
 
 ```mermaid
 erDiagram
@@ -280,9 +282,9 @@ erDiagram
 
 ---
 
-## Fluxos Principais
+## Main Flows
 
-### Fluxo de Autenticacao
+### Authentication Flow
 
 ```mermaid
 sequenceDiagram
@@ -311,7 +313,7 @@ sequenceDiagram
     API-->>C: { bookings }
 ```
 
-### Fluxo de Reserva
+### Booking Flow
 
 ```mermaid
 sequenceDiagram
@@ -343,7 +345,7 @@ sequenceDiagram
     API-->>C: 201 { booking }
 ```
 
-### Fluxo de Cancelamento
+### Cancellation Flow
 
 ```mermaid
 sequenceDiagram
@@ -375,7 +377,7 @@ sequenceDiagram
     API-->>C: 200 { booking }
 ```
 
-### Fluxo de Criacao de Estabelecimento
+### Establishment Creation Flow
 
 ```mermaid
 sequenceDiagram
@@ -404,7 +406,7 @@ sequenceDiagram
     API-->>C: 201 { establishment }
 ```
 
-### Fluxo de Gestao de Servicos
+### Service Management Flow
 
 ```mermaid
 sequenceDiagram
@@ -441,7 +443,7 @@ sequenceDiagram
     API-->>C: 200 { success: true }
 ```
 
-### Fluxo de Gestao de Disponibilidade
+### Availability Management Flow
 
 ```mermaid
 sequenceDiagram
@@ -479,7 +481,7 @@ sequenceDiagram
     API-->>C: 200 { success: true }
 ```
 
-### Fluxo de Gestao de Extras
+### Extra Items Management Flow
 
 ```mermaid
 sequenceDiagram
@@ -513,7 +515,7 @@ sequenceDiagram
     Note right of API: Price frozen at booking time
 ```
 
-### Fluxo Completo: Usuario ate Reserva
+### Complete Flow: User to Booking
 
 ```mermaid
 sequenceDiagram
@@ -521,33 +523,33 @@ sequenceDiagram
     participant API as API
     participant DB as Database
 
-    Note over U,DB: 1. Registo
+    Note over U,DB: 1. Registration
     U->>API: POST /v1/auth/register
     API->>DB: Create User
     API-->>U: { accessToken } + Cookie
 
-    Note over U,DB: 2. Explorar Estabelecimentos
+    Note over U,DB: 2. Explore Establishments
     U->>API: GET /v1/establishments/{id}
     API->>DB: Get Establishment
     API-->>U: { establishment }
 
-    Note over U,DB: 3. Ver Servicos
+    Note over U,DB: 3. View Services
     U->>API: GET /v1/establishments/{id}/services
     API->>DB: Get Services (active only)
     API-->>U: [ services ]
 
-    Note over U,DB: 4. Ver Disponibilidade
+    Note over U,DB: 4. View Availability
     U->>API: GET /v1/services/{id}/availabilities
     Note right of U: ?startDate=2025-01-20&endDate=2025-01-25
     API->>DB: Get Availabilities (filtered)
     API-->>U: [ availabilities ]
 
-    Note over U,DB: 5. Ver Extras
+    Note over U,DB: 5. View Extras
     U->>API: GET /v1/services/{id}/extras
     API->>DB: Get ExtraItems (active only)
     API-->>U: [ extras ]
 
-    Note over U,DB: 6. Criar Reserva
+    Note over U,DB: 6. Create Booking
     U->>API: POST /v1/bookings
     Note right of U: { serviceId, availabilityId,<br/>quantity, extras }
     API->>DB: Transaction: Create Booking
@@ -560,14 +562,14 @@ sequenceDiagram
 
 Base URL: `/v1`
 
-### Autenticacao
+### Authentication
 
-| Metodo | Endpoint | Descricao | Auth |
-|--------|----------|-----------|------|
-| POST | `/auth/register` | Registo de utilizador | - |
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/auth/register` | User registration | - |
 | POST | `/auth/login` | Login | - |
-| POST | `/auth/refresh` | Renovar access token | Cookie |
-| POST | `/auth/logout` | Logout (limpa cookie) | - |
+| POST | `/auth/refresh` | Refresh access token | Cookie |
+| POST | `/auth/logout` | Logout (clears cookie) | - |
 
 **JWT Payload:**
 ```json
@@ -580,117 +582,117 @@ Base URL: `/v1`
 }
 ```
 
-### Estabelecimentos
+### Establishments
 
-| Metodo | Endpoint | Descricao | Auth |
-|--------|----------|-----------|------|
-| POST | `/establishments` | Criar estabelecimento | Bearer |
-| GET | `/establishments/:id` | Obter por ID | - |
-| GET | `/establishments/my` | Meus estabelecimentos | Bearer |
-| PUT | `/establishments/:id` | Atualizar | OWNER |
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/establishments` | Create establishment | Bearer |
+| GET | `/establishments/:id` | Get by ID | - |
+| GET | `/establishments/my` | My establishments | Bearer |
+| PUT | `/establishments/:id` | Update | OWNER |
 
-### Servicos
+### Services
 
-| Metodo | Endpoint | Descricao | Auth |
-|--------|----------|-----------|------|
-| POST | `/establishments/:id/services` | Criar servico | OWNER |
-| GET | `/establishments/:id/services` | Listar servicos | - |
-| GET | `/services/:id` | Obter servico | - |
-| PUT | `/services/:id` | Atualizar servico | OWNER |
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/establishments/:id/services` | Create service | OWNER |
+| GET | `/establishments/:id/services` | List services | - |
+| GET | `/services/:id` | Get service | - |
+| PUT | `/services/:id` | Update service | OWNER |
 | DELETE | `/services/:id` | Soft delete | OWNER |
 
-### Itens Extras
+### Extra Items
 
-| Metodo | Endpoint | Descricao | Auth |
-|--------|----------|-----------|------|
-| POST | `/services/:id/extras` | Criar extra | OWNER |
-| GET | `/services/:id/extras` | Listar extras | - |
-| PUT | `/extras/:id` | Atualizar extra | OWNER |
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/services/:id/extras` | Create extra | OWNER |
+| GET | `/services/:id/extras` | List extras | - |
+| PUT | `/extras/:id` | Update extra | OWNER |
 | DELETE | `/extras/:id` | Soft delete | OWNER |
 
-### Disponibilidade
+### Availability
 
-| Metodo | Endpoint | Descricao | Auth |
-|--------|----------|-----------|------|
-| POST | `/services/:id/availabilities` | Criar slot | OWNER |
-| GET | `/services/:id/availabilities` | Listar slots | - |
-| PUT | `/availabilities/:id` | Atualizar slot | OWNER |
-| DELETE | `/availabilities/:id` | Remover slot | OWNER |
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/services/:id/availabilities` | Create slot | OWNER |
+| GET | `/services/:id/availabilities` | List slots | - |
+| PUT | `/availabilities/:id` | Update slot | OWNER |
+| DELETE | `/availabilities/:id` | Remove slot | OWNER |
 
-### Reservas
+### Bookings
 
-| Metodo | Endpoint | Descricao | Auth |
-|--------|----------|-----------|------|
-| POST | `/bookings` | Criar reserva (suporta hotel com check-in/check-out) | Bearer |
-| GET | `/bookings/:id` | Obter reserva | Bearer |
-| GET | `/bookings/my` | Minhas reservas | Bearer |
-| GET | `/establishments/:id/bookings` | Reservas do estabelecimento | STAFF+ |
-| PUT | `/bookings/:id/cancel` | Cancelar reserva | Owner |
-| PUT | `/bookings/:id/check-in` | Check-in reserva hotel | STAFF+ |
-| PUT | `/bookings/:id/check-out` | Check-out reserva hotel | STAFF+ |
-| PUT | `/bookings/:id/no-show` | Marcar no-show reserva hotel | STAFF+ |
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/bookings` | Create booking (supports hotel with check-in/check-out) | Bearer |
+| GET | `/bookings/:id` | Get booking | Bearer |
+| GET | `/bookings/my` | My bookings | Bearer |
+| GET | `/establishments/:id/bookings` | Establishment bookings | STAFF+ |
+| PUT | `/bookings/:id/cancel` | Cancel booking | Owner |
+| PUT | `/bookings/:id/check-in` | Check-in hotel booking | STAFF+ |
+| PUT | `/bookings/:id/check-out` | Check-out hotel booking | STAFF+ |
+| PUT | `/bookings/:id/no-show` | Mark no-show hotel booking | STAFF+ |
 
-### Quartos (Servicos Hotel)
+### Rooms (Hotel Services)
 
-| Metodo | Endpoint | Descricao | Auth |
-|--------|----------|-----------|------|
-| POST | `/services/:serviceId/rooms` | Criar quarto | OWNER |
-| GET | `/services/:serviceId/rooms` | Listar quartos | - |
-| GET | `/rooms/:id` | Obter quarto | - |
-| PUT | `/rooms/:id` | Atualizar quarto | OWNER |
-| DELETE | `/rooms/:id` | Eliminar quarto | OWNER |
-
----
-
-## ACL - Controle de Acesso
-
-| Acao | OWNER | STAFF | User |
-|------|-------|-------|------|
-| Criar/Editar servico | ✅ | ❌ | ❌ |
-| Gerir extras | ✅ | ❌ | ❌ |
-| Gerir disponibilidade | ✅ | ❌ | ❌ |
-| Gerir quartos | ✅ | ❌ | ❌ |
-| Ver reservas do estabelecimento | ✅ | ✅ | ❌ |
-| Criar reserva | ✅ | ✅ | ✅ |
-| Cancelar propria reserva | ✅ | ✅ | ✅ |
-| Check-in/check-out reservas | ✅ | ✅ | ❌ |
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/services/:serviceId/rooms` | Create room | OWNER |
+| GET | `/services/:serviceId/rooms` | List rooms | - |
+| GET | `/rooms/:id` | Get room | - |
+| PUT | `/rooms/:id` | Update room | OWNER |
+| DELETE | `/rooms/:id` | Delete room | OWNER |
 
 ---
 
-## Seguranca
+## ACL - Access Control
 
-### Autenticacao JWT
+| Action | OWNER | STAFF | User |
+|--------|-------|-------|------|
+| Create/Edit service | ✅ | ❌ | ❌ |
+| Manage extras | ✅ | ❌ | ❌ |
+| Manage availability | ✅ | ❌ | ❌ |
+| Manage rooms | ✅ | ❌ | ❌ |
+| View establishment bookings | ✅ | ✅ | ❌ |
+| Create booking | ✅ | ✅ | ✅ |
+| Cancel own booking | ✅ | ✅ | ✅ |
+| Check-in/check-out bookings | ✅ | ✅ | ❌ |
 
-- **Access Token**: 15 minutos (configuravel)
-- **Refresh Token**: 7 dias, HttpOnly cookie
-- **Algoritmo**: HS256
-- **Validacao**: Issuer + Audience
+---
+
+## Security
+
+### JWT Authentication
+
+- **Access Token**: 15 minutes (configurable)
+- **Refresh Token**: 7 days, HttpOnly cookie
+- **Algorithm**: HS256
+- **Validation**: Issuer + Audience
 
 ### Password
 
-- **Algoritmo**: Argon2id
-- **Memoria**: 64MB
-- **Iteracoes**: 3
-- **Rehash automatico** em login se parametros mudarem
+- **Algorithm**: Argon2id
+- **Memory**: 64MB
+- **Iterations**: 3
+- **Automatic rehash** on login if parameters change
 
 ### HTTP Security
 
-- **Helmet**: Headers de seguranca
-- **CORS**: Configuravel por ambiente
-- **Rate Limiting**: 5 req/min em auth (prod)
+- **Helmet**: Security headers
+- **CORS**: Configurable per environment
+- **Rate Limiting**: 5 req/min on auth (prod)
 - **Cookie Flags**: HttpOnly, Secure (prod), SameSite=strict
 
-### Validacao
+### Validation
 
-- **Zod** em todos os inputs
-- **Email normalizacao** (lowercase)
-- **UUID validation** em parametros
+- **Zod** on all inputs
+- **Email normalization** (lowercase)
+- **UUID validation** on parameters
 
 ---
 
 ## Error Handling
 
-### Formato de Erro
+### Error Format
 
 ```json
 {
@@ -701,60 +703,60 @@ Base URL: `/v1`
 }
 ```
 
-### Codigos de Erro
+### Error Codes
 
-| Codigo | HTTP | Descricao |
-|--------|------|-----------|
-| VALIDATION_ERROR | 422 | Input invalido |
-| UNAUTHORIZED | 401 | Token invalido/ausente |
-| FORBIDDEN | 403 | Sem permissao |
-| NOT_FOUND | 404 | Recurso nao encontrado |
-| CONFLICT | 409 | Conflito (ex: sem capacidade) |
-| TOO_MANY_REQUESTS | 429 | Rate limit excedido |
-| INTERNAL_ERROR | 500 | Erro interno |
+| Code | HTTP | Description |
+|------|------|-------------|
+| VALIDATION_ERROR | 422 | Invalid input |
+| UNAUTHORIZED | 401 | Invalid/missing token |
+| FORBIDDEN | 403 | No permission |
+| NOT_FOUND | 404 | Resource not found |
+| CONFLICT | 409 | Conflict (e.g., no capacity) |
+| TOO_MANY_REQUESTS | 429 | Rate limit exceeded |
+| INTERNAL_ERROR | 500 | Internal error |
 
 ---
 
 ## Quick Start
 
-### Pre-requisitos
+### Prerequisites
 
 - Node.js 22+
 - pnpm 8+
 - PostgreSQL
 
-### Instalacao
+### Installation
 
 ```bash
-# Clonar e instalar
+# Clone and install
 git clone <repo>
 cd booking-service
 pnpm install
 
-# Configurar ambiente do backend
+# Configure backend environment
 cd packages/backend
 cp .env.example .env
-# Editar .env com as suas configuracoes
+# Edit .env with your configuration
 
-# Configurar base de dados
+# Setup database
 pnpm db:migrate
 
-# Voltar para a raiz
+# Return to root
 cd ../..
 ```
 
-### Desenvolvimento
+### Development
 
 ```bash
-# Iniciar backend e backoffice em paralelo
+# Start backend and backoffice in parallel
 pnpm dev:all
 
-# Ou iniciar separadamente
-pnpm dev:backend      # Backend apenas
-pnpm dev:backoffice   # Backoffice apenas
+# Or start separately
+pnpm dev:backend      # Backend only
+pnpm dev:backoffice   # Backoffice only
 ```
 
-### Variaveis de Ambiente
+### Environment Variables
 
 ```env
 NODE_ENV=development
@@ -771,36 +773,36 @@ JWT_ISSUER=booking-service
 JWT_AUDIENCE=booking-api
 ```
 
-### Scripts Disponiveis (Raiz)
+### Available Scripts (Root)
 
 ```bash
-# Desenvolvimento
-pnpm dev:all             # Backend + Backoffice em paralelo
-pnpm dev:backend         # Backend apenas
-pnpm dev:backoffice      # Backoffice apenas
+# Development
+pnpm dev:all             # Backend + Backoffice in parallel
+pnpm dev:backend         # Backend only
+pnpm dev:backoffice      # Backoffice only
 
 # Build
-pnpm build               # Build de todos os packages
-pnpm build:backend       # Build do backend
-pnpm build:backoffice    # Build do backoffice
+pnpm build               # Build all packages
+pnpm build:backend       # Build backend
+pnpm build:backoffice    # Build backoffice
 
-# Testes
-pnpm test                # Testes de todos os packages
-pnpm test:backend        # Testes do backend
-pnpm test:backoffice     # Testes E2E do backoffice
+# Tests
+pnpm test                # Tests for all packages
+pnpm test:backend        # Backend tests
+pnpm test:backoffice     # Backoffice E2E tests
 
 # Database (Backend)
-pnpm db:generate         # Gerar Prisma Client
-pnpm db:migrate          # Executar migracoes
+pnpm db:generate         # Generate Prisma Client
+pnpm db:migrate          # Run migrations
 pnpm db:push             # Sync schema (dev)
 pnpm db:studio           # Prisma Studio GUI
 pnpm db:reset            # Reset database
 pnpm db:seed             # Seed database
 ```
 
-### Scripts por Package
+### Scripts by Package
 
-Para executar scripts específicos de um package:
+To run specific scripts from a package:
 
 ```bash
 # Backend
@@ -812,57 +814,57 @@ pnpm --filter @booking-service/backoffice <script>
 
 ---
 
-## Documentacao API
+## API Documentation
 
-Swagger UI disponivel em `/docs` quando o servidor esta a correr.
+Swagger UI available at `/docs` when the server is running.
 
 ---
 
-## Regras de Negocio
+## Business Rules
 
-### Reservas
+### Bookings
 
-- Criacao sempre em **transacao**
-- **Capacidade atomica** - decrementada na criacao, restaurada no cancelamento
-- **Preco calculado** no backend (nao confiavel do cliente)
-- **Extras com preco congelado** (price_at_booking)
+- Creation always in **transaction**
+- **Atomic capacity** - decremented on creation, restored on cancellation
+- **Price calculated** on backend (not trusted from client)
+- **Extras with frozen price** (price_at_booking)
 
-### Disponibilidade
+### Availability
 
-- **Sem overlaps** de horarios no mesmo servico
-- **Capacidade minima** de 1
-- **Nao pode eliminar** se houver reservas associadas
+- **No overlaps** of time slots for the same service
+- **Minimum capacity** of 1
+- **Cannot delete** if there are associated bookings
 
 ### Soft Delete
 
-- Servicos e ExtraItems usam flag `active`
-- Permite manter historico de reservas
+- Services and ExtraItems use `active` flag
+- Allows maintaining booking history
 
 ---
 
-## Testes
+## Testing
 
 ```bash
-# Executar todos os testes
+# Run all tests
 pnpm test
 
-# Testes do backend
+# Backend tests
 pnpm test:backend
 
-# Testes do backoffice
+# Backoffice tests
 pnpm test:backoffice
 
 # Watch mode (backend)
 pnpm --filter @booking-service/backend test
 ```
 
-Testes E2E cobrem:
-- Fluxos de autenticacao
-- CRUD de todas as entidades
-- ACL e permissoes
-- Cenarios de booking (sucesso, conflito, cancelamento)
-- Reservas de hotel (check-in, check-out, no-show)
-- Gestao de quartos
-- Validacoes e edge cases
+E2E tests cover:
+- Authentication flows
+- CRUD for all entities
+- ACL and permissions
+- Booking scenarios (success, conflict, cancellation)
+- Hotel bookings (check-in, check-out, no-show)
+- Room management
+- Validations and edge cases
 
-**Cobertura de Testes**: 94.93% linhas, 91.72% statements, 79.17% branches, 97.27% funcoes
+**Test Coverage**: 94.93% lines, 91.72% statements, 79.17% branches, 97.27% functions
