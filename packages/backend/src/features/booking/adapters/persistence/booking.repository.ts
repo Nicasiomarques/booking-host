@@ -1,15 +1,8 @@
 import { PrismaClient, Booking as PrismaBooking, Prisma } from '@prisma/client'
-import type {
-  Booking,
-  CreateBookingData,
-  BookingExtraItemData,
-  BookingWithDetails,
-  ListBookingsOptions,
-} from '../../domain/index.js'
-import type { PaginatedResult, BookingStatus, DomainError, Either } from '#shared/domain/index.js'
-import { right, left, fromPromise } from '#shared/domain/index.js'
-import { ConflictError, NotFoundError } from '#shared/domain/index.js'
-import type { RepositoryErrorHandlerPort } from '#shared/application/ports/index.js'
+import type * as BookingDomain from '../../domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
 import { DatabaseErrorType } from '#shared/application/ports/index.js'
 
 export type {
@@ -18,14 +11,14 @@ export type {
   BookingExtraItemData,
   BookingWithDetails,
   ListBookingsOptions,
-  PaginatedResult,
-}
+} from '../../domain/index.js'
+export type { PaginatedResult } from '#shared/domain/index.js'
 
-function toBooking(prismaBooking: PrismaBooking): Booking {
+function toBooking(prismaBooking: PrismaBooking): BookingDomain.Booking {
   return {
     ...prismaBooking,
     totalPrice: prismaBooking.totalPrice.toString(),
-    status: prismaBooking.status as BookingStatus,
+    status: prismaBooking.status as Domain.BookingStatus,
     checkInDate: prismaBooking.checkInDate,
     checkOutDate: prismaBooking.checkOutDate,
     roomId: prismaBooking.roomId,
@@ -53,11 +46,11 @@ function toBookingWithDetails(prismaBooking: PrismaBooking & {
     priceAtBooking: Prisma.Decimal
     extraItem: { id: string; name: string }
   }>
-}): BookingWithDetails {
+}): BookingDomain.BookingWithDetails {
   return {
     ...prismaBooking,
     totalPrice: prismaBooking.totalPrice.toString(),
-    status: prismaBooking.status as BookingStatus,
+    status: prismaBooking.status as Domain.BookingStatus,
     service: {
       ...prismaBooking.service,
       basePrice: prismaBooking.service.basePrice.toString(),
@@ -71,9 +64,9 @@ function toBookingWithDetails(prismaBooking: PrismaBooking & {
 
 export const createBookingRepository = (
   prisma: PrismaClient,
-  errorHandler: RepositoryErrorHandlerPort
+  errorHandler: Ports.RepositoryErrorHandlerPort
 ) => ({
-  async findById(id: string): Promise<Either<DomainError, BookingWithDetails | null>> {
+  async findById(id: string): Promise<Domain.Either<Domain.DomainError, BookingDomain.BookingWithDetails | null>> {
     try {
       const result = await prisma.booking.findUnique({
         where: { id },
@@ -113,16 +106,16 @@ export const createBookingRepository = (
           },
         },
       })
-      return right(result ? toBookingWithDetails(result) : null)
+      return DomainValues.right(result ? toBookingWithDetails(result) : null)
     } catch (error) {
-      return left(new ConflictError('Failed to find booking'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find booking'))
     }
   },
 
   async findByUser(
     userId: string,
-    options: ListBookingsOptions = {}
-  ): Promise<Either<DomainError, PaginatedResult<BookingWithDetails>>> {
+    options: BookingDomain.ListBookingsOptions = {}
+  ): Promise<Domain.Either<Domain.DomainError, Domain.PaginatedResult<BookingDomain.BookingWithDetails>>> {
     try {
       const { page = 1, limit = 10, status } = options
       const skip = (page - 1) * limit
@@ -177,21 +170,21 @@ export const createBookingRepository = (
         prisma.booking.count({ where }),
       ])
 
-      return right({
+      return DomainValues.right({
         data: data.map(toBookingWithDetails),
         total,
         page,
         limit,
       })
     } catch (error) {
-      return left(new ConflictError('Failed to find bookings'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find bookings'))
     }
   },
 
   async findByEstablishment(
     establishmentId: string,
-    options: ListBookingsOptions = {}
-  ): Promise<Either<DomainError, PaginatedResult<BookingWithDetails>>> {
+    options: BookingDomain.ListBookingsOptions = {}
+  ): Promise<Domain.Either<Domain.DomainError, Domain.PaginatedResult<BookingDomain.BookingWithDetails>>> {
     try {
       const { page = 1, limit = 10, status } = options
       const skip = (page - 1) * limit
@@ -246,22 +239,22 @@ export const createBookingRepository = (
         prisma.booking.count({ where }),
       ])
 
-      return right({
+      return DomainValues.right({
         data: data.map(toBookingWithDetails),
         total,
         page,
         limit,
       })
     } catch (error) {
-      return left(new ConflictError('Failed to find bookings'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find bookings'))
     }
   },
 
   async updateStatus(
     id: string,
-    status: BookingStatus,
+    status: Domain.BookingStatus,
     cancellationReason?: string | null
-  ): Promise<Either<DomainError, Booking>> {
+  ): Promise<Domain.Either<Domain.DomainError, BookingDomain.Booking>> {
     const updateData: any = { status }
     
     if (status === 'CONFIRMED') {
@@ -283,7 +276,7 @@ export const createBookingRepository = (
       updateData.checkedOutAt = new Date()
     }
     
-    return fromPromise(
+    return DomainValues.fromPromise(
       prisma.booking.update({
         where: { id },
         data: updateData,
@@ -291,19 +284,19 @@ export const createBookingRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.NOT_FOUND) {
-          return new NotFoundError('Booking')
+          return new DomainValues.NotFoundError('Booking')
         }
-        return new ConflictError('Failed to update booking status')
+        return new DomainValues.ConflictError('Failed to update booking status')
       }
     ).then((either) => either.map(toBooking))
   },
 
-  async getBookingOwnership(id: string): Promise<Either<DomainError, {
+  async getBookingOwnership(id: string): Promise<Domain.Either<Domain.DomainError, {
     userId: string
     establishmentId: string
     quantity: number
     availabilityId: string
-    status: BookingStatus
+    status: Domain.BookingStatus
     roomId: string | null
     serviceType: string | null
   } | null>> {
@@ -325,9 +318,9 @@ export const createBookingRepository = (
         },
       })
 
-      if (!booking) return right(null)
+      if (!booking) return DomainValues.right(null)
 
-      return right({
+      return DomainValues.right({
         userId: booking.userId,
         establishmentId: booking.establishmentId,
         quantity: booking.quantity,
@@ -337,7 +330,7 @@ export const createBookingRepository = (
         serviceType: booking.service.type,
       })
     } catch (error) {
-      return left(new ConflictError('Failed to get booking ownership'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to get booking ownership'))
     }
   },
 })

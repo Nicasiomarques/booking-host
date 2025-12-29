@@ -1,42 +1,40 @@
 import { PrismaClient, Service as PrismaService, Prisma } from '@prisma/client'
-import type { Service, CreateServiceData, UpdateServiceData } from '../../domain/index.js'
-import type { ExtraItem } from '#features/extra-item/domain/index.js'
+import type * as ServiceDomain from '../../domain/index.js'
+import type * as ExtraItemDomain from '#features/extra-item/domain/index.js'
 import { toDecimal, handleArrayFieldForCreate, createSoftDeleteData, processUpdateData } from '#shared/adapters/outbound/prisma/base-repository.js'
-import type { DomainError, Either } from '#shared/domain/index.js'
-import { right, left } from '#shared/domain/index.js'
-import { ConflictError } from '#shared/domain/index.js'
-import type { RepositoryErrorHandlerPort } from '#shared/application/ports/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
 import { DatabaseErrorType } from '#shared/application/ports/index.js'
-import { fromPromise } from '#shared/domain/index.js'
 
-export type { Service, CreateServiceData, UpdateServiceData }
+export type { Service, CreateServiceData, UpdateServiceData } from '../../domain/index.js'
 
-function toService(prismaService: PrismaService): Service {
+function toService(prismaService: PrismaService): ServiceDomain.Service {
   return {
     ...prismaService,
     basePrice: prismaService.basePrice.toString(),
-    type: prismaService.type as Service['type'],
+    type: prismaService.type as ServiceDomain.Service['type'],
     images: prismaService.images ? (prismaService.images as string[]) : null,
   }
 }
 
-function toExtraItem(prismaExtraItem: { id: string; serviceId: string; name: string; description: string | null; price: Prisma.Decimal; image: string | null; maxQuantity: number; active: boolean; createdAt: Date; updatedAt: Date }): ExtraItem {
+function toExtraItem(prismaExtraItem: { id: string; serviceId: string; name: string; description: string | null; price: Prisma.Decimal; image: string | null; maxQuantity: number; active: boolean; createdAt: Date; updatedAt: Date }): ExtraItemDomain.ExtraItem {
   return {
     ...prismaExtraItem,
     price: prismaExtraItem.price.toString(),
   }
 }
 
-export interface ServiceWithExtras extends Service {
-  extraItems: ExtraItem[]
+export interface ServiceWithExtras extends ServiceDomain.Service {
+  extraItems: ExtraItemDomain.ExtraItem[]
 }
 
 export const createServiceRepository = (
   prisma: PrismaClient,
-  errorHandler: RepositoryErrorHandlerPort
+  errorHandler: Ports.RepositoryErrorHandlerPort
 ) => ({
-  async create(data: CreateServiceData): Promise<Either<DomainError, Service>> {
-    return fromPromise(
+  async create(data: ServiceDomain.CreateServiceData): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service>> {
+    return DomainValues.fromPromise(
       prisma.service.create({
         data: {
           establishmentId: data.establishmentId,
@@ -56,28 +54,28 @@ export const createServiceRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.UNIQUE_CONSTRAINT_VIOLATION) {
-          return new ConflictError('Service with this data already exists')
+          return new DomainValues.ConflictError('Service with this data already exists')
         }
         if (dbError?.type === DatabaseErrorType.FOREIGN_KEY_VIOLATION) {
-          return new ConflictError('Invalid establishment reference')
+          return new DomainValues.ConflictError('Invalid establishment reference')
         }
-        return new ConflictError('Failed to create service')
+        return new DomainValues.ConflictError('Failed to create service')
       }
     ).then((either) => either.map(toService))
   },
 
-  async findById(id: string): Promise<Either<DomainError, Service | null>> {
+  async findById(id: string): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service | null>> {
     try {
       const result = await prisma.service.findUnique({
         where: { id },
       })
-      return right(result ? toService(result) : null)
+      return DomainValues.right(result ? toService(result) : null)
     } catch (error) {
-      return left(new ConflictError('Failed to find service'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find service'))
     }
   },
 
-  async findByIdWithExtras(id: string): Promise<Either<DomainError, ServiceWithExtras | null>> {
+  async findByIdWithExtras(id: string): Promise<Domain.Either<Domain.DomainError, ServiceWithExtras | null>> {
     try {
       const result = await prisma.service.findUnique({
         where: { id },
@@ -87,20 +85,20 @@ export const createServiceRepository = (
           },
         },
       })
-      if (!result) return right(null)
-      return right({
+      if (!result) return DomainValues.right(null)
+      return DomainValues.right({
         ...toService(result),
         extraItems: result.extraItems.map(toExtraItem),
       })
     } catch (error) {
-      return left(new ConflictError('Failed to find service'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find service'))
     }
   },
 
   async findByEstablishment(
     establishmentId: string,
     options: { activeOnly?: boolean } = {}
-  ): Promise<Either<DomainError, Service[]>> {
+  ): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service[]>> {
     try {
       const results = await prisma.service.findMany({
         where: {
@@ -109,19 +107,19 @@ export const createServiceRepository = (
         },
         orderBy: { createdAt: 'desc' },
       })
-      return right(results.map(toService))
+      return DomainValues.right(results.map(toService))
     } catch (error) {
-      return left(new ConflictError('Failed to find services'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find services'))
     }
   },
 
-  async update(id: string, data: UpdateServiceData): Promise<Either<DomainError, Service>> {
+  async update(id: string, data: ServiceDomain.UpdateServiceData): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service>> {
     const updateData = processUpdateData(data, {
       decimalFields: ['basePrice'],
       arrayFields: ['images'],
     })
     
-    return fromPromise(
+    return DomainValues.fromPromise(
       prisma.service.update({
         where: { id },
         data: updateData,
@@ -129,18 +127,18 @@ export const createServiceRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.NOT_FOUND) {
-          return new ConflictError('Service not found')
+          return new DomainValues.ConflictError('Service not found')
         }
         if (dbError?.type === DatabaseErrorType.UNIQUE_CONSTRAINT_VIOLATION) {
-          return new ConflictError('Service with this data already exists')
+          return new DomainValues.ConflictError('Service with this data already exists')
         }
-        return new ConflictError('Failed to update service')
+        return new DomainValues.ConflictError('Failed to update service')
       }
     ).then((either) => either.map(toService))
   },
 
-  async softDelete(id: string): Promise<Either<DomainError, Service>> {
-    return fromPromise(
+  async softDelete(id: string): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service>> {
+    return DomainValues.fromPromise(
       prisma.service.update({
         where: { id },
         data: createSoftDeleteData(),
@@ -148,14 +146,14 @@ export const createServiceRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.NOT_FOUND) {
-          return new ConflictError('Service not found')
+          return new DomainValues.ConflictError('Service not found')
         }
-        return new ConflictError('Failed to delete service')
+        return new DomainValues.ConflictError('Failed to delete service')
       }
     ).then((either) => either.map(toService))
   },
 
-  async hasActiveBookings(serviceId: string): Promise<Either<DomainError, boolean>> {
+  async hasActiveBookings(serviceId: string): Promise<Domain.Either<Domain.DomainError, boolean>> {
     try {
       const count = await prisma.booking.count({
         where: {
@@ -163,21 +161,21 @@ export const createServiceRepository = (
           status: { in: ['PENDING', 'CONFIRMED'] },
         },
       })
-      return right(count > 0)
+      return DomainValues.right(count > 0)
     } catch (error) {
-      return left(new ConflictError('Failed to check active bookings'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to check active bookings'))
     }
   },
 
-  async getEstablishmentId(serviceId: string): Promise<Either<DomainError, string | null>> {
+  async getEstablishmentId(serviceId: string): Promise<Domain.Either<Domain.DomainError, string | null>> {
     try {
       const service = await prisma.service.findUnique({
         where: { id: serviceId },
         select: { establishmentId: true },
       })
-      return right(service?.establishmentId ?? null)
+      return DomainValues.right(service?.establishmentId ?? null)
     } catch (error) {
-      return left(new ConflictError('Failed to get establishment ID'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to get establishment ID'))
     }
   },
 })

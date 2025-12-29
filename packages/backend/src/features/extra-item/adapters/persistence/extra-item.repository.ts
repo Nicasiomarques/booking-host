@@ -1,31 +1,30 @@
 import { PrismaClient, ExtraItem as PrismaExtraItem } from '@prisma/client'
-import type { ExtraItem, CreateExtraItemData, UpdateExtraItemData } from '../../domain/index.js'
+import type * as ExtraItemDomain from '../../domain/index.js'
 import { toDecimal, createSoftDeleteData, processUpdateData } from '#shared/adapters/outbound/prisma/base-repository.js'
-import type { DomainError, Either } from '#shared/domain/index.js'
-import { right, left, fromPromise } from '#shared/domain/index.js'
-import { ConflictError, NotFoundError } from '#shared/domain/index.js'
-import type { RepositoryErrorHandlerPort } from '#shared/application/ports/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
 import { DatabaseErrorType } from '#shared/application/ports/index.js'
 
-export type { ExtraItem, CreateExtraItemData, UpdateExtraItemData }
+export type { ExtraItem, CreateExtraItemData, UpdateExtraItemData } from '../../domain/index.js'
 
-function toExtraItem(prismaExtraItem: PrismaExtraItem): ExtraItem {
+function toExtraItem(prismaExtraItem: PrismaExtraItem): ExtraItemDomain.ExtraItem {
   return {
     ...prismaExtraItem,
     price: prismaExtraItem.price.toString(),
   }
 }
 
-export interface ExtraItemWithEstablishment extends ExtraItem {
+export interface ExtraItemWithEstablishment extends ExtraItemDomain.ExtraItem {
   service: { establishmentId: string }
 }
 
 export const createExtraItemRepository = (
   prisma: PrismaClient,
-  errorHandler: RepositoryErrorHandlerPort
+  errorHandler: Ports.RepositoryErrorHandlerPort
 ) => ({
-  async create(data: CreateExtraItemData): Promise<Either<DomainError, ExtraItem>> {
-    return fromPromise(
+  async create(data: ExtraItemDomain.CreateExtraItemData): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem>> {
+    return DomainValues.fromPromise(
       prisma.extraItem.create({
         data: {
           serviceId: data.serviceId,
@@ -39,28 +38,28 @@ export const createExtraItemRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.UNIQUE_CONSTRAINT_VIOLATION) {
-          return new ConflictError('Extra item with this data already exists')
+          return new DomainValues.ConflictError('Extra item with this data already exists')
         }
         if (dbError?.type === DatabaseErrorType.FOREIGN_KEY_VIOLATION) {
-          return new ConflictError('Invalid service reference')
+          return new DomainValues.ConflictError('Invalid service reference')
         }
-        return new ConflictError('Failed to create extra item')
+        return new DomainValues.ConflictError('Failed to create extra item')
       }
     ).then((either) => either.map(toExtraItem))
   },
 
-  async findById(id: string): Promise<Either<DomainError, ExtraItem | null>> {
+  async findById(id: string): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem | null>> {
     try {
       const result = await prisma.extraItem.findUnique({
         where: { id },
       })
-      return right(result ? toExtraItem(result) : null)
+      return DomainValues.right(result ? toExtraItem(result) : null)
     } catch (error) {
-      return left(new ConflictError('Failed to find extra item'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find extra item'))
     }
   },
 
-  async findByIdWithService(id: string): Promise<Either<DomainError, ExtraItemWithEstablishment | null>> {
+  async findByIdWithService(id: string): Promise<Domain.Either<Domain.DomainError, ExtraItemWithEstablishment | null>> {
     try {
       const result = await prisma.extraItem.findUnique({
         where: { id },
@@ -70,20 +69,20 @@ export const createExtraItemRepository = (
           },
         },
       })
-      if (!result) return right(null)
-      return right({
+      if (!result) return DomainValues.right(null)
+      return DomainValues.right({
         ...toExtraItem(result),
         service: result.service,
       })
     } catch (error) {
-      return left(new ConflictError('Failed to find extra item'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find extra item'))
     }
   },
 
   async findByService(
     serviceId: string,
     options: { activeOnly?: boolean } = {}
-  ): Promise<Either<DomainError, ExtraItem[]>> {
+  ): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem[]>> {
     try {
       const results = await prisma.extraItem.findMany({
         where: {
@@ -92,18 +91,18 @@ export const createExtraItemRepository = (
         },
         orderBy: { createdAt: 'desc' },
       })
-      return right(results.map(toExtraItem))
+      return DomainValues.right(results.map(toExtraItem))
     } catch (error) {
-      return left(new ConflictError('Failed to find extra items'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find extra items'))
     }
   },
 
-  async update(id: string, data: UpdateExtraItemData): Promise<Either<DomainError, ExtraItem>> {
+  async update(id: string, data: ExtraItemDomain.UpdateExtraItemData): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem>> {
     const updateData = processUpdateData(data, {
       decimalFields: ['price'],
     })
     
-    return fromPromise(
+    return DomainValues.fromPromise(
       prisma.extraItem.update({
         where: { id },
         data: updateData,
@@ -111,18 +110,18 @@ export const createExtraItemRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.NOT_FOUND) {
-          return new NotFoundError('ExtraItem')
+          return new DomainValues.NotFoundError('ExtraItem')
         }
         if (dbError?.type === DatabaseErrorType.UNIQUE_CONSTRAINT_VIOLATION) {
-          return new ConflictError('Extra item with this data already exists')
+          return new DomainValues.ConflictError('Extra item with this data already exists')
         }
-        return new ConflictError('Failed to update extra item')
+        return new DomainValues.ConflictError('Failed to update extra item')
       }
     ).then((either) => either.map(toExtraItem))
   },
 
-  async softDelete(id: string): Promise<Either<DomainError, ExtraItem>> {
-    return fromPromise(
+  async softDelete(id: string): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem>> {
+    return DomainValues.fromPromise(
       prisma.extraItem.update({
         where: { id },
         data: createSoftDeleteData(),
@@ -130,22 +129,22 @@ export const createExtraItemRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.NOT_FOUND) {
-          return new NotFoundError('ExtraItem')
+          return new DomainValues.NotFoundError('ExtraItem')
         }
-        return new ConflictError('Failed to delete extra item')
+        return new DomainValues.ConflictError('Failed to delete extra item')
       }
     ).then((either) => either.map(toExtraItem))
   },
 
-  async getServiceId(extraItemId: string): Promise<Either<DomainError, string | null>> {
+  async getServiceId(extraItemId: string): Promise<Domain.Either<Domain.DomainError, string | null>> {
     try {
       const extraItem = await prisma.extraItem.findUnique({
         where: { id: extraItemId },
         select: { serviceId: true },
       })
-      return right(extraItem?.serviceId ?? null)
+      return DomainValues.right(extraItem?.serviceId ?? null)
     } catch (error) {
-      return left(new ConflictError('Failed to get service ID'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to get service ID'))
     }
   },
 })

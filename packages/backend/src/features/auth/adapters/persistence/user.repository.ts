@@ -1,13 +1,12 @@
 import { PrismaClient } from '@prisma/client'
-import type { CreateUserData, UserWithRoles, DomainError, Either } from '#shared/domain/index.js'
-import { left, right, fromPromise } from '#shared/domain/index.js'
-import { ConflictError, NotFoundError } from '#shared/domain/index.js'
-import type { RepositoryErrorHandlerPort } from '#shared/application/ports/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
 import { DatabaseErrorType } from '#shared/application/ports/index.js'
 
-export type { CreateUserData, UserWithRoles }
+export type { CreateUserData, UserWithRoles } from '#shared/domain/index.js'
 
-function toUserWithRoles(user: any): UserWithRoles {
+function toUserWithRoles(user: any): Domain.UserWithRoles {
   return {
     ...user,
     establishmentRoles: user.establishmentUsers.map((eu: any) => ({
@@ -19,9 +18,9 @@ function toUserWithRoles(user: any): UserWithRoles {
 
 export const createUserRepository = (
   prisma: PrismaClient,
-  errorHandler: RepositoryErrorHandlerPort
+  errorHandler: Ports.RepositoryErrorHandlerPort
 ) => ({
-  async findById(id: string): Promise<Either<DomainError, UserWithRoles | null>> {
+  async findById(id: string): Promise<Domain.Either<Domain.DomainError, Domain.UserWithRoles | null>> {
     try {
       const user = await prisma.user.findUnique({
         where: { id },
@@ -35,13 +34,13 @@ export const createUserRepository = (
         },
       })
 
-      return right(user ? toUserWithRoles(user) : null)
+      return DomainValues.right(user ? toUserWithRoles(user) : null)
     } catch (error) {
-      return left(new ConflictError('Failed to find user'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find user'))
     }
   },
 
-  async findByEmail(email: string): Promise<Either<DomainError, UserWithRoles | null>> {
+  async findByEmail(email: string): Promise<Domain.Either<Domain.DomainError, Domain.UserWithRoles | null>> {
     try {
       const user = await prisma.user.findUnique({
         where: { email: email.toLowerCase() },
@@ -55,14 +54,14 @@ export const createUserRepository = (
         },
       })
 
-      return right(user ? toUserWithRoles(user) : null)
+      return DomainValues.right(user ? toUserWithRoles(user) : null)
     } catch (error) {
-      return left(new ConflictError('Failed to find user'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find user'))
     }
   },
 
-  async create(data: CreateUserData): Promise<Either<DomainError, UserWithRoles>> {
-    return fromPromise(
+  async create(data: Domain.CreateUserData): Promise<Domain.Either<Domain.DomainError, Domain.UserWithRoles>> {
+    return DomainValues.fromPromise(
       prisma.user.create({
         data: {
           email: data.email.toLowerCase(),
@@ -84,15 +83,15 @@ export const createUserRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.UNIQUE_CONSTRAINT_VIOLATION) {
-          return new ConflictError('User with this email already exists')
+          return new DomainValues.ConflictError('User with this email already exists')
         }
-        return new ConflictError('Failed to create user')
+        return new DomainValues.ConflictError('Failed to create user')
       }
     ).then((either) => either.map(toUserWithRoles))
   },
 
-  async update(id: string, data: Partial<{ name: string; passwordHash: string }>): Promise<Either<DomainError, UserWithRoles | null>> {
-    return fromPromise(
+  async update(id: string, data: Partial<{ name: string; passwordHash: string }>): Promise<Domain.Either<Domain.DomainError, Domain.UserWithRoles | null>> {
+    return DomainValues.fromPromise(
       prisma.user.update({
         where: { id },
         data,
@@ -108,9 +107,9 @@ export const createUserRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.NOT_FOUND) {
-          return new NotFoundError('User')
+          return new DomainValues.NotFoundError('User')
         }
-        return new ConflictError('Failed to update user')
+        return new DomainValues.ConflictError('Failed to update user')
       }
     ).then((either) => either.map(toUserWithRoles))
   },

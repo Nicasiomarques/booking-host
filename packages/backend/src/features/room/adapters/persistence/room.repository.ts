@@ -1,29 +1,28 @@
 import { PrismaClient, Room as PrismaRoom } from '@prisma/client'
-import type { Room, CreateRoomData, UpdateRoomData } from '../../domain/index.js'
-import type { RoomStatus, RoomType, DomainError, Either } from '#shared/domain/index.js'
-import { right, left, fromPromise } from '#shared/domain/index.js'
-import { ConflictError, NotFoundError } from '#shared/domain/index.js'
+import type * as RoomDomain from '../../domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
 import { handleArrayFieldForCreate, processUpdateData } from '#shared/adapters/outbound/prisma/base-repository.js'
-import type { RepositoryErrorHandlerPort } from '#shared/application/ports/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
 import { DatabaseErrorType } from '#shared/application/ports/index.js'
 
-export type { Room, CreateRoomData, UpdateRoomData }
+export type { Room, CreateRoomData, UpdateRoomData } from '../../domain/index.js'
 
-function toRoom(prismaRoom: PrismaRoom): Room {
+function toRoom(prismaRoom: PrismaRoom): RoomDomain.Room {
   return {
     ...prismaRoom,
-    status: prismaRoom.status as RoomStatus,
-    roomType: prismaRoom.roomType as RoomType | null,
+    status: prismaRoom.status as Domain.RoomStatus,
+    roomType: prismaRoom.roomType as Domain.RoomType | null,
     amenities: prismaRoom.amenities ? (prismaRoom.amenities as string[]) : null,
   }
 }
 
 export const createRoomRepository = (
   prisma: PrismaClient,
-  errorHandler: RepositoryErrorHandlerPort
+  errorHandler: Ports.RepositoryErrorHandlerPort
 ) => ({
-  async create(data: CreateRoomData): Promise<Either<DomainError, Room>> {
-    return fromPromise(
+  async create(data: RoomDomain.CreateRoomData): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room>> {
+    return DomainValues.fromPromise(
       prisma.room.create({
         data: {
           serviceId: data.serviceId,
@@ -41,36 +40,36 @@ export const createRoomRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.UNIQUE_CONSTRAINT_VIOLATION) {
-          return new ConflictError('Room with this number already exists')
+          return new DomainValues.ConflictError('Room with this number already exists')
         }
         if (dbError?.type === DatabaseErrorType.FOREIGN_KEY_VIOLATION) {
-          return new ConflictError('Invalid service reference')
+          return new DomainValues.ConflictError('Invalid service reference')
         }
-        return new ConflictError('Failed to create room')
+        return new DomainValues.ConflictError('Failed to create room')
       }
     ).then((either) => either.map(toRoom))
   },
 
-  async findById(id: string): Promise<Either<DomainError, Room | null>> {
+  async findById(id: string): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room | null>> {
     try {
       const result = await prisma.room.findUnique({
         where: { id },
       })
-      return right(result ? toRoom(result) : null)
+      return DomainValues.right(result ? toRoom(result) : null)
     } catch (error) {
-      return left(new ConflictError('Failed to find room'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find room'))
     }
   },
 
-  async findByService(serviceId: string): Promise<Either<DomainError, Room[]>> {
+  async findByService(serviceId: string): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room[]>> {
     try {
       const results = await prisma.room.findMany({
         where: { serviceId },
         orderBy: [{ floor: 'asc' }, { number: 'asc' }],
       })
-      return right(results.map(toRoom))
+      return DomainValues.right(results.map(toRoom))
     } catch (error) {
-      return left(new ConflictError('Failed to find rooms'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find rooms'))
     }
   },
 
@@ -78,7 +77,7 @@ export const createRoomRepository = (
     serviceId: string,
     checkInDate: Date,
     checkOutDate: Date
-  ): Promise<Either<DomainError, Room[]>> {
+  ): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room[]>> {
     try {
       const results = await prisma.room.findMany({
         where: {
@@ -102,13 +101,13 @@ export const createRoomRepository = (
         },
         orderBy: [{ floor: 'asc' }, { number: 'asc' }],
       })
-      return right(results.map(toRoom))
+      return DomainValues.right(results.map(toRoom))
     } catch (error) {
-      return left(new ConflictError('Failed to find available rooms'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find available rooms'))
     }
   },
 
-  async update(id: string, data: UpdateRoomData): Promise<Either<DomainError, Room>> {
+  async update(id: string, data: RoomDomain.UpdateRoomData): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room>> {
     const updateData: any = {}
     
     if (data.number !== undefined) updateData.number = data.number
@@ -124,7 +123,7 @@ export const createRoomRepository = (
       arrayFields: ['amenities'],
     })
     
-    return fromPromise(
+    return DomainValues.fromPromise(
       prisma.room.update({
         where: { id },
         data: processedData,
@@ -132,29 +131,29 @@ export const createRoomRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.NOT_FOUND) {
-          return new NotFoundError('Room')
+          return new DomainValues.NotFoundError('Room')
         }
-        return new ConflictError('Failed to update room')
+        return new DomainValues.ConflictError('Failed to update room')
       }
     ).then((either) => either.map(toRoom))
   },
 
-  async delete(id: string): Promise<Either<DomainError, Room>> {
-    return fromPromise(
+  async delete(id: string): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room>> {
+    return DomainValues.fromPromise(
       prisma.room.delete({
         where: { id },
       }),
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.NOT_FOUND) {
-          return new NotFoundError('Room')
+          return new DomainValues.NotFoundError('Room')
         }
-        return new ConflictError('Failed to delete room')
+        return new DomainValues.ConflictError('Failed to delete room')
       }
     ).then((either) => either.map(toRoom))
   },
 
-  async hasActiveBookings(id: string): Promise<Either<DomainError, boolean>> {
+  async hasActiveBookings(id: string): Promise<Domain.Either<Domain.DomainError, boolean>> {
     try {
       const count = await prisma.booking.count({
         where: {
@@ -164,9 +163,9 @@ export const createRoomRepository = (
           },
         },
       })
-      return right(count > 0)
+      return DomainValues.right(count > 0)
     } catch (error) {
-      return left(new ConflictError('Failed to check active bookings'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to check active bookings'))
     }
   },
 })

@@ -1,30 +1,29 @@
 import { PrismaClient, Availability as PrismaAvailability, Prisma } from '@prisma/client'
-import type { Availability, CreateAvailabilityData, UpdateAvailabilityData } from '../../domain/index.js'
-import type { DomainError, Either } from '#shared/domain/index.js'
-import { right, left, fromPromise } from '#shared/domain/index.js'
-import { ConflictError, NotFoundError } from '#shared/domain/index.js'
-import type { RepositoryErrorHandlerPort } from '#shared/application/ports/index.js'
+import type * as AvailabilityDomain from '../../domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
 import { DatabaseErrorType } from '#shared/application/ports/index.js'
 
-export type { Availability, CreateAvailabilityData, UpdateAvailabilityData }
+export type { Availability, CreateAvailabilityData, UpdateAvailabilityData } from '../../domain/index.js'
 
-function toAvailability(prismaAvailability: PrismaAvailability): Availability {
+function toAvailability(prismaAvailability: PrismaAvailability): AvailabilityDomain.Availability {
   return {
     ...prismaAvailability,
     price: prismaAvailability.price ? prismaAvailability.price.toString() : null,
   }
 }
 
-export interface AvailabilityWithEstablishment extends Availability {
+export interface AvailabilityWithEstablishment extends AvailabilityDomain.Availability {
   service: { establishmentId: string }
 }
 
 export const createAvailabilityRepository = (
   prisma: PrismaClient,
-  errorHandler: RepositoryErrorHandlerPort
+  errorHandler: Ports.RepositoryErrorHandlerPort
 ) => ({
-  async create(data: CreateAvailabilityData): Promise<Either<DomainError, Availability>> {
-    return fromPromise(
+  async create(data: AvailabilityDomain.CreateAvailabilityData): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability>> {
+    return DomainValues.fromPromise(
       prisma.availability.create({
         data: {
           serviceId: data.serviceId,
@@ -40,28 +39,28 @@ export const createAvailabilityRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.UNIQUE_CONSTRAINT_VIOLATION) {
-          return new ConflictError('Availability with this data already exists')
+          return new DomainValues.ConflictError('Availability with this data already exists')
         }
         if (dbError?.type === DatabaseErrorType.FOREIGN_KEY_VIOLATION) {
-          return new ConflictError('Invalid service reference')
+          return new DomainValues.ConflictError('Invalid service reference')
         }
-        return new ConflictError('Failed to create availability')
+        return new DomainValues.ConflictError('Failed to create availability')
       }
     ).then((either) => either.map(toAvailability))
   },
 
-  async findById(id: string): Promise<Either<DomainError, Availability | null>> {
+  async findById(id: string): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability | null>> {
     try {
       const result = await prisma.availability.findUnique({
         where: { id },
       })
-      return right(result ? toAvailability(result) : null)
+      return DomainValues.right(result ? toAvailability(result) : null)
     } catch (error) {
-      return left(new ConflictError('Failed to find availability'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find availability'))
     }
   },
 
-  async findByIdWithService(id: string): Promise<Either<DomainError, AvailabilityWithEstablishment | null>> {
+  async findByIdWithService(id: string): Promise<Domain.Either<Domain.DomainError, AvailabilityWithEstablishment | null>> {
     try {
       const result = await prisma.availability.findUnique({
         where: { id },
@@ -71,20 +70,20 @@ export const createAvailabilityRepository = (
           },
         },
       })
-      if (!result) return right(null)
-      return right({
+      if (!result) return DomainValues.right(null)
+      return DomainValues.right({
         ...toAvailability(result),
         service: result.service,
       })
     } catch (error) {
-      return left(new ConflictError('Failed to find availability'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find availability'))
     }
   },
 
   async findByService(
     serviceId: string,
     options: { startDate?: Date; endDate?: Date } = {}
-  ): Promise<Either<DomainError, Availability[]>> {
+  ): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability[]>> {
     try {
       const results = await prisma.availability.findMany({
         where: {
@@ -100,9 +99,9 @@ export const createAvailabilityRepository = (
         },
         orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
       })
-      return right(results.map(toAvailability))
+      return DomainValues.right(results.map(toAvailability))
     } catch (error) {
-      return left(new ConflictError('Failed to find availabilities'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find availabilities'))
     }
   },
 
@@ -110,7 +109,7 @@ export const createAvailabilityRepository = (
     serviceId: string,
     startDate: Date,
     endDate: Date
-  ): Promise<Either<DomainError, Availability[]>> {
+  ): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability[]>> {
     try {
       const results = await prisma.availability.findMany({
         where: {
@@ -122,20 +121,20 @@ export const createAvailabilityRepository = (
         },
         orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
       })
-      return right(results.map(toAvailability))
+      return DomainValues.right(results.map(toAvailability))
     } catch (error) {
-      return left(new ConflictError('Failed to find availabilities'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to find availabilities'))
     }
   },
 
-  async update(id: string, data: UpdateAvailabilityData): Promise<Either<DomainError, Availability>> {
+  async update(id: string, data: AvailabilityDomain.UpdateAvailabilityData): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability>> {
     const updateData: any = { ...data }
     
     if (data.price !== undefined) {
       updateData.price = data.price !== null ? new Prisma.Decimal(data.price) : null
     }
     
-    return fromPromise(
+    return DomainValues.fromPromise(
       prisma.availability.update({
         where: { id },
         data: updateData,
@@ -143,24 +142,24 @@ export const createAvailabilityRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.NOT_FOUND) {
-          return new NotFoundError('Availability')
+          return new DomainValues.NotFoundError('Availability')
         }
-        return new ConflictError('Failed to update availability')
+        return new DomainValues.ConflictError('Failed to update availability')
       }
     ).then((either) => either.map(toAvailability))
   },
 
-  async delete(id: string): Promise<Either<DomainError, Availability>> {
-    return fromPromise(
+  async delete(id: string): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability>> {
+    return DomainValues.fromPromise(
       prisma.availability.delete({
         where: { id },
       }),
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.NOT_FOUND) {
-          return new NotFoundError('Availability')
+          return new DomainValues.NotFoundError('Availability')
         }
-        return new ConflictError('Failed to delete availability')
+        return new DomainValues.ConflictError('Failed to delete availability')
       }
     ).then((either) => either.map(toAvailability))
   },
@@ -171,7 +170,7 @@ export const createAvailabilityRepository = (
     startTime: string,
     endTime: string,
     excludeId?: string
-  ): Promise<Either<DomainError, boolean>> {
+  ): Promise<Domain.Either<Domain.DomainError, boolean>> {
     try {
       const overlapping = await prisma.availability.findFirst({
         where: {
@@ -194,13 +193,13 @@ export const createAvailabilityRepository = (
           ],
         },
       })
-      return right(overlapping !== null)
+      return DomainValues.right(overlapping !== null)
     } catch (error) {
-      return left(new ConflictError('Failed to check overlap'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to check overlap'))
     }
   },
 
-  async hasActiveBookings(availabilityId: string): Promise<Either<DomainError, boolean>> {
+  async hasActiveBookings(availabilityId: string): Promise<Domain.Either<Domain.DomainError, boolean>> {
     try {
       const count = await prisma.booking.count({
         where: {
@@ -208,26 +207,26 @@ export const createAvailabilityRepository = (
           status: { in: ['PENDING', 'CONFIRMED'] },
         },
       })
-      return right(count > 0)
+      return DomainValues.right(count > 0)
     } catch (error) {
-      return left(new ConflictError('Failed to check active bookings'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to check active bookings'))
     }
   },
 
-  async getServiceId(availabilityId: string): Promise<Either<DomainError, string | null>> {
+  async getServiceId(availabilityId: string): Promise<Domain.Either<Domain.DomainError, string | null>> {
     try {
       const availability = await prisma.availability.findUnique({
         where: { id: availabilityId },
         select: { serviceId: true },
       })
-      return right(availability?.serviceId ?? null)
+      return DomainValues.right(availability?.serviceId ?? null)
     } catch (error) {
-      return left(new ConflictError('Failed to get service ID'))
+      return DomainValues.left(new DomainValues.ConflictError('Failed to get service ID'))
     }
   },
 
-  async decrementCapacity(id: string, quantity: number): Promise<Either<DomainError, Availability>> {
-    return fromPromise(
+  async decrementCapacity(id: string, quantity: number): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability>> {
+    return DomainValues.fromPromise(
       prisma.availability.update({
         where: { id },
         data: {
@@ -237,15 +236,15 @@ export const createAvailabilityRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.NOT_FOUND) {
-          return new NotFoundError('Availability')
+          return new DomainValues.NotFoundError('Availability')
         }
-        return new ConflictError('Failed to decrement capacity')
+        return new DomainValues.ConflictError('Failed to decrement capacity')
       }
     ).then((either) => either.map(toAvailability))
   },
 
-  async incrementCapacity(id: string, quantity: number): Promise<Either<DomainError, Availability>> {
-    return fromPromise(
+  async incrementCapacity(id: string, quantity: number): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability>> {
+    return DomainValues.fromPromise(
       prisma.availability.update({
         where: { id },
         data: {
@@ -255,9 +254,9 @@ export const createAvailabilityRepository = (
       (error) => {
         const dbError = errorHandler.analyze(error)
         if (dbError?.type === DatabaseErrorType.NOT_FOUND) {
-          return new NotFoundError('Availability')
+          return new DomainValues.NotFoundError('Availability')
         }
-        return new ConflictError('Failed to increment capacity')
+        return new DomainValues.ConflictError('Failed to increment capacity')
       }
     ).then((either) => either.map(toAvailability))
   },
