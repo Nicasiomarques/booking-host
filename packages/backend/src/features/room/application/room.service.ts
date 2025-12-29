@@ -1,18 +1,18 @@
-import type { Room, CreateRoomData, UpdateRoomData } from '../domain/index.js'
-import { validateRoomNumberUniqueness, canRoomBeSetToAvailable } from '../domain/index.js'
-import type { DomainError, Either } from '#shared/domain/index.js'
-import { isLeft, right } from '#shared/domain/index.js'
-import type { RoomRepositoryPort, ServiceRepositoryPort, EstablishmentRepositoryPort } from '#shared/application/ports/index.js'
-import { requireEntity } from '#shared/application/utils/validation.helper.js'
-import { updateWithAuthorization, deleteWithAuthorization, createWithServiceAuthorization } from '#shared/application/services/crud-helpers.js'
+import type * as RoomDomain from '../domain/index.js'
+import * as RoomDomainValues from '../domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
+import * as Validation from '#shared/application/utils/validation.helper.js'
+import * as CRUD from '#shared/application/services/crud-helpers.js'
 
 export const createRoomService = (deps: {
-  repository: RoomRepositoryPort
-  serviceRepository: ServiceRepositoryPort
-  establishmentRepository: EstablishmentRepositoryPort
+  repository: Ports.RoomRepositoryPort
+  serviceRepository: Ports.ServiceRepositoryPort
+  establishmentRepository: Ports.EstablishmentRepositoryPort
 }) => ({
-  async create(serviceId: string, data: Omit<CreateRoomData, 'serviceId'>, userId: string): Promise<Either<DomainError, Room>> {
-    return createWithServiceAuthorization(serviceId, data, userId, {
+  async create(serviceId: string, data: Omit<RoomDomain.CreateRoomData, 'serviceId'>, userId: string): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room>> {
+    return CRUD.createWithServiceAuthorization(serviceId, data, userId, {
       serviceRepository: {
         findById: (id) => deps.serviceRepository.findById(id),
       },
@@ -25,77 +25,77 @@ export const createRoomService = (deps: {
       action: 'create rooms',
       validateBeforeCreate: async (_service, data) => {
         const roomsResult = await deps.repository.findByService(serviceId)
-        if (isLeft(roomsResult)) {
+        if (Validation.isLeft(roomsResult)) {
           return roomsResult
         }
-        return validateRoomNumberUniqueness(data.number, roomsResult.value)
+        return RoomDomainValues.validateRoomNumberUniqueness(data.number, roomsResult.value)
       },
     })
   },
 
-  async findById(id: string): Promise<Either<DomainError, Room>> {
+  async findById(id: string): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room>> {
     const result = await deps.repository.findById(id)
-    if (isLeft(result)) {
+    if (Validation.isLeft(result)) {
       return result
     }
-    return requireEntity(result.value, 'Room')
+    return Validation.requireEntity(result.value, 'Room')
   },
 
-  async findByService(serviceId: string): Promise<Either<DomainError, Room[]>> {
+  async findByService(serviceId: string): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room[]>> {
     const serviceResult = await deps.serviceRepository.findById(serviceId)
-    if (isLeft(serviceResult)) {
+    if (Validation.isLeft(serviceResult)) {
       return serviceResult
     }
-    const serviceEither = requireEntity(serviceResult.value, 'Service')
-    if (isLeft(serviceEither)) {
+    const serviceEither = Validation.requireEntity(serviceResult.value, 'Service')
+    if (Validation.isLeft(serviceEither)) {
       return serviceEither
     }
     return deps.repository.findByService(serviceId)
   },
 
-  async update(id: string, data: UpdateRoomData, userId: string): Promise<Either<DomainError, Room>> {
+  async update(id: string, data: RoomDomain.UpdateRoomData, userId: string): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room>> {
     const roomResult = await deps.repository.findById(id)
-    if (isLeft(roomResult)) {
+    if (Validation.isLeft(roomResult)) {
       return roomResult
     }
-    const roomEither = requireEntity(roomResult.value, 'Room')
-    if (isLeft(roomEither)) {
+    const roomEither = Validation.requireEntity(roomResult.value, 'Room')
+    if (Validation.isLeft(roomEither)) {
       return roomEither
     }
     const room = roomEither.value
 
     const serviceResult = await deps.serviceRepository.findById(room.serviceId)
-    if (isLeft(serviceResult)) {
+    if (Validation.isLeft(serviceResult)) {
       return serviceResult
     }
-    const serviceEither = requireEntity(serviceResult.value, 'Service')
-    if (isLeft(serviceEither)) {
+    const serviceEither = Validation.requireEntity(serviceResult.value, 'Service')
+    if (Validation.isLeft(serviceEither)) {
       return serviceEither
     }
 
     if (data.number && data.number !== room.number) {
       const roomsResult = await deps.repository.findByService(room.serviceId)
-      if (isLeft(roomsResult)) {
+      if (Validation.isLeft(roomsResult)) {
         return roomsResult
       }
-      const uniquenessResult = validateRoomNumberUniqueness(data.number, roomsResult.value, id)
-      if (isLeft(uniquenessResult)) {
+      const uniquenessResult = RoomDomainValues.validateRoomNumberUniqueness(data.number, roomsResult.value, id)
+      if (Validation.isLeft(uniquenessResult)) {
         return uniquenessResult
       }
     }
 
     if (data.status === 'AVAILABLE') {
       const bookingsResult = await deps.repository.hasActiveBookings(id)
-      if (isLeft(bookingsResult)) {
+      if (Validation.isLeft(bookingsResult)) {
         return bookingsResult
       }
-      const canSetAvailableResult = canRoomBeSetToAvailable(bookingsResult.value)
-      if (isLeft(canSetAvailableResult)) {
+      const canSetAvailableResult = RoomDomainValues.canRoomBeSetToAvailable(bookingsResult.value)
+      if (Validation.isLeft(canSetAvailableResult)) {
         return canSetAvailableResult
       }
     }
 
-    return updateWithAuthorization(id, data, userId, {
+    return CRUD.updateWithAuthorization(id, data, userId, {
       repository: {
         findById: (id) => deps.repository.findById(id),
         update: (id, data) => deps.repository.update(id, data),
@@ -103,41 +103,41 @@ export const createRoomService = (deps: {
       entityName: 'Room',
       getEstablishmentId: async (room) => {
         const serviceResult = await deps.serviceRepository.findById(room.serviceId)
-        if (isLeft(serviceResult)) {
+        if (Validation.isLeft(serviceResult)) {
           return serviceResult
         }
-        const serviceEither = requireEntity(serviceResult.value, 'Service')
-        if (isLeft(serviceEither)) {
+        const serviceEither = Validation.requireEntity(serviceResult.value, 'Service')
+        if (Validation.isLeft(serviceEither)) {
           return serviceEither
         }
-        return right(serviceEither.value.establishmentId)
+        return DomainValues.right(serviceEither.value.establishmentId)
       },
       getUserRole: (uid, eid) => deps.establishmentRepository.getUserRole(uid, eid),
       action: 'update rooms',
     })
   },
 
-  async delete(id: string, userId: string): Promise<Either<DomainError, Room>> {
+  async delete(id: string, userId: string): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room>> {
     const roomResult = await deps.repository.findById(id)
-    if (isLeft(roomResult)) {
+    if (Validation.isLeft(roomResult)) {
       return roomResult
     }
-    const roomEither = requireEntity(roomResult.value, 'Room')
-    if (isLeft(roomEither)) {
+    const roomEither = Validation.requireEntity(roomResult.value, 'Room')
+    if (Validation.isLeft(roomEither)) {
       return roomEither
     }
     const room = roomEither.value
 
     const serviceResult = await deps.serviceRepository.findById(room.serviceId)
-    if (isLeft(serviceResult)) {
+    if (Validation.isLeft(serviceResult)) {
       return serviceResult
     }
-    const serviceEither = requireEntity(serviceResult.value, 'Service')
-    if (isLeft(serviceEither)) {
+    const serviceEither = Validation.requireEntity(serviceResult.value, 'Service')
+    if (Validation.isLeft(serviceEither)) {
       return serviceEither
     }
 
-    return deleteWithAuthorization(id, userId, {
+    return CRUD.deleteWithAuthorization(id, userId, {
       repository: {
         findById: (id) => deps.repository.findById(id),
         delete: (id) => deps.repository.delete(id),
@@ -146,14 +146,14 @@ export const createRoomService = (deps: {
       entityName: 'Room',
       getEstablishmentId: async (room) => {
         const serviceResult = await deps.serviceRepository.findById(room.serviceId)
-        if (isLeft(serviceResult)) {
+        if (Validation.isLeft(serviceResult)) {
           return serviceResult
         }
-        const serviceEither = requireEntity(serviceResult.value, 'Service')
-        if (isLeft(serviceEither)) {
+        const serviceEither = Validation.requireEntity(serviceResult.value, 'Service')
+        if (Validation.isLeft(serviceEither)) {
           return serviceEither
         }
-        return right(serviceEither.value.establishmentId)
+        return DomainValues.right(serviceEither.value.establishmentId)
       },
       getUserRole: (uid, eid) => deps.establishmentRepository.getUserRole(uid, eid),
       action: 'delete rooms',

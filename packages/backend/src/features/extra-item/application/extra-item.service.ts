@@ -1,24 +1,20 @@
-import type { ExtraItem, CreateExtraItemData, UpdateExtraItemData } from '../domain/index.js'
-import type { DomainError, Either } from '#shared/domain/index.js'
-import type {
-  ExtraItemRepositoryPort,
-  ServiceRepositoryPort,
-  EstablishmentRepositoryPort,
-} from '#shared/application/ports/index.js'
-import { requireEntity, isLeft } from '#shared/application/utils/validation.helper.js'
-import { updateWithAuthorization, deleteWithAuthorization, createWithServiceAuthorization } from '#shared/application/services/crud-helpers.js'
+import type * as ExtraItemDomain from '../domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
+import * as Validation from '#shared/application/utils/validation.helper.js'
+import * as CRUD from '#shared/application/services/crud-helpers.js'
 
 export const createExtraItemService = (deps: {
-  repository: ExtraItemRepositoryPort
-  serviceRepository: ServiceRepositoryPort
-  establishmentRepository: EstablishmentRepositoryPort
+  repository: Ports.ExtraItemRepositoryPort
+  serviceRepository: Ports.ServiceRepositoryPort
+  establishmentRepository: Ports.EstablishmentRepositoryPort
 }) => ({
   async create(
     serviceId: string,
-    data: Omit<CreateExtraItemData, 'serviceId'>,
+    data: Omit<ExtraItemDomain.CreateExtraItemData, 'serviceId'>,
     userId: string
-  ): Promise<Either<DomainError, ExtraItem>> {
-    return createWithServiceAuthorization(serviceId, data, userId, {
+  ): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem>> {
+    return CRUD.createWithServiceAuthorization(serviceId, data, userId, {
       serviceRepository: {
         findById: (id) => deps.serviceRepository.findById(id),
       },
@@ -32,27 +28,27 @@ export const createExtraItemService = (deps: {
     })
   },
 
-  async findById(id: string): Promise<Either<DomainError, ExtraItem>> {
+  async findById(id: string): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem>> {
     const result = await deps.repository.findById(id)
-    if (isLeft(result)) {
+    if (Validation.isLeft(result)) {
       return result
     }
-    return requireEntity(result.value, 'ExtraItem')
+    return Validation.requireEntity(result.value, 'ExtraItem')
   },
 
   async findByService(
     serviceId: string,
     options: { activeOnly?: boolean } = {}
-  ): Promise<Either<DomainError, ExtraItem[]>> {
+  ): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem[]>> {
     return deps.repository.findByService(serviceId, options)
   },
 
   async update(
     id: string,
-    data: UpdateExtraItemData,
+    data: ExtraItemDomain.UpdateExtraItemData,
     userId: string
-  ): Promise<Either<DomainError, ExtraItem>> {
-    return updateWithAuthorization(id, data, userId, {
+  ): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem>> {
+    return CRUD.updateWithAuthorization(id, data, userId, {
       repository: {
         findByIdWithService: (id) => deps.repository.findByIdWithService(id),
         update: (id, data) => deps.repository.update(id, data),
@@ -64,8 +60,8 @@ export const createExtraItemService = (deps: {
     })
   },
 
-  async delete(id: string, userId: string): Promise<Either<DomainError, ExtraItem>> {
-    return deleteWithAuthorization(id, userId, {
+  async delete(id: string, userId: string): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem>> {
+    return CRUD.deleteWithAuthorization(id, userId, {
       repository: {
         findByIdWithService: (id) => deps.repository.findByIdWithService(id),
         softDelete: (id) => deps.repository.softDelete(id),

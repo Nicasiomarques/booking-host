@@ -1,26 +1,18 @@
 import { createBookingCreationService, type CreateBookingInput } from './booking-creation.service.js'
 import { createBookingStatusService } from './booking-status.service.js'
 import { createBookingQueryService } from './booking-query.service.js'
-import type {
-  UnitOfWorkPort,
-  ServiceRepositoryPort,
-  AvailabilityRepositoryPort,
-  ExtraItemRepositoryPort,
-  EstablishmentRepositoryPort,
-  BookingRepositoryPort,
-  RoomRepositoryPort,
-} from '#shared/application/ports/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
 
 export type { CreateBookingInput }
 
 interface BookingServiceDependencies {
-  unitOfWork: UnitOfWorkPort
-  bookingRepository: BookingRepositoryPort
-  serviceRepository: ServiceRepositoryPort
-  availabilityRepository: AvailabilityRepositoryPort
-  extraItemRepository: ExtraItemRepositoryPort
-  establishmentRepository: EstablishmentRepositoryPort
-  roomRepository: RoomRepositoryPort
+  unitOfWork: Ports.UnitOfWorkPort
+  bookingRepository: Ports.BookingRepositoryPort
+  serviceRepository: Ports.ServiceRepositoryPort
+  availabilityRepository: Ports.AvailabilityRepositoryPort
+  extraItemRepository: Ports.ExtraItemRepositoryPort
+  establishmentRepository: Ports.EstablishmentRepositoryPort
+  roomRepository: Ports.RoomRepositoryPort
 }
 
 export const createBookingService = (deps: BookingServiceDependencies) => {

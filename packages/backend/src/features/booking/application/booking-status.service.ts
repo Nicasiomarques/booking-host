@@ -1,229 +1,221 @@
-import type { BookingWithDetails } from '../domain/index.js'
-import type { DomainError, Either } from '#shared/domain/index.js'
-import { NotFoundError, ForbiddenError, ConflictError } from '#shared/domain/index.js'
-import { left, right, isLeft } from '#shared/domain/index.js'
-import { requireEntity } from '#shared/application/utils/validation.helper.js'
+import type * as BookingDomain from '../domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
+import * as Validation from '#shared/application/utils/validation.helper.js'
 import {
   canBookingBeCheckedIn,
   canBookingBeCheckedOut,
   canBookingStatusBeCancelled,
   canBookingStatusBeConfirmed,
 } from '../domain/index.js'
-import { isServiceHotel } from '#features/service/domain/index.js'
-import type {
-  UnitOfWorkPort,
-  BookingRepositoryPort,
-  ServiceRepositoryPort,
-  EstablishmentRepositoryPort,
-  AvailabilityRepositoryPort,
-  RoomRepositoryPort,
-} from '#shared/application/ports/index.js'
+import * as ServiceDomainValues from '#features/service/domain/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
 
 export const createBookingStatusService = (deps: {
-  unitOfWork: UnitOfWorkPort
-  bookingRepository: BookingRepositoryPort
-  serviceRepository: ServiceRepositoryPort
-  establishmentRepository: EstablishmentRepositoryPort
-  availabilityRepository: AvailabilityRepositoryPort
-  roomRepository: RoomRepositoryPort
+  unitOfWork: Ports.UnitOfWorkPort
+  bookingRepository: Ports.BookingRepositoryPort
+  serviceRepository: Ports.ServiceRepositoryPort
+  establishmentRepository: Ports.EstablishmentRepositoryPort
+  availabilityRepository: Ports.AvailabilityRepositoryPort
+  roomRepository: Ports.RoomRepositoryPort
 }) => ({
-  async cancel(id: string, userId: string): Promise<Either<DomainError, BookingWithDetails>> {
+  async cancel(id: string, userId: string): Promise<Domain.Either<Domain.DomainError, BookingDomain.BookingWithDetails>> {
     const ownershipResult = await deps.bookingRepository.getBookingOwnership(id)
-    if (isLeft(ownershipResult)) return ownershipResult
+    if (Validation.isLeft(ownershipResult)) return ownershipResult
     
-    const ownershipEither = requireEntity(ownershipResult.value, 'Booking')
-    if (isLeft(ownershipEither)) return ownershipEither;
+    const ownershipEither = Validation.requireEntity(ownershipResult.value, 'Booking')
+    if (Validation.isLeft(ownershipEither)) return ownershipEither;
     
     const ownership = ownershipEither.value
     if (ownership.userId !== userId) {
       const roleResult = await deps.establishmentRepository.getUserRole(userId, ownership.establishmentId)
-      if (isLeft(roleResult) || !roleResult.value) {
-        return left(new ForbiddenError('You do not have permission to cancel this booking'))
+      if (Validation.isLeft(roleResult) || !roleResult.value) {
+        return DomainValues.left(new DomainValues.ForbiddenError('You do not have permission to cancel this booking'))
       }
     }
 
     const canCancelResult = canBookingStatusBeCancelled(ownership.status)
-    if (isLeft(canCancelResult)) return canCancelResult;
+    if (Validation.isLeft(canCancelResult)) return canCancelResult;
 
     const transactionResult = await deps.unitOfWork.execute(async (ctx) => {
       const capacityResult = await ctx.availabilityRepository.incrementCapacity(
         ownership.availabilityId,
         ownership.quantity
       )
-      if (isLeft(capacityResult)) return capacityResult;
+      if (Validation.isLeft(capacityResult)) return capacityResult;
 
       if (ownership.serviceType === 'HOTEL' && ownership.roomId) {
         const roomStatusResult = await ctx.roomRepository.updateStatus(ownership.roomId, 'AVAILABLE')
-        if (isLeft(roomStatusResult)) return roomStatusResult;
+        if (Validation.isLeft(roomStatusResult)) return roomStatusResult;
       }
 
       return ctx.bookingRepository.updateStatus(id, 'CANCELLED')
     })
 
-    if (isLeft(transactionResult)) return transactionResult;
+    if (Validation.isLeft(transactionResult)) return transactionResult;
 
     return deps.bookingRepository.findById(id).then((result) => {
-      if (isLeft(result) || !result.value) return left(new NotFoundError('Booking'));
-      return right(result.value)
+      if (Validation.isLeft(result) || !result.value) return DomainValues.left(new DomainValues.NotFoundError('Booking'));
+      return DomainValues.right(result.value)
     })
   },
 
-  async confirm(id: string, userId: string): Promise<Either<DomainError, BookingWithDetails>> {
+  async confirm(id: string, userId: string): Promise<Domain.Either<Domain.DomainError, BookingDomain.BookingWithDetails>> {
     const ownershipResult = await deps.bookingRepository.getBookingOwnership(id)
-    if (isLeft(ownershipResult)) return ownershipResult
+    if (Validation.isLeft(ownershipResult)) return ownershipResult
     
-    const ownershipEither = requireEntity(ownershipResult.value, 'Booking')
-    if (isLeft(ownershipEither)) return ownershipEither;
+    const ownershipEither = Validation.requireEntity(ownershipResult.value, 'Booking')
+    if (Validation.isLeft(ownershipEither)) return ownershipEither;
     const ownership = ownershipEither.value
 
     const roleResult = await deps.establishmentRepository.getUserRole(userId, ownership.establishmentId)
-    if (isLeft(roleResult) || !roleResult.value) {
-      return left(new ForbiddenError('You do not have permission to confirm this booking'))
+    if (Validation.isLeft(roleResult) || !roleResult.value) {
+      return DomainValues.left(new DomainValues.ForbiddenError('You do not have permission to confirm this booking'))
     }
 
     const canConfirmResult = canBookingStatusBeConfirmed(ownership.status)
-    if (isLeft(canConfirmResult)) return canConfirmResult;
+    if (Validation.isLeft(canConfirmResult)) return canConfirmResult;
 
     const updateResult = await deps.bookingRepository.updateStatus(id, 'CONFIRMED')
-    if (isLeft(updateResult)) return updateResult;
+    if (Validation.isLeft(updateResult)) return updateResult;
 
     return deps.bookingRepository.findById(id).then((result) => {
-      if (isLeft(result) || !result.value) return left(new NotFoundError('Booking'));
-      return right(result.value)
+      if (Validation.isLeft(result) || !result.value) return DomainValues.left(new DomainValues.NotFoundError('Booking'));
+      return DomainValues.right(result.value)
     })
   },
 
-  async checkIn(id: string, userId: string): Promise<Either<DomainError, BookingWithDetails>> {
+  async checkIn(id: string, userId: string): Promise<Domain.Either<Domain.DomainError, BookingDomain.BookingWithDetails>> {
     const bookingResult = await deps.bookingRepository.findById(id)
-    if (isLeft(bookingResult)) return bookingResult
+    if (Validation.isLeft(bookingResult)) return bookingResult
     
-    const bookingEither = requireEntity(bookingResult.value, 'Booking')
-    if (isLeft(bookingEither)) return bookingEither;
+    const bookingEither = Validation.requireEntity(bookingResult.value, 'Booking')
+    if (Validation.isLeft(bookingEither)) return bookingEither;
     const booking = bookingEither.value
 
     const roleResult = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
-    if (isLeft(roleResult) || !roleResult.value) {
-      return left(new ForbiddenError('You do not have permission to check in this booking'))
+    if (Validation.isLeft(roleResult) || !roleResult.value) {
+      return DomainValues.left(new DomainValues.ForbiddenError('You do not have permission to check in this booking'))
     }
 
     const serviceResult = await deps.serviceRepository.findById(booking.serviceId)
-    if (isLeft(serviceResult) || !serviceResult.value) {
-      return left(new NotFoundError('Service'))
+    if (Validation.isLeft(serviceResult) || !serviceResult.value) {
+      return DomainValues.left(new DomainValues.NotFoundError('Service'))
     }
-    if (!isServiceHotel(serviceResult.value)) {
-      return left(new ConflictError('Check-in is only available for hotel bookings'))
+    if (!ServiceDomainValues.isServiceHotel(serviceResult.value)) {
+      return DomainValues.left(new DomainValues.ConflictError('Check-in is only available for hotel bookings'))
     }
 
     const canCheckInResult = canBookingBeCheckedIn(booking)
-    if (isLeft(canCheckInResult)) return canCheckInResult;
+    if (Validation.isLeft(canCheckInResult)) return canCheckInResult;
 
     const updateResult = await deps.bookingRepository.updateStatus(id, 'CHECKED_IN')
-    if (isLeft(updateResult)) return updateResult;
+    if (Validation.isLeft(updateResult)) return updateResult;
 
     return deps.bookingRepository.findById(id).then((result) => {
-      if (isLeft(result) || !result.value) return left(new NotFoundError('Booking'))
-      return right(result.value)
+      if (Validation.isLeft(result) || !result.value) return DomainValues.left(new DomainValues.NotFoundError('Booking'))
+      return DomainValues.right(result.value)
     })
   },
 
-  async checkOut(id: string, userId: string): Promise<Either<DomainError, BookingWithDetails>> {
+  async checkOut(id: string, userId: string): Promise<Domain.Either<Domain.DomainError, BookingDomain.BookingWithDetails>> {
     const bookingResult = await deps.bookingRepository.findById(id)
-    if (isLeft(bookingResult)) return bookingResult
+    if (Validation.isLeft(bookingResult)) return bookingResult
     
-    const bookingEither = requireEntity(bookingResult.value, 'Booking')
-    if (isLeft(bookingEither)) return bookingEither;
+    const bookingEither = Validation.requireEntity(bookingResult.value, 'Booking')
+    if (Validation.isLeft(bookingEither)) return bookingEither;
     const booking = bookingEither.value
 
     const roleResult = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
-    if (isLeft(roleResult) || !roleResult.value) {
-      return left(new ForbiddenError('You do not have permission to check out this booking'))
+    if (Validation.isLeft(roleResult) || !roleResult.value) {
+      return DomainValues.left(new DomainValues.ForbiddenError('You do not have permission to check out this booking'))
     }
 
     const serviceResult = await deps.serviceRepository.findById(booking.serviceId)
-    if (isLeft(serviceResult) || !serviceResult.value) return left(new NotFoundError('Service'))
+    if (Validation.isLeft(serviceResult) || !serviceResult.value) return DomainValues.left(new DomainValues.NotFoundError('Service'))
     
-    if (!isServiceHotel(serviceResult.value)) {
-      return left(new ConflictError('Check-out is only available for hotel bookings'))
+    if (!ServiceDomainValues.isServiceHotel(serviceResult.value)) {
+      return DomainValues.left(new DomainValues.ConflictError('Check-out is only available for hotel bookings'))
     }
 
     const canCheckOutResult = canBookingBeCheckedOut(booking)
-    if (isLeft(canCheckOutResult)) return canCheckOutResult;
+    if (Validation.isLeft(canCheckOutResult)) return canCheckOutResult;
 
     const transactionResult = await deps.unitOfWork.execute(async (ctx) => {
       const updateResult = await ctx.bookingRepository.updateStatus(id, 'CHECKED_OUT')
-      if (isLeft(updateResult)) return updateResult;
+      if (Validation.isLeft(updateResult)) return updateResult;
 
       if (booking.roomId) {
         const roomStatusResult = await ctx.roomRepository.updateStatus(booking.roomId, 'AVAILABLE')
-        if (isLeft(roomStatusResult)) return roomStatusResult;
+        if (Validation.isLeft(roomStatusResult)) return roomStatusResult;
       }
 
-      return right(undefined)
+      return DomainValues.right(undefined)
     })
 
-    if (isLeft(transactionResult)) return transactionResult;
+    if (Validation.isLeft(transactionResult)) return transactionResult;
 
     return deps.bookingRepository.findById(id).then((result) => {
-      if (isLeft(result) || !result.value) return left(new NotFoundError('Booking'));
-      return right(result.value)
+      if (Validation.isLeft(result) || !result.value) return DomainValues.left(new DomainValues.NotFoundError('Booking'));
+      return DomainValues.right(result.value)
     })
   },
 
-  async markNoShow(id: string, userId: string): Promise<Either<DomainError, BookingWithDetails>> {
+  async markNoShow(id: string, userId: string): Promise<Domain.Either<Domain.DomainError, BookingDomain.BookingWithDetails>> {
     const bookingResult = await deps.bookingRepository.findById(id)
-    if (isLeft(bookingResult)) return bookingResult
+    if (Validation.isLeft(bookingResult)) return bookingResult
     
-    const bookingEither = requireEntity(bookingResult.value, 'Booking')
-    if (isLeft(bookingEither)) return bookingEither;
+    const bookingEither = Validation.requireEntity(bookingResult.value, 'Booking')
+    if (Validation.isLeft(bookingEither)) return bookingEither;
     const booking = bookingEither.value
 
     const roleResult = await deps.establishmentRepository.getUserRole(userId, booking.establishmentId)
-    if (isLeft(roleResult) || !roleResult.value) {
-      return left(new ForbiddenError('You do not have permission to mark this booking as no-show'))
+    if (Validation.isLeft(roleResult) || !roleResult.value) {
+      return DomainValues.left(new DomainValues.ForbiddenError('You do not have permission to mark this booking as no-show'))
     }
 
     const serviceResult = await deps.serviceRepository.findById(booking.serviceId)
-    if (isLeft(serviceResult) || !serviceResult.value) {
-      return left(new NotFoundError('Service'))
+    if (Validation.isLeft(serviceResult) || !serviceResult.value) {
+      return DomainValues.left(new DomainValues.NotFoundError('Service'))
     }
-    if (!isServiceHotel(serviceResult.value)) {
-      return left(new ConflictError('No-show is only available for hotel bookings'))
+    if (!ServiceDomainValues.isServiceHotel(serviceResult.value)) {
+      return DomainValues.left(new DomainValues.ConflictError('No-show is only available for hotel bookings'))
     }
 
     if (booking.status === 'CHECKED_IN') {
-      return left(new ConflictError('Cannot mark a checked-in booking as no-show'))
+      return DomainValues.left(new DomainValues.ConflictError('Cannot mark a checked-in booking as no-show'))
     }
 
     if (booking.status === 'CHECKED_OUT') {
-      return left(new ConflictError('Cannot mark a checked-out booking as no-show'))
+      return DomainValues.left(new DomainValues.ConflictError('Cannot mark a checked-out booking as no-show'))
     }
 
     if (booking.status === 'NO_SHOW') {
-      return left(new ConflictError('Booking is already marked as no-show'))
+      return DomainValues.left(new DomainValues.ConflictError('Booking is already marked as no-show'))
     }
 
     if (booking.status === 'CANCELLED') {
-      return left(new ConflictError('Cannot mark a cancelled booking as no-show'))
+      return DomainValues.left(new DomainValues.ConflictError('Cannot mark a cancelled booking as no-show'))
     }
 
     const transactionResult = await deps.unitOfWork.execute(async (ctx) => {
       const updateResult = await ctx.bookingRepository.updateStatus(id, 'NO_SHOW')
-      if (isLeft(updateResult)) return updateResult
+      if (Validation.isLeft(updateResult)) return updateResult
       
 
       if (booking.roomId) {
         const roomStatusResult = await ctx.roomRepository.updateStatus(booking.roomId, 'AVAILABLE')
-        if (isLeft(roomStatusResult)) return roomStatusResult;
+        if (Validation.isLeft(roomStatusResult)) return roomStatusResult;
       }
 
-      return right(undefined)
+      return DomainValues.right(undefined)
     })
 
-    if (isLeft(transactionResult)) return transactionResult
+    if (Validation.isLeft(transactionResult)) return transactionResult
 
     return deps.bookingRepository.findById(id).then((result) => {
-      if (isLeft(result) || !result.value) return left(new NotFoundError('Booking'));
-      return right(result.value)
+      if (Validation.isLeft(result) || !result.value) return DomainValues.left(new DomainValues.NotFoundError('Booking'));
+      return DomainValues.right(result.value)
     })
   },
 })

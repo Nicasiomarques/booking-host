@@ -4,30 +4,30 @@ import type {
   UpdateEstablishmentData,
   EstablishmentWithRole,
 } from '../domain/index.js'
-import type { Role, DomainError, Either } from '#shared/domain/index.js'
-import type { EstablishmentRepositoryPort } from '#shared/application/ports/index.js'
-import { requireEntity, isLeft } from '#shared/application/utils/validation.helper.js'
-import { updateWithAuthorization } from '#shared/application/services/crud-helpers.js'
+import type * as Domain from '#shared/domain/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
+import * as Validation from '#shared/application/utils/validation.helper.js'
+import * as CRUD from '#shared/application/services/crud-helpers.js'
 
 export const createEstablishmentService = (deps: {
-  repository: EstablishmentRepositoryPort
+  repository: Ports.EstablishmentRepositoryPort
 }) => ({
   async create(
     data: CreateEstablishmentData,
     userId: string
-  ): Promise<Either<DomainError, Establishment>> {
+  ): Promise<Domain.Either<Domain.DomainError, Establishment>> {
     return deps.repository.create(data, userId)
   },
 
-  async findById(id: string): Promise<Either<DomainError, Establishment>> {
+  async findById(id: string): Promise<Domain.Either<Domain.DomainError, Establishment>> {
     const result = await deps.repository.findById(id)
-    if (isLeft(result)) {
+    if (Validation.isLeft(result)) {
       return result
     }
-    return requireEntity(result.value, 'Establishment')
+    return Validation.requireEntity(result.value, 'Establishment')
   },
 
-  async findByUserId(userId: string): Promise<Either<DomainError, EstablishmentWithRole[]>> {
+  async findByUserId(userId: string): Promise<Domain.Either<Domain.DomainError, EstablishmentWithRole[]>> {
     return deps.repository.findByUserId(userId)
   },
 
@@ -35,8 +35,8 @@ export const createEstablishmentService = (deps: {
     id: string,
     data: UpdateEstablishmentData,
     userId: string
-  ): Promise<Either<DomainError, Establishment>> {
-    return updateWithAuthorization(id, data, userId, {
+  ): Promise<Domain.Either<Domain.DomainError, Establishment>> {
+    return CRUD.updateWithAuthorization(id, data, userId, {
       repository: {
         findById: (id) => deps.repository.findById(id),
         update: (id, data) => deps.repository.update(id, data),
@@ -48,7 +48,7 @@ export const createEstablishmentService = (deps: {
     })
   },
 
-  async getUserRole(userId: string, establishmentId: string): Promise<Either<DomainError, Role | null>> {
+  async getUserRole(userId: string, establishmentId: string): Promise<Domain.Either<Domain.DomainError, Domain.Role | null>> {
     return deps.repository.getUserRole(userId, establishmentId)
   },
 })

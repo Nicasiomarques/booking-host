@@ -1,26 +1,26 @@
-import type { Service, CreateServiceData, UpdateServiceData } from '../domain/index.js'
-import type { ServiceRepositoryPort, EstablishmentRepositoryPort } from '#shared/application/ports/index.js'
-import type { DomainError, Either } from '#shared/domain/index.js'
-import { requireOwnerRole } from '#shared/application/utils/authorization.helper.js'
-import { requireEntity, isLeft } from '#shared/application/utils/validation.helper.js'
-import { updateWithAuthorization, deleteWithAuthorization } from '#shared/application/services/crud-helpers.js'
+import type * as ServiceDomain from '../domain/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as Authorization from '#shared/application/utils/authorization.helper.js'
+import * as Validation from '#shared/application/utils/validation.helper.js'
+import * as CRUD from '#shared/application/services/crud-helpers.js'
 
 export const createServiceService = (deps: {
-  repository: ServiceRepositoryPort
-  establishmentRepository: EstablishmentRepositoryPort
+  repository: Ports.ServiceRepositoryPort
+  establishmentRepository: Ports.EstablishmentRepositoryPort
 }) => ({
   async create(
     establishmentId: string,
-    data: Omit<CreateServiceData, 'establishmentId'>,
+    data: Omit<ServiceDomain.CreateServiceData, 'establishmentId'>,
     userId: string
-  ): Promise<Either<DomainError, Service>> {
-    const roleCheck = await requireOwnerRole(
+  ): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service>> {
+    const roleCheck = await Authorization.requireOwnerRole(
       (uid, eid) => deps.establishmentRepository.getUserRole(uid, eid),
       userId,
       establishmentId,
       'create services'
     )
-    if (isLeft(roleCheck)) {
+    if (Validation.isLeft(roleCheck)) {
       return roleCheck
     }
 
@@ -30,27 +30,27 @@ export const createServiceService = (deps: {
     })
   },
 
-  async findById(id: string): Promise<Either<DomainError, Service>> {
+  async findById(id: string): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service>> {
     const result = await deps.repository.findById(id)
-    if (isLeft(result)) {
+    if (Validation.isLeft(result)) {
       return result
     }
-    return requireEntity(result.value, 'Service')
+    return Validation.requireEntity(result.value, 'Service')
   },
 
   async findByEstablishment(
     establishmentId: string,
     options: { activeOnly?: boolean } = {}
-  ): Promise<Either<DomainError, Service[]>> {
+  ): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service[]>> {
     return deps.repository.findByEstablishment(establishmentId, options)
   },
 
   async update(
     id: string,
-    data: UpdateServiceData,
+    data: ServiceDomain.UpdateServiceData,
     userId: string
-  ): Promise<Either<DomainError, Service>> {
-    return updateWithAuthorization(id, data, userId, {
+  ): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service>> {
+    return CRUD.updateWithAuthorization(id, data, userId, {
       repository: {
         findById: (id) => deps.repository.findById(id),
         update: (id, data) => deps.repository.update(id, data),
@@ -62,8 +62,8 @@ export const createServiceService = (deps: {
     })
   },
 
-  async delete(id: string, userId: string): Promise<Either<DomainError, Service>> {
-    return deleteWithAuthorization(id, userId, {
+  async delete(id: string, userId: string): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service>> {
+    return CRUD.deleteWithAuthorization(id, userId, {
       repository: {
         findById: (id) => deps.repository.findById(id),
         softDelete: (id) => deps.repository.softDelete(id),
