@@ -556,6 +556,36 @@ export const createServiceSchema = z
   })
 ```
 
+### 7.5 Service Specialization
+
+**Rule:** Complex services can be split into specialized services for better organization.
+
+**Example:**
+For services with multiple responsibilities (like booking), split into:
+- `{feature}-creation.service.ts` - Logic for creating entities
+- `{feature}-query.service.ts` - Logic for querying/reading entities
+- `{feature}-status.service.ts` - Logic for status transitions/state changes
+- `{feature}.service.ts` - Main orchestrator that combines all specialized services
+
+```typescript
+// booking.service.ts (orchestrator)
+export const createBookingService = (deps: BookingServiceDependencies) => {
+  const creationService = createBookingCreationService({...})
+  const queryService = createBookingQueryService({...})
+  const statusService = createBookingStatusService({...})
+
+  return {
+    create: creationService.create.bind(creationService),
+    findById: queryService.findById.bind(queryService),
+    findByUser: queryService.findByUser.bind(queryService),
+    cancel: statusService.cancel.bind(statusService),
+    confirm: statusService.confirm.bind(statusService),
+    checkIn: statusService.checkIn.bind(statusService),
+    // ...
+  }
+}
+```
+
 ---
 
 ## 8. Additional Best Practices
@@ -619,6 +649,106 @@ fastify.post('/services', {
 })
 ```
 
+### 8.5 Endpoint Helpers
+
+**Rule:** Use endpoint helpers to reduce boilerplate for common CRUD operations.
+
+**Available Helpers:**
+- `registerGetByIdEndpoint` - GET by ID endpoint
+- `registerCreateEndpoint` - POST create endpoint
+- `registerUpdateEndpoint` - PUT update endpoint
+- `registerDeleteEndpoint` - DELETE endpoint
+- `registerListEndpoint` - GET list endpoint
+
+**Example:**
+```typescript
+import { registerGetByIdEndpoint, registerUpdateEndpoint } from '#shared/adapters/http/utils/endpoint-helpers.js'
+
+export default async function serviceEndpoints(fastify: FastifyInstance) {
+  const { service } = fastify.services
+
+  registerGetByIdEndpoint(fastify, {
+    path: '/services/:id',
+    tags: ['Services'],
+    entityName: 'Service',
+    responseSchema: serviceResponseSchema,
+    service: { findById: (id) => service.findById(id) },
+    formatter: formatServiceResponse,
+  })
+
+  registerUpdateEndpoint(fastify, {
+    path: '/services/:id',
+    tags: ['Services'],
+    entityName: 'Service',
+    updateSchema: updateServiceSchema,
+    responseSchema: serviceResponseSchema,
+    service: { update: (id, data, userId) => service.update(id, data, userId) },
+    formatter: formatServiceResponse,
+    preHandler: [requireRole('OWNER')],
+  })
+}
+```
+
+### 8.6 Either Pattern Handling
+
+**Rule:** Use `handleEitherAsync` helper to convert Either results to HTTP responses.
+
+**Example:**
+```typescript
+import { handleEitherAsync } from '#shared/adapters/http/utils/either-handler.js'
+
+fastify.post('/services', {
+  handler: async (request, reply) => {
+    return handleEitherAsync(
+      service.create(data, request.user.userId),
+      reply,
+      (result) => formatServiceResponse(result),
+      201 // success status code
+    )
+  }
+})
+```
+
+### 8.7 Validation Helpers
+
+**Rule:** Use validation helpers for common validation patterns.
+
+**Available Helpers:**
+- `requireEntity(entity, entityName)` - Ensures entity exists, returns Either<NotFoundError, T>
+- `isLeft(either)` - Type guard to check if Either is Left (error)
+
+**Example:**
+```typescript
+import * as Validation from '#shared/application/utils/validation.helper.js'
+
+const serviceResult = await repository.findById(id)
+if (Validation.isLeft(serviceResult)) return serviceResult;
+
+const serviceEither = Validation.requireEntity(serviceResult.value, 'Service')
+if (Validation.isLeft(serviceEither)) return serviceEither;
+const service = serviceEither.value
+```
+
+### 8.8 Authorization Helpers
+
+**Rule:** Use authorization helpers for role verification in services.
+
+**Available Helpers:**
+- `requireOwnerRole(getUserRole, userId, establishmentId, action?)` - Verifies user has OWNER role
+
+**Example:**
+```typescript
+import * as Authorization from '#shared/application/utils/authorization.helper.js'
+
+const ownerResult = await Authorization.requireOwnerRole(
+  (userId, estId) => establishmentRepository.getUserRole(userId, estId),
+  userId,
+  establishmentId,
+  'create services'
+)
+if (Validation.isLeft(ownerResult)) return ownerResult;
+```
+
 ---
 
 ## 9. Review Checklist
@@ -634,7 +764,10 @@ Before committing, verify:
 - [ ] Factory functions for services/repositories
 - [ ] Zod schemas with OpenAPI metadata when applicable
 - [ ] Composition.ts exports factory function
-- [ ] Endpoints use helpers when possible
+- [ ] Endpoints use helpers when possible (registerGetByIdEndpoint, etc.)
+- [ ] Complex services split into specialized services when appropriate
+- [ ] Validation helpers used for entity checks (requireEntity)
+- [ ] Either results handled with handleEitherAsync
 
 ---
 

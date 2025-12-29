@@ -125,7 +125,10 @@ src/
 │   │   │   └── persistence/
 │   │   │       └── booking.repository.ts
 │   │   ├── application/
-│   │   │   └── booking.service.ts
+│   │   │   ├── booking.service.ts        # Service orchestrator
+│   │   │   ├── booking-creation.service.ts  # Creation logic
+│   │   │   ├── booking-query.service.ts     # Query logic
+│   │   │   └── booking-status.service.ts    # Status transitions
 │   │   ├── domain/
 │   │   │   └── booking.ts
 │   │   └── composition.ts
@@ -137,6 +140,10 @@ src/
 │   │   │   │   └── index.ts        # Centralized route registration
 │   │   │   ├── middleware/         # Auth, ACL, Validation
 │   │   │   ├── plugins/            # Prisma, Error Handler, Services
+│   │   │   ├── utils/              # HTTP utilities
+│   │   │   │   ├── endpoint-helpers.ts  # CRUD endpoint helpers
+│   │   │   │   ├── either-handler.ts    # Either pattern handlers
+│   │   │   │   └── crud-helpers.ts      # Response schemas
 │   │   │   └── services/
 │   │   │       └── service-factory.ts  # Composition Root
 │   │   └── outbound/
@@ -145,7 +152,10 @@ src/
 │   │       └── token/               # JWT adapter
 │   ├── application/
 │   │   ├── ports/                  # Interfaces (Ports)
+│   │   ├── services/               # Shared service helpers
 │   │   └── utils/                  # Shared helpers
+│   │       ├── validation.helper.ts    # Entity validation helpers
+│   │       └── authorization.helper.ts # Role verification helpers
 │   └── domain/
 │       ├── errors.ts               # DomainError, NotFoundError, etc.
 │       └── user.ts                 # Shared types
@@ -157,7 +167,9 @@ src/
 - **Each feature is self-contained**: has its own repositories, adapters, services, and domain
 - **Composition modules**: each feature has a `composition.ts` that instantiates its dependencies
 - **Separation of concerns**: mappers separated from endpoints, repositories within features
+- **Service specialization**: complex services (like booking) can be split into specialized services (creation, query, status)
 - **Centralized registration**: routes registered in `shared/adapters/http/routes/index.ts`
+- **Reusable helpers**: common HTTP operations use endpoint helpers to reduce boilerplate
 
 ---
 
@@ -628,6 +640,7 @@ Base URL: `/v1`
 | GET | `/bookings/my` | My bookings | Bearer |
 | GET | `/establishments/:id/bookings` | Establishment bookings | STAFF+ |
 | PUT | `/bookings/:id/cancel` | Cancel booking | Owner |
+| PUT | `/bookings/:id/confirm` | Confirm pending booking | STAFF+ |
 | PUT | `/bookings/:id/check-in` | Check-in hotel booking | STAFF+ |
 | PUT | `/bookings/:id/check-out` | Check-out hotel booking | STAFF+ |
 | PUT | `/bookings/:id/no-show` | Mark no-show hotel booking | STAFF+ |
@@ -655,6 +668,7 @@ Base URL: `/v1`
 | View establishment bookings | ✅ | ✅ | ❌ |
 | Create booking | ✅ | ✅ | ✅ |
 | Cancel own booking | ✅ | ✅ | ✅ |
+| Confirm booking | ✅ | ✅ | ❌ |
 | Check-in/check-out bookings | ✅ | ✅ | ❌ |
 
 ---
@@ -828,6 +842,8 @@ Swagger UI available at `/docs` when the server is running.
 - **Atomic capacity** - decremented on creation, restored on cancellation
 - **Price calculated** on backend (not trusted from client)
 - **Extras with frozen price** (price_at_booking)
+- **Booking status**: Created as CONFIRMED by default, can be changed to PENDING for manual confirmation
+- **Confirmation**: Only OWNER/STAFF can confirm pending bookings (cannot confirm already confirmed or cancelled bookings)
 
 ### Availability
 
