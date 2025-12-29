@@ -1,124 +1,80 @@
-import type {
-  Establishment,
-  CreateEstablishmentData,
-  UpdateEstablishmentData,
-  EstablishmentWithRole,
-} from '#features/establishment/domain/index.js'
-import type { Role, DomainError, Either } from '#shared/domain/index.js'
-import type {
-  Service,
-  CreateServiceData,
-  UpdateServiceData,
-} from '#features/service/domain/index.js'
-import type {
-  Room,
-  CreateRoomData,
-  UpdateRoomData,
-} from '#features/room/domain/index.js'
-import type {
-  Availability,
-  CreateAvailabilityData,
-  UpdateAvailabilityData,
-} from '#features/availability/domain/index.js'
-import type {
-  ExtraItem,
-  CreateExtraItemData,
-  UpdateExtraItemData,
-} from '#features/extra-item/domain/index.js'
-import type {
-  Booking,
-  BookingWithDetails,
-  ListBookingsOptions,
-} from '#features/booking/domain/index.js'
-import type { BookingStatus, PaginatedResult } from '#shared/domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import type * as EstablishmentDomain from '#features/establishment/domain/index.js'
+import type * as ServiceDomain from '#features/service/domain/index.js'
+import type * as RoomDomain from '#features/room/domain/index.js'
+import type * as AvailabilityDomain from '#features/availability/domain/index.js'
+import type * as ExtraItemDomain from '#features/extra-item/domain/index.js'
+import type * as BookingDomain from '#features/booking/domain/index.js'
 
-/**
- * Port interface for Establishment repository operations
- */
 export interface EstablishmentRepositoryPort {
-  create(data: CreateEstablishmentData, userId: string): Promise<Either<DomainError, Establishment>>
-  findById(id: string): Promise<Either<DomainError, Establishment | null>>
-  findByUserId(userId: string): Promise<Either<DomainError, EstablishmentWithRole[]>>
-  update(id: string, data: UpdateEstablishmentData): Promise<Either<DomainError, Establishment>>
-  getUserRole(userId: string, establishmentId: string): Promise<Either<DomainError, Role | null>>
+  create(data: EstablishmentDomain.CreateEstablishmentData, userId: string): Promise<Domain.Either<Domain.DomainError, EstablishmentDomain.Establishment>>
+  findById(id: string): Promise<Domain.Either<Domain.DomainError, EstablishmentDomain.Establishment | null>>
+  findByUserId(userId: string): Promise<Domain.Either<Domain.DomainError, EstablishmentDomain.EstablishmentWithRole[]>>
+  update(id: string, data: EstablishmentDomain.UpdateEstablishmentData): Promise<Domain.Either<Domain.DomainError, EstablishmentDomain.Establishment>>
+  getUserRole(userId: string, establishmentId: string): Promise<Domain.Either<Domain.DomainError, Domain.Role | null>>
 }
 
-/**
- * Port interface for Service repository operations
- */
 export interface ServiceRepositoryPort {
-  create(data: CreateServiceData): Promise<Either<DomainError, Service>>
-  findById(id: string): Promise<Either<DomainError, Service | null>>
-  findByEstablishment(establishmentId: string, options?: { activeOnly?: boolean }): Promise<Either<DomainError, Service[]>>
-  update(id: string, data: UpdateServiceData): Promise<Either<DomainError, Service>>
-  softDelete(id: string): Promise<Either<DomainError, Service>>
-  hasActiveBookings(id: string): Promise<Either<DomainError, boolean>>
+  create(data: ServiceDomain.CreateServiceData): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service>>
+  findById(id: string): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service | null>>
+  findByEstablishment(establishmentId: string, options?: { activeOnly?: boolean }): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service[]>>
+  update(id: string, data: ServiceDomain.UpdateServiceData): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service>>
+  softDelete(id: string): Promise<Domain.Either<Domain.DomainError, ServiceDomain.Service>>
+  hasActiveBookings(id: string): Promise<Domain.Either<Domain.DomainError, boolean>>
 }
 
-/**
- * Port interface for Availability repository operations
- */
 export interface AvailabilityRepositoryPort {
-  create(data: CreateAvailabilityData): Promise<Either<DomainError, Availability>>
-  findById(id: string): Promise<Either<DomainError, Availability | null>>
-  findByIdWithService(id: string): Promise<Either<DomainError, (Availability & { service: { establishmentId: string } }) | null>>
-  findByService(serviceId: string, options?: { startDate?: Date; endDate?: Date }): Promise<Either<DomainError, Availability[]>>
-  update(id: string, data: UpdateAvailabilityData): Promise<Either<DomainError, Availability>>
-  delete(id: string): Promise<Either<DomainError, Availability>>
+  create(data: AvailabilityDomain.CreateAvailabilityData): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability>>
+  findById(id: string): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability | null>>
+  findByIdWithService(id: string): Promise<Domain.Either<Domain.DomainError, (AvailabilityDomain.Availability & { service: { establishmentId: string } }) | null>>
+  findByService(serviceId: string, options?: { startDate?: Date; endDate?: Date }): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability[]>>
+  update(id: string, data: AvailabilityDomain.UpdateAvailabilityData): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability>>
+  delete(id: string): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability>>
   checkOverlap(
     serviceId: string,
     date: Date,
     startTime: string,
     endTime: string,
     excludeId?: string
-  ): Promise<Either<DomainError, boolean>>
-  hasActiveBookings(id: string): Promise<Either<DomainError, boolean>>
+  ): Promise<Domain.Either<Domain.DomainError, boolean>>
+  hasActiveBookings(id: string): Promise<Domain.Either<Domain.DomainError, boolean>>
 }
 
-/**
- * Port interface for ExtraItem repository operations
- */
 export interface ExtraItemRepositoryPort {
-  create(data: CreateExtraItemData): Promise<Either<DomainError, ExtraItem>>
-  findById(id: string): Promise<Either<DomainError, ExtraItem | null>>
-  findByIdWithService(id: string): Promise<Either<DomainError, (ExtraItem & { service: { establishmentId: string } }) | null>>
-  findByService(serviceId: string, options?: { activeOnly?: boolean }): Promise<Either<DomainError, ExtraItem[]>>
-  update(id: string, data: UpdateExtraItemData): Promise<Either<DomainError, ExtraItem>>
-  softDelete(id: string): Promise<Either<DomainError, ExtraItem>>
+  create(data: ExtraItemDomain.CreateExtraItemData): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem>>
+  findById(id: string): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem | null>>
+  findByIdWithService(id: string): Promise<Domain.Either<Domain.DomainError, (ExtraItemDomain.ExtraItem & { service: { establishmentId: string } }) | null>>
+  findByService(serviceId: string, options?: { activeOnly?: boolean }): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem[]>>
+  update(id: string, data: ExtraItemDomain.UpdateExtraItemData): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem>>
+  softDelete(id: string): Promise<Domain.Either<Domain.DomainError, ExtraItemDomain.ExtraItem>>
 }
 
-/**
- * Port interface for Room repository operations
- */
 export interface RoomRepositoryPort {
-  create(data: CreateRoomData): Promise<Either<DomainError, Room>>
-  findById(id: string): Promise<Either<DomainError, Room | null>>
-  findByService(serviceId: string): Promise<Either<DomainError, Room[]>>
-  findAvailableRooms(serviceId: string, checkInDate: Date, checkOutDate: Date): Promise<Either<DomainError, Room[]>>
-  update(id: string, data: UpdateRoomData): Promise<Either<DomainError, Room>>
-  delete(id: string): Promise<Either<DomainError, Room>>
-  hasActiveBookings(id: string): Promise<Either<DomainError, boolean>>
+  create(data: RoomDomain.CreateRoomData): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room>>
+  findById(id: string): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room | null>>
+  findByService(serviceId: string): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room[]>>
+  findAvailableRooms(serviceId: string, checkInDate: Date, checkOutDate: Date): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room[]>>
+  update(id: string, data: RoomDomain.UpdateRoomData): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room>>
+  delete(id: string): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room>>
+  hasActiveBookings(id: string): Promise<Domain.Either<Domain.DomainError, boolean>>
 }
 
-/**
- * Port interface for Booking repository operations (read-only, outside transactions)
- */
 export interface BookingRepositoryPort {
-  findById(id: string): Promise<Either<DomainError, BookingWithDetails | null>>
-  findByUser(userId: string, options?: ListBookingsOptions): Promise<Either<DomainError, PaginatedResult<BookingWithDetails>>>
+  findById(id: string): Promise<Domain.Either<Domain.DomainError, BookingDomain.BookingWithDetails | null>>
+  findByUser(userId: string, options?: BookingDomain.ListBookingsOptions): Promise<Domain.Either<Domain.DomainError, Domain.PaginatedResult<BookingDomain.BookingWithDetails>>>
   findByEstablishment(
     establishmentId: string,
-    options?: ListBookingsOptions
-  ): Promise<Either<DomainError, PaginatedResult<BookingWithDetails>>>
-  getBookingOwnership(id: string): Promise<Either<DomainError, {
+    options?: BookingDomain.ListBookingsOptions
+  ): Promise<Domain.Either<Domain.DomainError, Domain.PaginatedResult<BookingDomain.BookingWithDetails>>>
+  getBookingOwnership(id: string): Promise<Domain.Either<Domain.DomainError, {
     userId: string
     establishmentId: string
     quantity: number
     availabilityId: string
-    status: BookingStatus
+    status: Domain.BookingStatus
     roomId: string | null
     serviceType: string | null
   } | null>>
-  updateStatus(id: string, status: BookingStatus): Promise<Either<DomainError, Booking>>
+  updateStatus(id: string, status: Domain.BookingStatus): Promise<Domain.Either<Domain.DomainError, BookingDomain.Booking>>
 }
 

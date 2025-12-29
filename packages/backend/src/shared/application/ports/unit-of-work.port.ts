@@ -1,33 +1,29 @@
-import type {
-  Booking,
-  CreateBookingData,
-  BookingExtraItemData,
-} from '#features/booking/domain/index.js'
-import type { Availability } from '#features/availability/domain/index.js'
-import type { Room } from '#features/room/domain/index.js'
-import type { BookingStatus, RoomStatus, DomainError, Either } from '#shared/domain/index.js'
+import type * as BookingDomain from '#features/booking/domain/index.js'
+import type * as AvailabilityDomain from '#features/availability/domain/index.js'
+import type * as RoomDomain from '#features/room/domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
 
 /**
  * Transactional booking repository - operations that run within a transaction
  */
 export interface TransactionalBookingRepository {
-  create(data: CreateBookingData, extras: BookingExtraItemData[]): Promise<Either<DomainError, Booking>>
-  updateStatus(id: string, status: BookingStatus, cancellationReason?: string | null): Promise<Either<DomainError, Booking>>
+  create(data: BookingDomain.CreateBookingData, extras: BookingDomain.BookingExtraItemData[]): Promise<Domain.Either<Domain.DomainError, BookingDomain.Booking>>
+  updateStatus(id: string, status: Domain.BookingStatus, cancellationReason?: string | null): Promise<Domain.Either<Domain.DomainError, BookingDomain.Booking>>
 }
 
 /**
  * Transactional availability repository - operations that run within a transaction
  */
 export interface TransactionalAvailabilityRepository {
-  decrementCapacity(id: string, quantity: number): Promise<Either<DomainError, Availability>>
-  incrementCapacity(id: string, quantity: number): Promise<Either<DomainError, Availability>>
+  decrementCapacity(id: string, quantity: number): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability>>
+  incrementCapacity(id: string, quantity: number): Promise<Domain.Either<Domain.DomainError, AvailabilityDomain.Availability>>
 }
 
 /**
  * Transactional room repository - operations that run within a transaction
  */
 export interface TransactionalRoomRepository {
-  updateStatus(id: string, status: RoomStatus): Promise<Either<DomainError, Room>>
+  updateStatus(id: string, status: Domain.RoomStatus): Promise<Domain.Either<Domain.DomainError, RoomDomain.Room>>
 }
 
 /**

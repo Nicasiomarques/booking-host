@@ -27,10 +27,6 @@ export interface RepositoryErrorHandlerPort {
    * Analyze an error and return normalized error information
    */
   analyze(error: unknown): DatabaseErrorInfo | null
-
-  /**
-   * Check if an error is a unique constraint violation
-   */
   isUniqueConstraintViolation(error: unknown): boolean
 }
 

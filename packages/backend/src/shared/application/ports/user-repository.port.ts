@@ -1,12 +1,9 @@
-import type { UserWithRoles, CreateUserData, DomainError, Either } from '#shared/domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
 
-/**
- * Port interface for User repository operations
- */
 export interface UserRepositoryPort {
-  findById(id: string): Promise<Either<DomainError, UserWithRoles | null>>
-  findByEmail(email: string): Promise<Either<DomainError, UserWithRoles | null>>
-  create(data: CreateUserData): Promise<Either<DomainError, UserWithRoles>>
-  update(id: string, data: Partial<{ name: string; passwordHash: string }>): Promise<Either<DomainError, UserWithRoles | null>>
+  findById(id: string): Promise<Domain.Either<Domain.DomainError, Domain.UserWithRoles | null>>
+  findByEmail(email: string): Promise<Domain.Either<Domain.DomainError, Domain.UserWithRoles | null>>
+  create(data: Domain.CreateUserData): Promise<Domain.Either<Domain.DomainError, Domain.UserWithRoles>>
+  update(id: string, data: Partial<{ name: string; passwordHash: string }>): Promise<Domain.Either<Domain.DomainError, Domain.UserWithRoles | null>>
 }
 
