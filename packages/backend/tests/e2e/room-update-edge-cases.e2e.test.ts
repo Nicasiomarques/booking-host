@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { FastifyInstance } from 'fastify'
 import * as T from './helpers/test-client.js'
-import { futureDate, futureCheckOutDate } from './helpers/factories.js'
+import { futureDate } from './helpers/factories.js'
 
 interface Room {
   id: string
@@ -72,7 +72,6 @@ describe('Room Update Edge Cases E2E', () => {
 
   describe('PUT /v1/rooms/:id - Update Edge Cases', () => {
     it('update room - duplicate number - returns 409 conflict', async () => {
-      // Arrange - create two rooms
       const room1 = await T.createTestRoom(sut, owner.accessToken, hotelServiceId, {
         number: '2001',
       })
@@ -81,36 +80,31 @@ describe('Room Update Edge Cases E2E', () => {
         number: '2002',
       })
 
-      // Act - try to update room2 with room1's number
       const response = await T.put<{ error?: { code?: string; message?: string } }>(sut, `/v1/rooms/${room2.id}`, {
         token: owner.accessToken,
         payload: {
-          number: '2001', // Duplicate
+          number: '2001',
         },
       })
 
-      // Assert
       T.expectError(response, 409, 'CONFLICT')
       const body = response.body as any
       expect(body.error?.message).toContain('already exists')
     })
 
     it('update room - same number (no change) - returns 200', async () => {
-      // Arrange
       const room = await T.createTestRoom(sut, owner.accessToken, hotelServiceId, {
         number: '2003',
       })
 
-      // Act - update with same number (should be allowed)
       const response = await T.put<Room>(sut, `/v1/rooms/${room.id}`, {
         token: owner.accessToken,
         payload: {
-          number: '2003', // Same number
+          number: '2003',
           description: 'Updated description',
         },
       })
 
-      // Assert
       const body = T.expectStatus(response, 200)
       expect(body.number).toBe('2003')
       expect(body.description).toBe('Updated description')

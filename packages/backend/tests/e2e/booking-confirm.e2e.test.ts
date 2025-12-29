@@ -56,7 +56,6 @@ describe('Booking Confirm E2E', () => {
 
   describe('PUT /v1/bookings/:id/confirm', () => {
     it('confirm booking - already confirmed - returns 409 conflict', async () => {
-      // Arrange - create availability and booking (bookings are auto-confirmed)
       const availability = await T.createTestAvailability(sut, owner.accessToken, serviceId, {
         date: '2025-12-20',
         startTime: '09:00',
@@ -69,27 +68,22 @@ describe('Booking Confirm E2E', () => {
         availabilityId: availability.id,
       })
 
-      // Verify initial status is CONFIRMED
       expect(booking.status).toBe('CONFIRMED')
 
-      // Get booking details to verify confirmedAt
       const getResponse = await T.get<{ confirmedAt: string | null }>(sut, `/v1/bookings/${booking.id}`, {
         token: owner.accessToken,
       })
       const bookingDetails = T.expectStatus(getResponse, 200)
       expect(bookingDetails.confirmedAt).toBeTruthy()
 
-      // Act - try to confirm an already confirmed booking
       const response = await T.put<{ error?: { code?: string } }>(sut, `/v1/bookings/${booking.id}/confirm`, {
         token: owner.accessToken,
       })
 
-      // Assert
       T.expectError(response, 409, 'CONFLICT')
     })
 
     it('confirm booking - cancelled booking - returns 409 conflict', async () => {
-      // Arrange - create availability, booking and cancel it
       const availability = await T.createTestAvailability(sut, owner.accessToken, serviceId, {
         date: '2025-12-21',
         startTime: '09:00',
@@ -106,17 +100,14 @@ describe('Booking Confirm E2E', () => {
         token: customer.accessToken,
       })
 
-      // Act - try to confirm cancelled booking
       const response = await T.put<{ error?: { code?: string } }>(sut, `/v1/bookings/${booking.id}/confirm`, {
         token: owner.accessToken,
       })
 
-      // Assert
       T.expectError(response, 409, 'CONFLICT')
     })
 
     it('confirm booking - by customer - returns 403 forbidden', async () => {
-      // Arrange - create availability and booking
       const availability = await T.createTestAvailability(sut, owner.accessToken, serviceId, {
         date: '2025-12-22',
         startTime: '09:00',
@@ -129,25 +120,18 @@ describe('Booking Confirm E2E', () => {
         availabilityId: availability.id,
       })
 
-      // Act - customer tries to confirm (should fail)
       const response = await T.put(sut, `/v1/bookings/${booking.id}/confirm`, {
         token: customer.accessToken,
       })
 
-      // Assert
       T.expectStatus(response, 403)
     })
 
     it('confirm booking - non-existent - returns 404 not found', async () => {
-      // Arrange
       const nonExistentId = '00000000-0000-0000-0000-000000000000'
-
-      // Act
       const response = await T.put(sut, `/v1/bookings/${nonExistentId}/confirm`, {
         token: owner.accessToken,
       })
-
-      // Assert
       T.expectStatus(response, 404)
     })
   })

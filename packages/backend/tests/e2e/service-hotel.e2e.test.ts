@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { FastifyInstance } from 'fastify'
 import * as T from './helpers/test-client.js'
-import { prisma } from '../../src/shared/adapters/outbound/prisma/prisma.client.js'
 
 interface Service {
   id: string
@@ -50,17 +49,15 @@ describe('Service Hotel E2E', () => {
 
   describe('POST /v1/establishments/:establishmentId/services - Create Hotel Service', () => {
     it('create service with type HOTEL - returns 201 with HOTEL type', async () => {
-      // Arrange
       const serviceData = {
         name: 'Deluxe Suite',
         description: 'Luxury suite with ocean view',
         basePrice: 200,
-        durationMinutes: 1440, // 24 hours
+        durationMinutes: 1440,
         capacity: 2,
         type: 'HOTEL' as const,
       }
 
-      // Act
       const response = await T.post<Service>(
         sut,
         `/v1/establishments/${establishmentId}/services`,
@@ -70,7 +67,6 @@ describe('Service Hotel E2E', () => {
         }
       )
 
-      // Assert
       const body = T.expectStatus(response, 201)
       expect(body).toMatchObject({
         id: expect.any(String),
@@ -85,16 +81,13 @@ describe('Service Hotel E2E', () => {
     })
 
     it('create service without type - defaults to SERVICE', async () => {
-      // Arrange
       const serviceData = {
         name: 'Regular Service',
         basePrice: 50,
         durationMinutes: 60,
         capacity: 1,
-        // type not specified
       }
 
-      // Act
       const response = await T.post<Service>(
         sut,
         `/v1/establishments/${establishmentId}/services`,
@@ -104,7 +97,6 @@ describe('Service Hotel E2E', () => {
         }
       )
 
-      // Assert
       const body = T.expectStatus(response, 201)
       expect(body.type).toBe('SERVICE')
     })
@@ -112,7 +104,6 @@ describe('Service Hotel E2E', () => {
 
   describe('GET /v1/services/:id - Get Service with Type', () => {
     it('get service by id - returns service with type field', async () => {
-      // Arrange
       const hotelService = await T.createTestService(sut, owner.accessToken, establishmentId, {
         name: 'Hotel Room',
         basePrice: 100,
@@ -120,10 +111,8 @@ describe('Service Hotel E2E', () => {
         type: 'HOTEL',
       })
 
-      // Act
       const response = await T.get<Service>(sut, `/v1/services/${hotelService.id}`)
 
-      // Assert
       const body = T.expectStatus(response, 200)
       expect(body).toMatchObject({
         id: hotelService.id,
@@ -134,7 +123,6 @@ describe('Service Hotel E2E', () => {
 
   describe('GET /v1/establishments/:establishmentId/services - List Services', () => {
     it('list services - includes type field in response', async () => {
-      // Arrange - create services with different types
       await T.createTestService(sut, owner.accessToken, establishmentId, {
         name: 'Hotel Service',
         basePrice: 100,
@@ -148,13 +136,11 @@ describe('Service Hotel E2E', () => {
         type: 'SERVICE',
       })
 
-      // Act
       const response = await T.get<Service[]>(
         sut,
         `/v1/establishments/${establishmentId}/services`
       )
 
-      // Assert
       const body = T.expectStatus(response, 200)
       expect(body.length).toBeGreaterThanOrEqual(2)
       body.forEach((service) => {
@@ -166,7 +152,6 @@ describe('Service Hotel E2E', () => {
 
   describe('PUT /v1/services/:id - Update Service Type', () => {
     it('update service type - returns 200 with updated type', async () => {
-      // Arrange
       const service = await T.createTestService(sut, owner.accessToken, establishmentId, {
         name: 'Original Service',
         basePrice: 50,
@@ -174,7 +159,6 @@ describe('Service Hotel E2E', () => {
         type: 'SERVICE',
       })
 
-      // Act
       const response = await T.put<Service>(sut, `/v1/services/${service.id}`, {
         token: owner.accessToken,
         payload: {
@@ -182,7 +166,6 @@ describe('Service Hotel E2E', () => {
         },
       })
 
-      // Assert
       const body = T.expectStatus(response, 200)
       expect(body).toMatchObject({
         id: service.id,
