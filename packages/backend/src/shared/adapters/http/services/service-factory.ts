@@ -1,10 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import type {
-  PasswordHasherPort,
-  TokenProviderPort,
-  RepositoryErrorHandlerPort,
-  UnitOfWorkPort,
-} from '#shared/application/ports/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
 import {
   createUnitOfWork,
   createRepositoryErrorHandler,
@@ -40,10 +35,10 @@ export interface Repositories {
 }
 
 export interface Adapters {
-  passwordHasher: PasswordHasherPort
-  tokenProvider: TokenProviderPort
-  repositoryErrorHandler: RepositoryErrorHandlerPort
-  unitOfWork: UnitOfWorkPort
+  passwordHasher: Ports.PasswordHasherPort
+  tokenProvider: Ports.TokenProviderPort
+  repositoryErrorHandler: Ports.RepositoryErrorHandlerPort
+  unitOfWork: Ports.UnitOfWorkPort
 }
 
 export interface CompositionRoot {

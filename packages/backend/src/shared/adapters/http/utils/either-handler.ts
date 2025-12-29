@@ -1,6 +1,6 @@
 import { FastifyReply } from 'fastify'
-import type { DomainError, Either } from '#shared/domain/index.js'
-import { isLeft } from '#shared/domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
 
 /**
  * Helper to convert Either<DomainError, T> to HTTP response
@@ -8,12 +8,12 @@ import { isLeft } from '#shared/domain/index.js'
  * If Right, sends success response with the value
  */
 export function handleEither<T>(
-  either: Either<DomainError, T>,
+  either: Domain.Either<Domain.DomainError, T>,
   reply: FastifyReply,
   onSuccess: (value: T) => any = (value) => value,
   successStatus: number = 200
 ): FastifyReply | void {
-  if (isLeft(either)) {
+  if (DomainValues.isLeft(either)) {
     const error = either.value
     return reply.status(error.statusCode).send({
       error: {
@@ -34,7 +34,7 @@ export function handleEither<T>(
  * Helper for async operations that return Either
  */
 export async function handleEitherAsync<T>(
-  eitherPromise: Promise<Either<DomainError, T>>,
+  eitherPromise: Promise<Domain.Either<Domain.DomainError, T>>,
   reply: FastifyReply,
   onSuccess: (value: T) => any = (value) => value,
   successStatus: number = 200

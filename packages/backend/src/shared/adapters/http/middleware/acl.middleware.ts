@@ -1,9 +1,8 @@
 import { FastifyRequest } from 'fastify'
-import { ForbiddenError } from '#shared/domain/index.js'
-import type { Role } from '#shared/domain/index.js'
-import { isLeft } from '#shared/domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
 
-export function requireRole(...roles: Role[]) {
+export function requireRole(...roles: Domain.Role[]) {
   return async (request: FastifyRequest) => {
     const { establishmentId, serviceId } = request.params as {
       establishmentId?: string
@@ -15,7 +14,7 @@ export function requireRole(...roles: Role[]) {
     // If serviceId is provided, fetch establishmentId from service
     if (!targetEstablishmentId && serviceId) {
       const serviceResult = await request.server.services.service.findById(serviceId)
-      if (isLeft(serviceResult)) {
+      if (DomainValues.isLeft(serviceResult)) {
         throw serviceResult.value
       }
       const service = serviceResult.value
@@ -30,14 +29,14 @@ export function requireRole(...roles: Role[]) {
       (r) => r.establishmentId === targetEstablishmentId
     )
 
-    if (!userRole || !roles.includes(userRole.role as Role)) {
-      throw new ForbiddenError('Insufficient permissions')
+    if (!userRole || !roles.includes(userRole.role as Domain.Role)) {
+      throw new DomainValues.ForbiddenError('Insufficient permissions')
     }
   }
 }
 
 // Special middleware for routes that need to check role via roomId
-export function requireRoleViaRoom(...roles: Role[]) {
+export function requireRoleViaRoom(...roles: Domain.Role[]) {
   return async (request: FastifyRequest) => {
     const { id: roomId } = request.params as { id?: string }
 
@@ -46,13 +45,13 @@ export function requireRoleViaRoom(...roles: Role[]) {
     }
 
     const roomResult = await request.server.services.room.findById(roomId)
-    if (isLeft(roomResult)) {
+    if (DomainValues.isLeft(roomResult)) {
       throw roomResult.value
     }
     const room = roomResult.value
 
     const serviceResult = await request.server.services.service.findById(room.serviceId)
-    if (isLeft(serviceResult)) {
+    if (DomainValues.isLeft(serviceResult)) {
       throw serviceResult.value
     }
     const service = serviceResult.value
@@ -61,8 +60,8 @@ export function requireRoleViaRoom(...roles: Role[]) {
       (r) => r.establishmentId === service.establishmentId
     )
 
-    if (!userRole || !roles.includes(userRole.role as Role)) {
-      throw new ForbiddenError('Insufficient permissions')
+    if (!userRole || !roles.includes(userRole.role as Domain.Role)) {
+      throw new DomainValues.ForbiddenError('Insufficient permissions')
     }
   }
 }

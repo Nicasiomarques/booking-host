@@ -1,12 +1,12 @@
 import fp from 'fastify-plugin'
 import { FastifyInstance, FastifyError } from 'fastify'
-import { DomainError } from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
 
 export default fp(async (fastify: FastifyInstance) => {
-  fastify.setErrorHandler((error: FastifyError | DomainError, request, reply) => {
+  fastify.setErrorHandler((error: FastifyError | DomainValues.DomainError, request, reply) => {
     request.log.error(error)
 
-    if (error instanceof DomainError) {
+    if (error instanceof DomainValues.DomainError) {
       const response: any = {
         error: {
           code: error.code,
