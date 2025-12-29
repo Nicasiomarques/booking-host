@@ -44,265 +44,152 @@ describe('ACL E2E @security', () => {
   })
 
   describe('Establishment Management - Authorization', () => {
-    it('update establishment - by owner - returns 200 with updated data', async () => {
-      // Arrange
-      const updateData = { name: 'Updated Spa ACL' }
-
-      // Act
+    it.each([
+      ['owner', () => setup.owner.accessToken, { name: 'Updated Spa ACL' }, 200, (body: Establishment) => {
+        expect(body).toMatchObject({
+          id: setup.establishmentId,
+          name: 'Updated Spa ACL',
+        })
+      }],
+      ['random user', () => randomUser.accessToken, { name: 'Hacked Name' }, 403, () => {}],
+    ])('update establishment - by %s - returns %s', async (role, getToken, updateData, expectedStatus, assertFn) => {
+      const token = getToken()
       const response = await T.put<Establishment>(sut, `/v1/establishments/${setup.establishmentId}`, {
-        token: setup.owner.accessToken,
+        token,
         payload: updateData,
       })
 
-      // Assert
-      const body = T.expectStatus(response, 200)
-      expect(body).toMatchObject({
-        id: setup.establishmentId,
-        name: 'Updated Spa ACL',
-      })
-    })
-
-    it('update establishment - by random user - returns 403 forbidden', async () => {
-      // Arrange
-      const updateData = { name: 'Hacked Name' }
-
-      // Act
-      const response = await T.put(sut, `/v1/establishments/${setup.establishmentId}`, {
-        token: randomUser.accessToken,
-        payload: updateData,
-      })
-
-      // Assert
-      T.expectStatus(response, 403)
+      const body = T.expectStatus(response, expectedStatus)
+      assertFn(body)
     })
 
     it('view establishment - without authentication - returns 200 (public endpoint)', async () => {
-      // Arrange - no authentication needed
-
-      // Act
       const response = await T.get<Establishment>(sut, `/v1/establishments/${setup.establishmentId}`)
-
-      // Assert
       const body = T.expectStatus(response, 200)
       expect(body.id).toBe(setup.establishmentId)
     })
   })
 
   describe('Service Management - Authorization', () => {
-    it('create service - by owner - returns 201 with service data', async () => {
-      // Arrange
-      const serviceData = T.defaultServiceData({
+    it.each([
+      ['owner', () => setup.owner.accessToken, T.defaultServiceData({
         name: 'New ACL Service',
         basePrice: 30,
         durationMinutes: 30,
-      })
-
-      // Act
+      }), 201, (body: Service) => {
+        expect(body).toMatchObject({
+          id: expect.any(String),
+          name: 'New ACL Service',
+          basePrice: 30,
+        })
+      }],
+      ['random user', () => randomUser.accessToken, T.defaultServiceData({ name: 'Hacked Service' }), 403, () => {}],
+    ])('create service - by %s - returns %s', async (role, getToken, serviceData, expectedStatus, assertFn) => {
+      const token = getToken()
       const response = await T.post<Service>(sut, `/v1/establishments/${setup.establishmentId}/services`, {
-        token: setup.owner.accessToken,
+        token,
         payload: serviceData,
       })
 
-      // Assert
-      const body = T.expectStatus(response, 201)
-      expect(body).toMatchObject({
-        id: expect.any(String),
-        name: 'New ACL Service',
-        basePrice: 30,
-      })
+      const body = T.expectStatus(response, expectedStatus)
+      assertFn(body)
     })
 
-    it('create service - by random user - returns 403 forbidden', async () => {
-      // Arrange
-      const serviceData = T.defaultServiceData({ name: 'Hacked Service' })
-
-      // Act
-      const response = await T.post(sut, `/v1/establishments/${setup.establishmentId}/services`, {
-        token: randomUser.accessToken,
-        payload: serviceData,
-      })
-
-      // Assert
-      T.expectStatus(response, 403)
-    })
-
-    it('update service - by owner - returns 200 with updated data', async () => {
-      // Arrange
-      const updateData = { basePrice: 60 }
-
-      // Act
+    it.each([
+      ['owner', () => setup.owner.accessToken, { basePrice: 60 }, 200, (body: Service) => {
+        expect(body.basePrice).toBe(60)
+      }],
+      ['random user', () => randomUser.accessToken, { basePrice: 1 }, 403, () => {}],
+    ])('update service - by %s - returns %s', async (role, getToken, updateData, expectedStatus, assertFn) => {
+      const token = getToken()
       const response = await T.put<Service>(sut, `/v1/services/${setup.serviceId}`, {
-        token: setup.owner.accessToken,
+        token,
         payload: updateData,
       })
 
-      // Assert
-      const body = T.expectStatus(response, 200)
-      expect(body.basePrice).toBe(60)
-    })
-
-    it('update service - by random user - returns 403 forbidden', async () => {
-      // Arrange
-      const updateData = { basePrice: 1 }
-
-      // Act
-      const response = await T.put(sut, `/v1/services/${setup.serviceId}`, {
-        token: randomUser.accessToken,
-        payload: updateData,
-      })
-
-      // Assert
-      T.expectStatus(response, 403)
+      const body = T.expectStatus(response, expectedStatus)
+      assertFn(body)
     })
 
     it('list services - without authentication - returns 200 (public endpoint)', async () => {
-      // Arrange - no authentication needed
-
-      // Act
       const response = await T.get<Service[]>(sut, `/v1/establishments/${setup.establishmentId}/services`)
-
-      // Assert
       const body = T.expectStatus(response, 200)
       expect(body).toBeInstanceOf(Array)
     })
   })
 
   describe('Availability Management - Authorization', () => {
-    it('create availability - by owner - returns 201 with availability data', async () => {
-      // Arrange
-      const availabilityData = T.defaultAvailabilityData({ date: '2025-03-15' })
-
-      // Act
+    it.each([
+      ['owner', () => setup.owner.accessToken, T.defaultAvailabilityData({ date: '2025-03-15' }), 201, (body: Availability) => {
+        expect(body).toMatchObject({
+          id: expect.any(String),
+          date: '2025-03-15',
+        })
+      }],
+      ['random user', () => randomUser.accessToken, T.defaultAvailabilityData({ date: '2025-03-16' }), 403, () => {}],
+    ])('create availability - by %s - returns %s', async (role, getToken, availabilityData, expectedStatus, assertFn) => {
+      const token = getToken()
       const response = await T.post<Availability>(sut, `/v1/services/${setup.serviceId}/availabilities`, {
-        token: setup.owner.accessToken,
+        token,
         payload: availabilityData,
       })
 
-      // Assert
-      const body = T.expectStatus(response, 201)
-      expect(body).toMatchObject({
-        id: expect.any(String),
-        date: '2025-03-15',
-      })
-    })
-
-    it('create availability - by random user - returns 403 forbidden', async () => {
-      // Arrange
-      const availabilityData = T.defaultAvailabilityData({ date: '2025-03-16' })
-
-      // Act
-      const response = await T.post(sut, `/v1/services/${setup.serviceId}/availabilities`, {
-        token: randomUser.accessToken,
-        payload: availabilityData,
-      })
-
-      // Assert
-      T.expectStatus(response, 403)
+      const body = T.expectStatus(response, expectedStatus)
+      assertFn(body)
     })
 
     it('list availabilities - without authentication - returns 200 (public endpoint)', async () => {
-      // Arrange - no authentication needed
-
-      // Act
       const response = await T.get<Availability[]>(sut, `/v1/services/${setup.serviceId}/availabilities`)
-
-      // Assert
       const body = T.expectStatus(response, 200)
       expect(body).toBeInstanceOf(Array)
     })
   })
 
   describe('Extra Items Management - Authorization', () => {
-    it('create extra item - by owner - returns 201 with extra item data', async () => {
-      // Arrange
-      const extraData = { name: 'ACL Extra', price: 10, maxQuantity: 1 }
-
-      // Act
+    it.each([
+      ['owner', () => setup.owner.accessToken, { name: 'ACL Extra', price: 10, maxQuantity: 1 }, 201, (body: ExtraItem) => {
+        expect(body).toMatchObject({
+          id: expect.any(String),
+          name: 'ACL Extra',
+          price: 10,
+        })
+      }],
+      ['random user', () => randomUser.accessToken, { name: 'Hacked Extra', price: 10, maxQuantity: 1 }, 403, () => {}],
+    ])('create extra item - by %s - returns %s', async (role, getToken, extraData, expectedStatus, assertFn) => {
+      const token = getToken()
       const response = await T.post<ExtraItem>(sut, `/v1/services/${setup.serviceId}/extras`, {
-        token: setup.owner.accessToken,
+        token,
         payload: extraData,
       })
 
-      // Assert
-      const body = T.expectStatus(response, 201)
-      expect(body).toMatchObject({
-        id: expect.any(String),
-        name: 'ACL Extra',
-        price: 10,
-      })
-    })
-
-    it('create extra item - by random user - returns 403 forbidden', async () => {
-      // Arrange
-      const extraData = { name: 'Hacked Extra', price: 10, maxQuantity: 1 }
-
-      // Act
-      const response = await T.post(sut, `/v1/services/${setup.serviceId}/extras`, {
-        token: randomUser.accessToken,
-        payload: extraData,
-      })
-
-      // Assert
-      T.expectStatus(response, 403)
+      const body = T.expectStatus(response, expectedStatus)
+      assertFn(body)
     })
 
     it('list extras - without authentication - returns 200 (public endpoint)', async () => {
-      // Arrange - no authentication needed
-
-      // Act
       const response = await T.get<ExtraItem[]>(sut, `/v1/services/${setup.serviceId}/extras`)
-
-      // Assert
       const body = T.expectStatus(response, 200)
       expect(body).toBeInstanceOf(Array)
     })
   })
 
   describe('Unauthenticated Access - Protected Endpoints', () => {
-    it('create establishment - without authentication - returns 401 unauthorized', async () => {
-      // Arrange
-      const establishmentData = {
+    it.each([
+      ['establishment', '/v1/establishments', {
         name: 'Unauth Establishment',
         address: '123 Unauth St',
         timezone: 'UTC',
-      }
-
-      // Act
-      const response = await T.post(sut, '/v1/establishments', {
-        payload: establishmentData,
-      })
-
-      // Assert
-      T.expectStatus(response, 401)
-    })
-
-    it('create service - without authentication - returns 401 unauthorized', async () => {
-      // Arrange
-      const serviceData = T.defaultServiceData({ name: 'Unauth Service' })
-
-      // Act
-      const response = await T.post(sut, `/v1/establishments/${setup.establishmentId}/services`, {
-        payload: serviceData,
-      })
-
-      // Assert
-      T.expectStatus(response, 401)
-    })
-
-    it('create booking - without authentication - returns 401 unauthorized', async () => {
-      // Arrange
-      const bookingData = {
+      }],
+      ['service', () => `/v1/establishments/${setup.establishmentId}/services`, T.defaultServiceData({ name: 'Unauth Service' })],
+      ['booking', '/v1/bookings', () => ({
         serviceId: setup.serviceId,
         availabilityId: '00000000-0000-0000-0000-000000000000',
         quantity: 1,
-      }
-
-      // Act
-      const response = await T.post(sut, '/v1/bookings', {
-        payload: bookingData,
-      })
-
-      // Assert
+      })],
+    ])('create %s - without authentication - returns 401 unauthorized', async (_, urlOrFn, payloadOrFn) => {
+      const url = typeof urlOrFn === 'function' ? urlOrFn() : urlOrFn
+      const payload = typeof payloadOrFn === 'function' ? payloadOrFn() : payloadOrFn
+      const response = await T.post(sut, url, { payload })
       T.expectStatus(response, 401)
     })
   })
