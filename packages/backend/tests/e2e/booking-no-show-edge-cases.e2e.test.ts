@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { FastifyInstance } from 'fastify'
 import * as T from './helpers/test-client.js'
 import type { ErrorResponse } from './helpers/http.js'
-import { futureDate, futureCheckOutDate } from './helpers/factories.js'
-import { prisma } from '../../src/shared/adapters/outbound/prisma/prisma.client.js'
+import { futureDate } from './helpers/factories.js'
+import { createHotelBookingWithRoom, checkInBooking, checkOutBooking, markNoShow } from './helpers/hotel-operations.js'
 
 describe('Booking No-Show Edge Cases E2E', () => {
   let sut: FastifyInstance
@@ -71,118 +71,66 @@ describe('Booking No-Show Edge Cases E2E', () => {
 
   describe('PUT /v1/bookings/:id/no-show - Edge Cases', () => {
     it('mark no-show - already checked out - returns 409 conflict', async () => {
-      // Arrange
-      const testRoom = await prisma.room.create({
-        data: {
-          serviceId: hotelServiceId,
-          number: '1001',
-          floor: 10,
-          status: 'AVAILABLE',
-        },
-      })
-
-      const checkInDate = futureDate(20)
-      const checkOutDate = futureCheckOutDate(checkInDate, 4)
-      const booking = await T.createTestBooking(sut, customer.accessToken, {
+      const { booking } = await createHotelBookingWithRoom({
+        app: sut,
         serviceId: hotelServiceId,
         availabilityId: availabilityId,
-        checkInDate,
-        checkOutDate,
-        roomId: testRoom.id,
+        customerToken: customer.accessToken,
+        checkInDate: futureDate(20),
+        nights: 4,
       })
 
-      // Check in first (required before check-out)
-      await T.put(sut, `/v1/bookings/${booking.id}/check-in`, {
-        token: owner.accessToken,
-      })
+      await checkInBooking(sut, booking.id, owner.accessToken)
+      await checkOutBooking(sut, booking.id, owner.accessToken)
 
-      // Check out
-      await T.put(sut, `/v1/bookings/${booking.id}/check-out`, {
-        token: owner.accessToken,
-      })
-
-      // Act - try to mark as no-show
       const response = await T.put<ErrorResponse>(sut, `/v1/bookings/${booking.id}/no-show`, {
         token: owner.accessToken,
       })
 
-      // Assert
       T.expectError(response, 409, 'CONFLICT')
       expect(response.body.error?.message).toContain('checked-out')
     })
 
     it('mark no-show - already marked as no-show - returns 409 conflict', async () => {
-      // Arrange
-      const testRoom = await prisma.room.create({
-        data: {
-          serviceId: hotelServiceId,
-          number: '1002',
-          floor: 10,
-          status: 'AVAILABLE',
-        },
-      })
-
-      const checkInDate = futureDate(25)
-      const checkOutDate = futureCheckOutDate(checkInDate, 4)
-      const booking = await T.createTestBooking(sut, customer.accessToken, {
+      const { booking } = await createHotelBookingWithRoom({
+        app: sut,
         serviceId: hotelServiceId,
         availabilityId: availabilityId,
-        checkInDate,
-        checkOutDate,
-        roomId: testRoom.id,
+        customerToken: customer.accessToken,
+        checkInDate: futureDate(25),
+        nights: 4,
       })
 
-      // Mark as no-show first
-      await T.put(sut, `/v1/bookings/${booking.id}/no-show`, {
+      await markNoShow(sut, booking.id, owner.accessToken)
+
+      const response = await T.put<ErrorResponse>(sut, `/v1/bookings/${booking.id}/no-show`, {
         token: owner.accessToken,
       })
 
-      // Act - try to mark as no-show again
-      const response = await T.put<{ error?: { code?: string; message?: string } }>(sut, `/v1/bookings/${booking.id}/no-show`, {
-        token: owner.accessToken,
-      })
-
-      // Assert
       T.expectError(response, 409, 'CONFLICT')
-      const body = response.body as any
-      expect(body.error?.message).toContain('already marked as no-show')
+      expect(response.body.error?.message).toContain('already marked as no-show')
     })
 
     it('mark no-show - cancelled booking - returns 409 conflict', async () => {
-      // Arrange
-      const testRoom = await prisma.room.create({
-        data: {
-          serviceId: hotelServiceId,
-          number: '1003',
-          floor: 10,
-          status: 'AVAILABLE',
-        },
-      })
-
-      const checkInDate = futureDate(30)
-      const checkOutDate = futureCheckOutDate(checkInDate, 4)
-      const booking = await T.createTestBooking(sut, customer.accessToken, {
+      const { booking } = await createHotelBookingWithRoom({
+        app: sut,
         serviceId: hotelServiceId,
         availabilityId: availabilityId,
-        checkInDate,
-        checkOutDate,
-        roomId: testRoom.id,
+        customerToken: customer.accessToken,
+        checkInDate: futureDate(30),
+        nights: 4,
       })
 
-      // Cancel booking
       await T.put(sut, `/v1/bookings/${booking.id}/cancel`, {
         token: customer.accessToken,
       })
 
-      // Act - try to mark as no-show
-      const response = await T.put<{ error?: { code?: string; message?: string } }>(sut, `/v1/bookings/${booking.id}/no-show`, {
+      const response = await T.put<ErrorResponse>(sut, `/v1/bookings/${booking.id}/no-show`, {
         token: owner.accessToken,
       })
 
-      // Assert
       T.expectError(response, 409, 'CONFLICT')
-      const body = response.body as any
-      expect(body.error?.message).toContain('cancelled')
+      expect(response.body.error?.message).toContain('cancelled')
     })
   })
 })
