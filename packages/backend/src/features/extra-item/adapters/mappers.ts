@@ -9,4 +9,3 @@ export function formatExtraItemResponse<T extends { price: string | number }>(ex
     price: formatDecimal(extra.price) ?? 0,
   }
 }
-

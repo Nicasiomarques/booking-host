@@ -86,4 +86,3 @@ export function formatPaginatedBookings<T extends {
     },
   }
 }
-

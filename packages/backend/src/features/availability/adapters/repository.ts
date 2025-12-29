@@ -261,4 +261,3 @@ export const createAvailabilityRepository = (
     ).then((either) => either.map(toAvailability))
   },
 })
-

@@ -114,4 +114,3 @@ export const createUserRepository = (
     ).then((either) => either.map(toUserWithRoles))
   },
 })
-
