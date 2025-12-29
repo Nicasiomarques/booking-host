@@ -1,6 +1,7 @@
-import { NotFoundError, Either, left, right, isLeft } from '#shared/domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
+import * as DomainValues from '#shared/domain/index.js'
 
-export { isLeft }
+export const isLeft = DomainValues.isLeft
 
 /**
  * Ensures an entity exists, returning Either<NotFoundError, T>
@@ -9,10 +10,10 @@ export { isLeft }
 export function requireEntity<T>(
   entity: T | null,
   entityName: string
-): Either<NotFoundError, T> {
+): Domain.Either<DomainValues.NotFoundError, T> {
   if (!entity) {
-    return left(new NotFoundError(entityName))
+    return DomainValues.left(new DomainValues.NotFoundError(entityName))
   }
-  return right(entity)
+  return DomainValues.right(entity)
 }
 
