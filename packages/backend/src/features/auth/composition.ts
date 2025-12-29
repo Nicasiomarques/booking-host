@@ -1,24 +1,19 @@
 import { PrismaClient } from '@prisma/client'
 import { createAuthService } from './application/auth.service.js'
 import { createUserRepository } from './adapters/persistence/user.repository.js'
-import type {
-  PasswordHasherPort,
-  TokenProviderPort,
-  RepositoryErrorHandlerPort,
-  UserRepositoryPort,
-} from '#shared/application/ports/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
 
 export interface AuthComposition {
-  repository: UserRepositoryPort
+  repository: Ports.UserRepositoryPort
   service: ReturnType<typeof createAuthService>
 }
 
 export function createAuthComposition(
   prisma: PrismaClient,
   adapters: {
-    passwordHasher: PasswordHasherPort
-    tokenProvider: TokenProviderPort
-    repositoryErrorHandler: RepositoryErrorHandlerPort
+    passwordHasher: Ports.PasswordHasherPort
+    tokenProvider: Ports.TokenProviderPort
+    repositoryErrorHandler: Ports.RepositoryErrorHandlerPort
   }
 ): AuthComposition {
   const repository = createUserRepository(prisma, adapters.repositoryErrorHandler)

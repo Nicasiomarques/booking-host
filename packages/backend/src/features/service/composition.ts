@@ -1,18 +1,18 @@
 import { PrismaClient } from '@prisma/client'
 import { createServiceService } from './application/service.service.js'
 import { createServiceRepository } from './adapters/persistence/service.repository.js'
-import type { EstablishmentRepositoryPort, ServiceRepositoryPort, RepositoryErrorHandlerPort } from '#shared/application/ports/index.js'
+import type * as Ports from '#shared/application/ports/index.js'
 
 export interface ServiceComposition {
-  repository: ServiceRepositoryPort
+  repository: Ports.ServiceRepositoryPort
   service: ReturnType<typeof createServiceService>
 }
 
 export function createServiceComposition(
   prisma: PrismaClient,
   dependencies: {
-    establishmentRepository: EstablishmentRepositoryPort
-    errorHandler: RepositoryErrorHandlerPort
+    establishmentRepository: Ports.EstablishmentRepositoryPort
+    errorHandler: Ports.RepositoryErrorHandlerPort
   }
 ): ServiceComposition {
   const repository = createServiceRepository(prisma, dependencies.errorHandler)

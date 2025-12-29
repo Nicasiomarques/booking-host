@@ -9,7 +9,7 @@ import {
 } from './schemas.js'
 import { ErrorResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
 import { validate, validateQuery, authenticate } from '#shared/adapters/http/middleware/index.js'
-import type { BookingStatus } from '#shared/domain/index.js'
+import type * as Domain from '#shared/domain/index.js'
 import { formatBookingResponse, formatPaginatedBookings } from './http/mappers.js'
 import { idParamSchema } from '#shared/adapters/http/schemas/common.schema.js'
 import { handleEitherAsync } from '#shared/adapters/http/utils/either-handler.js'
@@ -96,7 +96,7 @@ export default async function bookingEndpoints(fastify: FastifyInstance) {
       const options = {
         page: request.query.page ?? 1,
         limit: request.query.limit ?? 10,
-        status: request.query.status as BookingStatus | undefined,
+        status: request.query.status as Domain.BookingStatus | undefined,
       }
       return handleEitherAsync(
         service.findByUser(request.user.userId, options),
@@ -132,7 +132,7 @@ export default async function bookingEndpoints(fastify: FastifyInstance) {
       const options = {
         page: request.query.page ?? 1,
         limit: request.query.limit ?? 10,
-        status: request.query.status as BookingStatus | undefined,
+        status: request.query.status as Domain.BookingStatus | undefined,
       }
       return handleEitherAsync(
         service.findByEstablishment(request.params.id, request.user.userId, options),

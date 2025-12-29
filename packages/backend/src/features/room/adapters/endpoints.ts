@@ -6,7 +6,7 @@ import {
   CreateRoomInput,
   UpdateRoomInput,
 } from './schemas.js'
-import type { Room } from '../domain/index.js'
+import type * as RoomDomain from '../domain/index.js'
 import { ErrorResponseSchema } from '#shared/adapters/http/openapi/index.js'
 import { requireRole, requireRoleViaRoom } from '#shared/adapters/http/middleware/index.js'
 import { serviceIdParamSchema } from '#features/service/adapters/schemas.js'
@@ -16,7 +16,7 @@ import { registerGetByIdEndpoint, registerUpdateEndpoint, registerDeleteEndpoint
 export default async function roomEndpoints(fastify: FastifyInstance) {
   const { room: service } = fastify.services
 
-  registerCreateEndpoint<Room, CreateRoomInput, { serviceId: string }>(fastify, {
+  registerCreateEndpoint<RoomDomain.Room, CreateRoomInput, { serviceId: string }>(fastify, {
     path: '/services/:serviceId/rooms',
     tags: ['Rooms'],
     entityName: 'Room',
@@ -59,7 +59,7 @@ export default async function roomEndpoints(fastify: FastifyInstance) {
     formatter: formatRoomResponse,
   })
 
-  registerUpdateEndpoint<Room, UpdateRoomInput>(fastify, {
+  registerUpdateEndpoint<RoomDomain.Room, UpdateRoomInput>(fastify, {
     path: '/rooms/:id',
     tags: ['Rooms'],
     entityName: 'Room',

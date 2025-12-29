@@ -6,7 +6,7 @@ import {
   refreshResponseSchema,
   meResponseSchema,
 } from './schemas.js'
-import type { RegisterInput, LoginInput } from '../domain/auth.js'
+import type * as AuthDomain from '../domain/index.js'
 import { ErrorResponseSchema, SuccessResponseSchema, buildRouteSchema } from '#shared/adapters/http/openapi/index.js'
 import { validate, authenticate } from '#shared/adapters/http/middleware/index.js'
 import { handleEitherAsync } from '#shared/adapters/http/utils/either-handler.js'
@@ -33,7 +33,7 @@ export default async function authEndpoints(fastify: FastifyInstance) {
     },
   }
 
-  fastify.post<{ Body: RegisterInput }>(
+  fastify.post<{ Body: AuthDomain.RegisterInput }>(
     '/register',
     {
       schema: buildRouteSchema({
@@ -50,7 +50,7 @@ export default async function authEndpoints(fastify: FastifyInstance) {
       preHandler: [validate(registerSchema)],
       ...authRateLimit,
     },
-    async (request: FastifyRequest<{ Body: RegisterInput }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Body: AuthDomain.RegisterInput }>, reply: FastifyReply) => {
       return handleEitherAsync(
         authService.register(request.body),
         reply,
@@ -65,7 +65,7 @@ export default async function authEndpoints(fastify: FastifyInstance) {
     }
   )
 
-  fastify.post<{ Body: LoginInput }>(
+  fastify.post<{ Body: AuthDomain.LoginInput }>(
     '/login',
     {
       schema: buildRouteSchema({
@@ -82,7 +82,7 @@ export default async function authEndpoints(fastify: FastifyInstance) {
       preHandler: [validate(loginSchema)],
       ...authRateLimit,
     },
-    async (request: FastifyRequest<{ Body: LoginInput }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Body: AuthDomain.LoginInput }>, reply: FastifyReply) => {
       return handleEitherAsync(
         authService.login(request.body),
         reply,
