@@ -1,5 +1,4 @@
-import { FastifyInstance, FastifyRequest } from 'fastify'
-import { z } from 'zod'
+import { FastifyInstance } from 'fastify'
 import {
   createAvailabilitySchema,
   updateAvailabilitySchema,
@@ -7,10 +6,8 @@ import {
   availabilityResponseSchema,
   CreateAvailabilityInput,
   UpdateAvailabilityInput,
-  QueryAvailabilityInput,
 } from './schemas.js'
 import { ErrorResponseSchema } from '#shared/adapters/http/openapi/index.js'
-import { validateQuery } from '#shared/adapters/http/middleware/index.js'
 import { formatAvailabilityResponse } from '#shared/adapters/http/utils/response-formatters.js'
 import { serviceIdParamSchema } from '#features/service/adapters/schemas.js'
 import type * as AvailabilityDomain from '../domain/index.js'
@@ -55,7 +52,7 @@ export default async function availabilityEndpoints(fastify: FastifyInstance) {
       result.capacity = input.capacity
     }
     if (input.price !== undefined) {
-      result.price = input.price
+      result.price = input.price === null ? undefined : input.price
     }
     if (input.notes !== undefined) {
       result.notes = input.notes
